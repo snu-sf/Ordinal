@@ -886,22 +886,22 @@ Module Ordinal.
     Variable djoin: forall A (ds: A -> D), D.
     Variable wf: D -> Prop.
 
+    Let deq: D -> D -> Prop :=
+      fun d0 d1 => dle d0 d1 /\ dle d1 d0.
+
     Variable base: D.
     Variable next: D -> D.
 
     Context `{dle_PreOrder: PreOrder _ dle}.
     Hypothesis djoin_upperbound: forall A (ds: A -> D) (a: A), dle (ds a) (djoin ds).
     Hypothesis djoin_supremum: forall A (ds: A -> D) (d: D) (LE: forall a, dle (ds a) d), dle (djoin ds) d.
-    Hypothesis djoin_wf: forall A (ds: A -> D) (WF: forall a, wf (ds a)), wf (djoin ds).
+    Hypothesis djoin_wf: forall A (ds: A -> D) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)), wf (djoin ds).
 
     Hypothesis base_wf: wf base.
     Hypothesis next_wf: forall d (WF: wf d), wf (next d).
 
     Hypothesis next_le: forall d (WF: wf d), dle d (next d).
     Hypothesis next_mon: forall d0 d1 (LE: dle d0 d1), dle (next d0) (next d1).
-
-    Let deq: D -> D -> Prop :=
-      fun d0 d1 => dle d0 d1 /\ dle d1 d0.
 
     Global Program Instance deq_Equivalence: Equivalence deq.
     Next Obligation.
@@ -949,14 +949,7 @@ Module Ordinal.
         dunion base (djoin (fun x => next (rec (xs x))))
       end.
 
-    Lemma rec_wf o: wf (rec o).
-    Proof.
-      induction o. ss. eapply djoin_wf. i. destruct a.
-      - eapply base_wf.
-      - eapply djoin_wf. i. eapply next_wf. auto.
-    Qed.
-
-    Lemma le_rec (o0 o1: t) (LE: le o0 o1): dle (rec o0) (rec o1).
+    Lemma rec_le (o0 o1: t) (LE: le o0 o1): dle (rec o0) (rec o1).
     Proof.
       revert o0 LE. induction o1. i. dependent destruction LE. ss.
       eapply dunion_spec.
@@ -966,11 +959,11 @@ Module Ordinal.
       exploit H; eauto.
     Qed.
 
-    Lemma eq_rec (o0 o1: t) (EQ: eq o0 o1): deq (rec o0) (rec o1).
+    Lemma rec_eq (o0 o1: t) (EQ: eq o0 o1): deq (rec o0) (rec o1).
     Proof.
       split.
-      - eapply le_rec. eapply EQ.
-      - eapply le_rec. eapply EQ.
+      - eapply rec_le. eapply EQ.
+      - eapply rec_le. eapply EQ.
     Qed.
 
     Lemma rec_O: deq (rec O) base.
@@ -985,7 +978,7 @@ Module Ordinal.
     Lemma rec_is_O o (ZERO: is_O o): deq (rec o) base.
     Proof.
       transitivity (rec O).
-      - eapply eq_rec. eapply is_O_eq; auto. eapply O_is_O.
+      - eapply rec_eq. eapply is_O_eq; auto. eapply O_is_O.
       - eapply rec_O.
     Qed.
 
@@ -993,7 +986,32 @@ Module Ordinal.
     Proof.
       transitivity (rec O).
       - eapply rec_O.
-      - eapply le_rec. eapply O_bot.
+      - eapply rec_le. eapply O_bot.
+    Qed.
+
+    Lemma rec_wf o: wf (rec o).
+    Proof.
+      induction o. ss. eapply djoin_wf.
+      - i. destruct a0, a1; ss.
+        + left. reflexivity.
+        + destruct (classic (inhabited A)).
+          * destruct H0. left. transitivity (next (rec (os X))).
+            { transitivity (rec (os X)); auto. eapply rec_le_base. }
+            { apply (djoin_upperbound (fun x => next (rec (os x))) X). }
+          * right. eapply djoin_supremum. i. exfalso. eapply H0. econs; eauto.
+        + destruct (classic (inhabited A)).
+          * destruct H0. right. transitivity (next (rec (os X))).
+            { transitivity (rec (os X)); auto. eapply rec_le_base. }
+            { apply (djoin_upperbound (fun x => next (rec (os x))) X). }
+          * left. eapply djoin_supremum. i. exfalso. eapply H0. econs; eauto.
+        + left. reflexivity.
+      - i. destruct a.
+        + eapply base_wf.
+        + eapply djoin_wf.
+          * i. destruct (total (os a0) (os a1)).
+            { left. eapply next_mon. eapply rec_le. auto. }
+            { right. eapply next_mon. eapply rec_le. eapply lt_le. auto. }
+          * i. eapply next_wf. auto.
     Qed.
 
     Lemma rec_S o: deq (rec (S o)) (next (rec o)).
@@ -1013,7 +1031,7 @@ Module Ordinal.
     Lemma rec_is_S o s (SUCC: is_S o s): deq (rec s) (next (rec o)).
     Proof.
       transitivity (rec (S o)).
-      - eapply eq_rec. eapply is_S_eq; eauto. eapply S_is_S.
+      - eapply rec_eq. eapply is_S_eq; eauto. eapply S_is_S.
       - eapply rec_S.
     Qed.
 
@@ -1029,7 +1047,7 @@ Module Ordinal.
         + eapply djoin_le. i. specialize (OPEN a0). des. exists a1.
           transitivity (rec (S (os a0))).
           * eapply rec_S.
-          * eapply le_rec. eapply S_spec. auto.
+          * eapply rec_le. eapply S_spec. auto.
       - ss. etransitivity; [|eapply dunion_r].
         eapply djoin_le. i. exists a0. eapply next_le. eapply rec_wf.
     Qed.
@@ -1039,7 +1057,7 @@ Module Ordinal.
       : deq (rec o) (djoin (fun a => rec (os a))).
     Proof.
       transitivity (rec (build os)).
-      - eapply eq_rec. eapply is_join_eq.
+      - eapply rec_eq. eapply is_join_eq.
         + eauto.
         + eapply build_is_join. auto.
       - eapply rec_build; auto.
@@ -1096,12 +1114,12 @@ Module Ordinal.
 
     Lemma le_orec (o0 o1: t) (LE: le o0 o1): le (orec o0) (orec o1).
     Proof.
-      unfold orec. eapply le_rec; eauto.
+      unfold orec. eapply rec_le; eauto.
     Qed.
 
     Lemma eq_orec (o0 o1: t) (EQ: eq o0 o1): eq (orec o0) (orec o1).
     Proof.
-      unfold orec. eapply eq_rec; eauto.
+      unfold orec. eapply rec_eq; eauto.
     Qed.
 
     Lemma orec_is_O (o: t) (ZERO: is_O o): eq (orec o) base.
@@ -1156,20 +1174,91 @@ Module Ordinal.
   Qed.
 
   Section CARDINAL.
-    Variable A: Type.
-    Record subA: Type :=
-      subA_mk {
-          P: A -> Prop;
-          R: A -> A -> Prop;
+    Variable X: Type.
+    Record subX: Type :=
+      subX_mk {
+          P: X -> Prop;
+          R: X -> X -> Prop;
         }.
 
-    Record subA_wf (A': subA): Type :=
-      subA_wf_intro {
-          sound: forall a0 a1 (LT: A'.(R) a0 a1), A'.(P) a0 /\ A'.(P) a1;
-          complete: forall a0 a1 (IN0: A'.(P) a0) (IN1: A'.(P) a1),
-              A'.(R) a0 a1 \/ a0 = a1 \/ A'.(R) a1 a0;
-          wf: well_founded A'.(R);
+    Record subX_wf (X': subX): Type :=
+      subX_wf_intro {
+          sound: forall a0 a1 (LT: X'.(R) a0 a1), X'.(P) a0 /\ X'.(P) a1;
+          complete: forall a0 a1 (IN0: X'.(P) a0) (IN1: X'.(P) a1),
+              X'.(R) a0 a1 \/ a0 = a1 \/ X'.(R) a1 a0;
+          wfo: well_founded X'.(R);
         }.
+
+    Record leX (s0 s1: subX): Prop :=
+      leX_intro {
+          P_incl: forall a (IN: s0.(P) a), s1.(P) a;
+          R_incl: forall a0 a1 (LT: s0.(R) a0 a1), s1.(R) a0 a1;
+          (* no_insert: forall a0 a1 (IN: s0.(P) a1) (LT: s1.(R) a0 a1), s0.(R) a0 a1; *)
+        }.
+
+    Local Program Instance leX_PreOrder: PreOrder leX.
+    Next Obligation.
+    Proof.
+      ii. econs; auto.
+    Qed.
+    Next Obligation.
+    Proof.
+      ii. inv H. inv H0. econs; eauto.
+    Qed.
+
+    Global Program Instance leX_Antisymmetric: Antisymmetric _ Coq.Init.Logic.eq leX.
+    Next Obligation.
+    Proof.
+      destruct x, y. inv H. inv H0. ss. f_equal.
+      - extensionality a. eapply propositional_extensionality. auto.
+      - extensionality a0. extensionality a1. eapply propositional_extensionality. auto.
+    Qed.
+
+    Let joinX A (Xs: A -> subX): subX :=
+      subX_mk (fun x => exists a, (Xs a).(P) x) (fun x0 x1 => exists a, (Xs a).(R) x0 x1).
+
+    Let base: subX := subX_mk (fun _ => False) (fun _ _ => False).
+    Hypothesis next: subX -> subX.
+
+    Lemma joinX_upperbound: forall A (Xs: A -> subX) (a: A), leX (Xs a) (joinX Xs).
+    Proof.
+      i. econs; ss; eauto.
+    Qed.
+
+    Lemma joinX_supremum: forall A (Xs: A -> subX) (X': subX) (LE: forall a, leX (Xs a) X'), leX (joinX Xs) X'.
+    Proof.
+      i. econs; ss.
+      - i. des. specialize (LE a0). inv LE. eauto.
+      - i. des. specialize (LE a). inv LE. eauto.
+    Qed.
+
+    Lemma base_wf: subX_wf base.
+    Proof.
+      econs; ss.
+    Qed.
+
+    Hypothesis next_wf: forall X' (WF: subX_wf X'), subX_wf (next X').
+    Hypothesis next_le: forall X' (WF: subX_wf X'), leX X' (next X').
+
+    Lemma joinX_wf: forall A (Xs: A -> subX) (CHAIN: forall a0 a1, leX (Xs a0) (Xs a1) \/ leX (Xs a1) (Xs a0)) (WF: forall a, subX_wf (Xs a)), subX_wf (joinX Xs).
+    Proof.
+      i. econs; ss.
+      - i. des. edestruct (WF a). exploit sound0; eauto. i. des. eauto.
+      - i. des. destruct (CHAIN a2 a).
+        + eapply H in IN0. edestruct (WF a).
+          exploit (complete0 a0 a1); auto. i. des; eauto.
+        + eapply H in IN1. edestruct (WF a2).
+          exploit (complete0 a0 a1); auto. i. des; eauto.
+      - intros x. destruct (classic (exists a, (Xs a).(P) x)).
+        + des. specialize ((WF a).(wfo) x). i. induction H0. econs.
+          i. des.
+          destruct (CHAIN a0 a).
+          { eapply H1; auto.
+            - eapply H3; auto.
+            - eapply H3 in H2. eapply WF in H2. des. auto. }
+          { admit. }
+        + econs. i. des. eapply WF in H0. des. exfalso. eauto.
+    Admitted.
   End CARDINAL.
 
 End Ordinal.
