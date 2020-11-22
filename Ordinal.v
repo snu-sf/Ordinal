@@ -547,10 +547,10 @@ Module Ordinal.
   Qed.
 
   Program Fixpoint from_acc A (R: A -> A -> Prop) (a1: A) (ACC: Acc R a1): t :=
-    @build (sigT (fun a0 => R a0 a1)) (fun a0p =>
-                                      @from_acc _ R (projT1 a0p) _).
+    @build (sig (fun a0 => R a0 a1)) (fun a0p =>
+                                        @from_acc _ R (proj1_sig a0p) _).
   Next Obligation.
-    inv ACC. eapply H; eauto.
+    inv ACC. eapply H0; eauto.
   Defined.
 
   Arguments from_acc [A R] a1 ACC.
@@ -561,10 +561,10 @@ Module Ordinal.
       lt (from_acc a0 ACC0) (from_acc a1 ACC1).
   Proof.
     destruct ACC1. ss.
-    set (existT (fun a0 => R a0 a1) a0 LT).
+    set (exist (fun a0 => R a0 a1) a0 LT).
     replace ACC0 with (from_acc_obligation_1 (Acc_intro a1 a) s).
     2: { eapply proof_irrelevance. }
-    eapply (build_upperbound (fun a0p => from_acc (projT1 a0p) (from_acc_obligation_1 (Acc_intro a1 a) a0p)) s).
+    eapply (build_upperbound (fun a0p => from_acc (proj1_sig a0p) (from_acc_obligation_1 (Acc_intro a1 a) a0p)) s).
   Qed.
 
   Definition from_wf A (R: A -> A -> Prop) (WF: well_founded R) (a1: A): t :=
@@ -1140,16 +1140,37 @@ Module Ordinal.
 
   Definition omega: t := join from_nat.
 
-  Definition is_larger (A: Type) (o: t
+  Definition is_hartogs A (h: t): Prop :=
+    is_meet (fun o => forall (R: A -> A -> Prop) (WF: well_founded R),
+                 ~ eq (from_wf_set WF) o) h.
 
-  Definition is_cardinal (A: Type) (o: t): Prop :=
-    is_meet (fun o0 => exists R, ) o.
+  Lemma hartogs_exists A:
+    exists h, is_hartogs A h.
+  Proof.
+    eapply meet_exists.
+    exists (@build
+              (@sig (A -> A -> Prop) (@well_founded A))
+              (fun rwf => from_wf_set (proj2_sig rwf))).
+    ii. eapply lt_StrictOrder. eapply lt_eq_lt; [eauto|].
+    eapply (@build_upperbound _ (fun rwf => from_wf_set (proj2_sig rwf)) (@exist _ _ R WF)).
+  Qed.
 
+  Section CARDINAL.
+    Variable A: Type.
+    Record subA: Type :=
+      subA_mk {
+          P: A -> Prop;
+          R: A -> A -> Prop;
+        }.
 
-  Definition is_larger (A: Type) (o: t) :=
-
-    is_meet (
-
+    Record subA_wf (A': subA): Type :=
+      subA_wf_intro {
+          sound: forall a0 a1 (LT: A'.(R) a0 a1), A'.(P) a0 /\ A'.(P) a1;
+          complete: forall a0 a1 (IN0: A'.(P) a0) (IN1: A'.(P) a1),
+              A'.(R) a0 a1 \/ a0 = a1 \/ A'.(R) a1 a0;
+          wf: well_founded A'.(R);
+        }.
+  End CARDINAL.
 
 End Ordinal.
 
