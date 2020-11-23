@@ -1388,71 +1388,137 @@ Module Ordinal.
       leX_intro {
           P_incl: forall a (IN: s0.(P) a), s1.(P) a;
           R_incl: forall a0 a1 (LT: s0.(R) a0 a1), s1.(R) a0 a1;
-          (* no_insert: forall a0 a1 (IN: s0.(P) a1) (LT: s1.(R) a0 a1), s0.(R) a0 a1; *)
+          no_insert: forall a0 a1 (IN: s0.(P) a1), s1.(R) a0 a1 <-> s0.(R) a0 a1;
         }.
-
-    Local Program Instance leX_PreOrder: PreOrder leX.
-    Next Obligation.
-    Proof.
-      ii. econs; auto.
-    Qed.
-    Next Obligation.
-    Proof.
-      ii. inv H. inv H0. econs; eauto.
-    Qed.
-
-    Global Program Instance leX_Antisymmetric: Antisymmetric _ Coq.Init.Logic.eq leX.
-    Next Obligation.
-    Proof.
-      destruct x, y. inv H. inv H0. ss. f_equal.
-      - extensionality a. eapply propositional_extensionality. auto.
-      - extensionality a0. extensionality a1. eapply propositional_extensionality. auto.
-    Qed.
 
     Let joinX A (Xs: A -> subX): subX :=
       subX_mk (fun x => exists a, (Xs a).(P) x) (fun x0 x1 => exists a, (Xs a).(R) x0 x1).
 
     Let base: subX := subX_mk (fun _ => False) (fun _ _ => False).
-    Hypothesis next: subX -> subX.
 
-    Lemma joinX_upperbound: forall A (Xs: A -> subX) (a: A), leX (Xs a) (joinX Xs).
+    Let leX_reflexive: forall d (WF: subX_wf d), leX d d.
     Proof.
-      i. econs; ss; eauto.
+      i. econs; eauto.
     Qed.
 
-    Lemma joinX_supremum: forall A (Xs: A -> subX) (X': subX) (LE: forall a, leX (Xs a) X'), leX (joinX Xs) X'.
+    Let leX_transitive: forall d1 d0 d2 (WF0: subX_wf d0) (WF1: subX_wf d1) (WF2: subX_wf d2) (LE0: leX d0 d1) (LE1: leX d1 d2),
+        leX d0 d2.
+    Proof.
+      i. inv LE0. inv LE1. econs; eauto.
+      i. rewrite no_insert1; eauto.
+    Qed.
+
+    Let joinX_upperbound: forall A (ds: A -> subX) (a: A) (CHAIN: forall a0 a1, leX (ds a0) (ds a1) \/ leX (ds a1) (ds a0)) (WF: forall a, subX_wf (ds a)), leX (ds a) (joinX ds).
+    Proof.
+      i. econs; ss; eauto. i. split; i.
+      - des. destruct (CHAIN a a2).
+        + eapply H0 in H; eauto.
+        + eapply H0. eauto.
+      - eauto.
+    Qed.
+
+    Let joinX_supremum: forall A (ds: A -> subX) (d: subX) (CHAIN: forall a0 a1, leX (ds a0) (ds a1) \/ leX (ds a1) (ds a0)) (WF: forall a, subX_wf (ds a)) (WFD: subX_wf d) (LE: forall a, leX (ds a) d), leX (joinX ds) d.
     Proof.
       i. econs; ss.
-      - i. des. specialize (LE a0). inv LE. eauto.
-      - i. des. specialize (LE a). inv LE. eauto.
+      - i. des. eapply LE in IN. auto.
+      - i. des. eapply LE in LT. auto.
+      - i. des. split; i.
+        + eapply LE in H; eauto.
+        + des. eapply LE; eauto.
     Qed.
 
-    Lemma base_wf: subX_wf base.
+    Let joinX_wf: forall A (ds: A -> subX) (CHAIN: forall a0 a1, leX (ds a0) (ds a1) \/ leX (ds a1) (ds a0)) (WF: forall a, subX_wf (ds a)), subX_wf (joinX ds).
+    Proof.
+      i. econs; ss.
+      - i. des. eapply WF in LT. des. eauto.
+      - i. des. destruct (CHAIN a2 a).
+        + eapply H in IN0. hexploit ((WF a).(complete) a0 a1); eauto.
+          i. des; eauto.
+        + eapply H in IN1. hexploit ((WF a2).(complete) a0 a1); eauto.
+          i. des; eauto.
+      - intros x1. econs. intros x0. i. des.
+        assert (ACC: Acc (R (ds a)) x0).
+        { eapply WF. }
+        eapply WF in H. des. clear H0.
+        revert H. induction ACC. i.
+        econs. i. des.
+        assert (LT: R (ds a) y x).
+        { destruct (CHAIN a a0).
+          - eapply H3 in H2; auto.
+          - eapply H3 in H2; auto.
+        }
+        eapply H0; eauto. eapply WF in LT. des. auto.
+    Qed.
+
+    Let base_wf: subX_wf base.
     Proof.
       econs; ss.
     Qed.
 
-    Hypothesis next_wf: forall X' (WF: subX_wf X'), subX_wf (next X').
-    Hypothesis next_le: forall X' (WF: subX_wf X'), leX X' (next X').
+    Section NEXT.
+      Hypothesis next: subX -> subX.
 
-    Lemma joinX_wf: forall A (Xs: A -> subX) (CHAIN: forall a0 a1, leX (Xs a0) (Xs a1) \/ leX (Xs a1) (Xs a0)) (WF: forall a, subX_wf (Xs a)), subX_wf (joinX Xs).
+      Hypothesis next_wf: forall d (WF: subX_wf d), subX_wf (next d).
+      Hypothesis next_le: forall d (WF: subX_wf d), leX d (next d).
+      Hypothesis next_exhausted: forall d (WF: subX_wf d),
+          (forall x, d.(P) x) \/
+          (exists x, (next d).(P) x /\ ~ d.(P) x)
+      .
+
+      Let next_eq: forall d0 d1 (WF0: subX_wf d0) (WF1: subX_wf d1) (EQ: leX d0 d1 /\ leX d1 d0), leX (next d0) (next d1) /\ leX (next d1) (next d0).
+      Proof.
+        i. assert (d0 = d1).
+        { des. destruct d0, d1. f_equal.
+          - extensionality x. eapply propositional_extensionality. split.
+            + eapply EQ.
+            + eapply EQ0.
+          - extensionality x0. extensionality x1.
+            eapply propositional_extensionality. split.
+            + eapply EQ.
+            + eapply EQ0.
+        }
+        subst. split; auto.
+      Qed.
+
+      Let hartogs_exhausted h
+            (HARTOGS: is_hartogs X h)
+        :
+          forall x, (rec joinX base next h).(P) x.
+      Proof.
+      Admitted.
+
+      Lemma choice_then_well_ordering_principle
+        :
+          exists (R: X -> X -> Prop),
+            well_founded R /\
+            (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
+      Proof.
+        hexploit (hartogs_exists X). i. des.
+        exists (rec joinX base next h).(R).
+        assert (WF: subX_wf (rec joinX base next h)).
+        { hexploit (@rec_wf _ leX joinX subX_wf base next); eauto. }
+        split.
+        - eapply WF.
+        - i. eapply WF.
+          + eapply hartogs_exhausted; auto.
+          + eapply hartogs_exhausted; auto.
+      Qed.
+    End NEXT.
+
+    Lemma well_ordering_principle
+      :
+        exists (R: X -> X -> Prop),
+          well_founded R /\
+          (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
     Proof.
-      i. econs; ss.
-      - i. des. edestruct (WF a). exploit sound0; eauto. i. des. eauto.
-      - i. des. destruct (CHAIN a2 a).
-        + eapply H in IN0. edestruct (WF a).
-          exploit (complete0 a0 a1); auto. i. des; eauto.
-        + eapply H in IN1. edestruct (WF a2).
-          exploit (complete0 a0 a1); auto. i. des; eauto.
-      - intros x. destruct (classic (exists a, (Xs a).(P) x)).
-        + des. specialize ((WF a).(wfo) x). i. induction H0. econs.
-          i. des.
-          destruct (CHAIN a0 a).
-          { eapply H1; auto.
-            - eapply H3; auto.
-            - eapply H3 in H2. eapply WF in H2. des. auto. }
-          { admit. }
-        + econs. i. des. eapply WF in H0. des. exfalso. eauto.
+      assert (exists (next: subX -> subX),
+                 (forall d (WF: subX_wf d), subX_wf (next d)) /\
+                 (forall d (WF: subX_wf d), leX d (next d)) /\
+                 (forall d (WF: subX_wf d),
+                     (forall x, d.(P) x) \/
+                     (exists x, (next d).(P) x /\ ~ d.(P) x))).
+      { admit. }
+      des. eapply choice_then_well_ordering_principle; eauto.
     Admitted.
   End CARDINAL.
 
