@@ -1,5 +1,4 @@
-From Paco Require Import paco.
-From sflib Require Import sflib.
+Require Import sflib.
 
 Require Import Coq.Classes.RelationClasses Coq.Classes.Morphisms. (* TODO: Use Morphisms *)
 Require Import ClassicalChoice PropExtensionality FunctionalExtensionality.
@@ -130,19 +129,19 @@ Module Cardinality.
     Hypothesis SUB1: forall b0 b1 (EQ: sub1 b0 = sub1 b1), b0 = b1.
     Hypothesis INJ: forall a0 a1 (EQ: f a0 = f a1), a0 = a1.
 
-    Fixpoint aseq (n: nat) (a: A): A :=
+    Let Fixpoint aseq (n: nat) (a: A): A :=
       match n with
       | 0 => a
       | S n' => sub1 (sub0 (f (aseq n' a)))
       end.
 
-    Fixpoint bseq (n: nat) (b: B): A :=
+    Let Fixpoint bseq (n: nat) (b: B): A :=
       match n with
       | 0 => sub1 b
       | S n' => sub1 (sub0 (f (bseq n' b)))
       end.
 
-    Lemma bseq_aseq n:
+    Let bseq_aseq n:
       forall b, exists a, bseq n b = aseq n a.
     Proof.
       induction n; ss.
@@ -150,7 +149,7 @@ Module Cardinality.
       - i. specialize (IHn b). des. exists a. rewrite IHn. auto.
     Qed.
 
-    Lemma aseq_S_bseq n:
+    Let aseq_S_bseq n:
       forall a, exists b, aseq (S n) a = bseq n b.
     Proof.
       induction n; ss.
@@ -158,7 +157,7 @@ Module Cardinality.
       - i. specialize (IHn a). des. exists b. rewrite IHn. auto.
     Qed.
 
-    Lemma aseq_decrease n:
+    Let aseq_decrease n:
       forall a0, exists a1, aseq (S n) a0 = aseq n a1.
     Proof.
       i. hexploit (aseq_S_bseq n a0). i. des.
@@ -166,7 +165,7 @@ Module Cardinality.
       exists a. rewrite H. auto.
     Qed.
 
-    Lemma bseq_decrease n:
+    Let bseq_decrease n:
       forall b0, exists b1, bseq (S n) b0 = bseq n b1.
     Proof.
       i. hexploit (bseq_aseq (S n) b0). i. des.
@@ -174,11 +173,11 @@ Module Cardinality.
       exists b. rewrite H. auto.
     Qed.
 
-    Definition in_gap (n: nat) (a1: A): Prop :=
+    Let in_gap (n: nat) (a1: A): Prop :=
       (exists a0, aseq n a0 = a1) /\
       (forall b0, bseq n b0 <> a1).
 
-    Lemma in_gap_step (n: nat) (a1: A):
+    Let in_gap_step (n: nat) (a1: A):
       in_gap (S n) a1 <->
       (exists a0, in_gap n a0 /\ a1 = sub1 (sub0 (f a0))).
     Proof.
@@ -190,16 +189,16 @@ Module Cardinality.
         eapply INJ in H. eapply H1; eauto.
     Qed.
 
-    Definition in_gap_all (a1: A): Prop :=
+    Let in_gap_all (a1: A): Prop :=
       exists n, in_gap n a1.
 
-    Definition is_g (g: A -> B): Prop :=
+    Let is_g (g: A -> B): Prop :=
       forall a,
         (forall (GAP: in_gap_all a), g a = sub0 (f a)) /\
         (forall (NGAP: ~ in_gap_all a), sub1 (g a) = a)
     .
 
-    Lemma is_g_exists: exists g, is_g g.
+    Let is_g_exists: exists g, is_g g.
     Proof.
       eapply (choice (fun a b =>
                         (forall (GAP: in_gap_all a), b = sub0 (f a)) /\
@@ -211,7 +210,7 @@ Module Cardinality.
         exfalso. eapply H. exists 0. econs; ss; eauto.
     Qed.
 
-    Lemma g_inj (g: A -> B) (G: is_g g):
+    Let g_inj (g: A -> B) (G: is_g g):
       forall a0 a1 (EQ: g a0 = g a1), a0 = a1.
     Proof.
       i. edestruct (G a0). edestruct (G a1).
@@ -233,7 +232,7 @@ Module Cardinality.
         rewrite EQ in H3. rewrite H3 in *. auto.
     Qed.
 
-    Lemma g_surj (g: A -> B) (G: is_g g):
+    Let g_surj (g: A -> B) (G: is_g g):
       forall b, exists a, g a = b.
     Proof.
       i. destruct (classic (in_gap_all (sub1 b))).
@@ -605,11 +604,13 @@ Module Ordinal.
   Qed.
 
   Definition is_O (o0: t): Prop := forall o1, le o0 o1.
+
   Record is_S (o0 o1: t): Prop :=
     is_S_mk {
         is_S_lt: lt o0 o1;
         is_S_spec: forall o (LT: lt o0 o), le o1 o;
       }.
+
   Record is_join A (os: A -> t) o1: Prop :=
     is_join_mk {
         is_join_upperbound: forall a, le (os a) o1;
@@ -728,7 +729,7 @@ Module Ordinal.
   Qed.
 
   Section JOIN.
-    Lemma le_lemma o0 B1 (os1: B1 -> t)
+    Let le_lemma o0 B1 (os1: B1 -> t)
           (LE: forall B0 os0 (b0: B0)
                       (EQ: o0 = @build B0 os0),
               exists b1, le (os0 b0) (os1 b1))
@@ -773,7 +774,7 @@ Module Ordinal.
       unfold s. rewrite EQ. ss.
     Qed.
 
-    Lemma build_fst_eq A0 A1 os0 os1 (EQ: @build A0 os0 = @build A1 os1):
+    Let build_fst_eq A0 A1 os0 os1 (EQ: @build A0 os0 = @build A1 os1):
       A0 = A1.
     Proof.
       inversion EQ. auto.
@@ -919,7 +920,7 @@ Module Ordinal.
         dunion base (djoin (fun x => next (rec (xs x))))
       end.
 
-    Lemma rec_all (o1: t):
+    Let rec_all (o1: t):
       (forall o0 (LE: le o0 o1), dle (rec o0) (rec o1)) /\
       (forall o0 (LT: lt o0 o1), dle (next (rec o0)) (rec o1)) /\
       (wf (rec o1)) /\
@@ -1083,6 +1084,11 @@ Module Ordinal.
       - eapply rec_le. eapply EQ.
     Qed.
 
+    Lemma rec_lt (o0 o1: t) (LT: lt o0 o1): dle (next (rec o0)) (rec o1).
+    Proof.
+      eapply rec_all; auto.
+    Qed.
+
     Lemma rec_le_base o: dle base (rec o).
     Proof.
       eapply rec_all.
@@ -1093,71 +1099,145 @@ Module Ordinal.
       eapply rec_all.
     Qed.
 
-    WIP
+    Let RECWF:= rec_wf.
+
+    Lemma rec_next_le (o0 o1: t) (LE: le o0 o1): dle (next (rec o0)) (next (rec o1)).
+    Proof.
+      eapply le_eq_or_lt in LE. des.
+      - eapply rec_lt in LE. eapply (@dle_transitive (rec o1)); eauto.
+      - eapply rec_eq in LE. eapply next_eq in LE; eauto. eapply LE.
+    Qed.
+
+    Let chain_helper X (xs: X -> t)
+      :
+        forall x0 x1, dle (next (rec (xs x0))) (next (rec (xs x1))) \/
+                      dle (next (rec (xs x1))) (next (rec (xs x0))).
+    Proof.
+      i. destruct (total (xs x0) (xs x1)).
+      - left. eapply rec_next_le. auto.
+      - right. eapply lt_le in H. eapply rec_next_le. auto.
+    Qed.
+
+    Let wf_helper X (xs: X -> t)
+      :
+        forall x, wf (next (rec (xs x))).
+    Proof.
+      i. auto.
+    Qed.
+
+    Let chainu_helper X (xs: X -> t)
+      :
+        forall (b0 b1: bool),
+          dle (if b0 then base else djoin (fun x => next (rec (xs x))))
+              (if b1 then base else djoin (fun x => next (rec (xs x)))) \/
+          dle (if b1 then base else djoin (fun x => next (rec (xs x))))
+              (if b0 then base else djoin (fun x => next (rec (xs x)))).
+    Proof.
+      assert (dle base (djoin (fun x => next (rec (xs x)))) \/
+              dle (djoin (fun x => next (rec (xs x)))) base).
+      { destruct (classic (inhabited X)).
+        - destruct H as [x]. left.
+          eapply (@dle_transitive (next (rec (xs x)))); auto.
+          + eapply (@dle_transitive (rec (xs x))); auto. eapply rec_le_base.
+          + eapply (@djoin_upperbound _ (fun x0 => next (rec (xs x0))) x); auto.
+        - right. eapply djoin_supremum; auto.
+          i. exfalso. eapply H; eauto.
+      }
+      i. destruct b0, b1; auto. des; auto.
+    Qed.
+
+    Let wfu_helper X (xs: X -> t)
+      :
+        forall (b: bool),
+          wf (if b then base else djoin (fun x => next (rec (xs x)))).
+    Proof.
+      i. destruct b; auto.
+    Qed.
 
     Lemma rec_O: deq (rec O) base.
     Proof.
       ss. split.
-      - eapply dunion_spec.
-        + reflexivity.
-        + eapply djoin_supremum. ss.
-      - eapply dunion_l.
+      - eapply djoin_supremum; auto. i. destruct a; auto.
+        eapply djoin_supremum; auto. ss.
+      - eapply (@djoin_upperbound _ (fun b: bool => if b then base else djoin (fun x => next (rec !))) true); auto.
     Qed.
 
     Lemma rec_is_O o (ZERO: is_O o): deq (rec o) base.
     Proof.
-      transitivity (rec O).
-      - eapply rec_eq. eapply is_O_eq; auto. eapply O_is_O.
-      - eapply rec_O.
+      hexploit (@rec_eq O o).
+      { eapply is_O_eq; auto. eapply O_is_O. }
+      i. inv H. split.
+      - eapply (@dle_transitive (rec O)); auto. eapply rec_O.
+      - eapply (@dle_transitive (rec O)); auto. eapply rec_O.
     Qed.
 
     Lemma rec_S o: deq (rec (S o)) (next (rec o)).
     Proof.
       ss. split.
-      - eapply dunion_spec.
-        + transitivity (rec o).
-          * eapply rec_le_base.
-          * eapply next_le. eapply rec_wf.
-        + eapply djoin_supremum. i.
-          destruct a. ss. reflexivity.
-      - etransitivity; [|eapply dunion_r].
-        etransitivity; [|eapply djoin_upperbound].
-        instantiate (1:=tt). ss. reflexivity.
+      - eapply djoin_supremum; auto. i. destruct a.
+        + eapply (@dle_transitive (rec o)); auto. eapply rec_le_base.
+        + eapply djoin_supremum; auto. i. destruct a. ss.
+          eapply rec_next_le. reflexivity.
+      - eapply (@dle_transitive (djoin (fun x => next (rec (unit_rect (fun _ : () => t) o x))))); auto.
+        { eapply djoin_wf; auto. }
+        + eapply (djoin_upperbound (fun x : () => next (rec (unit_rect (fun _ : () => t) o x))) tt); auto.
+        + eapply (@djoin_upperbound _ (fun b: bool => if b then base else djoin (fun x => next (rec (unit_rect (fun _ : () => t) o x)))) false); auto.
     Qed.
 
     Lemma rec_is_S o s (SUCC: is_S o s): deq (rec s) (next (rec o)).
     Proof.
-      transitivity (rec (S o)).
-      - eapply rec_eq. eapply is_S_eq; eauto. eapply S_is_S.
-      - eapply rec_S.
+      hexploit (@rec_eq (S o) s).
+      { eapply is_S_eq; eauto. eapply S_is_S. }
+      i. inv H. split.
+      - eapply (@dle_transitive (rec (S o))); auto. eapply rec_S.
+      - eapply (@dle_transitive (rec (S o))); auto. eapply rec_S.
     Qed.
 
     Lemma rec_build A (os: A -> t)
           (INHABITED: inhabited A) (OPEN: open os)
       : deq (rec (build os)) (djoin (fun a => rec (os a))).
     Proof.
-      split.
-      - ss. eapply dunion_spec.
-        + destruct INHABITED. transitivity (rec (os X)).
+      assert (CHAINJOIN: forall a0 a1 : A, dle (rec (os a0)) (rec (os a1)) \/ dle (rec (os a1)) (rec (os a0))).
+      { i. destruct (total (os a0) (os a1)).
+        - left. eapply rec_le; auto.
+        - right. eapply lt_le in H. eapply rec_le; auto.
+      }
+      destruct INHABITED as [a'].
+      split; ss.
+      - eapply djoin_supremum; auto. i. destruct a; auto.
+        + eapply (@dle_transitive (rec (os a'))); auto.
           * eapply rec_le_base.
-          * eapply (djoin_upperbound (fun a => rec (os a)) X).
-        + eapply djoin_le. i. specialize (OPEN a0). des. exists a1.
-          transitivity (rec (S (os a0))).
-          * eapply rec_S.
-          * eapply rec_le. eapply S_spec. auto.
-      - ss. etransitivity; [|eapply dunion_r].
-        eapply djoin_le. i. exists a0. eapply next_le. eapply rec_wf.
+          * eapply (@djoin_upperbound _ (fun a : A => rec (os a)) a'); auto.
+        + eapply djoin_supremum; auto. i.
+          hexploit (OPEN a). i. des.
+          eapply rec_lt in H; auto.
+          eapply (@dle_transitive (rec (os a1))); auto.
+          eapply (@djoin_upperbound _ (fun a0 : A => rec (os a0)) a1); auto.
+      - eapply djoin_supremum; auto.
+        { eapply djoin_wf; eauto. } i.
+        eapply (@dle_transitive (djoin (fun x : A => next (rec (os x))))); auto.
+        { eapply djoin_wf; auto. }
+        eapply (@dle_transitive (next (rec (os a)))); auto.
+        + eapply (@djoin_upperbound _ (fun a : A => next (rec (os a))) a); auto.
+        + eapply (@djoin_upperbound _ (fun b: bool => if b then base else (djoin (fun a : A => next (rec (os a))))) false); auto.
     Qed.
 
     Lemma rec_is_join A (os: A -> t) o
           (INHABITED: inhabited A) (OPEN: open os) (JOIN: is_join os o)
       : deq (rec o) (djoin (fun a => rec (os a))).
     Proof.
-      transitivity (rec (build os)).
-      - eapply rec_eq. eapply is_join_eq.
-        + eauto.
-        + eapply build_is_join. auto.
-      - eapply rec_build; auto.
+      assert (CHAINJOIN: forall a0 a1 : A, dle (rec (os a0)) (rec (os a1)) \/ dle (rec (os a1)) (rec (os a0))).
+      { i. destruct (total (os a0) (os a1)).
+        - left. eapply rec_le; auto.
+        - right. eapply lt_le in H. eapply rec_le; auto.
+      }
+      hexploit (@rec_eq (build os) o).
+      { eapply is_join_eq; eauto. eapply build_is_join; auto. }
+      i. inv H. split.
+      - eapply (@dle_transitive (rec (build os))); auto.
+        eapply rec_build; auto.
+      - eapply (@dle_transitive (rec (build os))); auto.
+        eapply rec_build; auto.
     Qed.
 
     Lemma rec_join A (os: A -> t)
@@ -1203,7 +1283,29 @@ Module Ordinal.
     Definition orec: t -> t := rec join base next.
 
     Hypothesis next_le: forall o, le o (next o).
-    Hypothesis next_mon: forall o0 o1 (LE: le o0 o1), le (next o0) (next o1).
+    Hypothesis next_eq: forall o0 o1 (EQ: eq o0 o1), eq (next o0) (next o1).
+
+    Let wf: t -> Prop := fun _ => True.
+
+    Let dle_reflexive: forall d (WF: wf d), le d d .
+    Proof. i. reflexivity. Qed.
+
+    Let dle_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (LE0: le d0 d1) (LE1: le d1 d2),
+        le d0 d2.
+    Proof. i. transitivity d1; eauto. Qed.
+
+    Let djoin_upperbound: forall A (ds: A -> t) (a: A) (CHAIN: forall a0 a1, le (ds a0) (ds a1) \/ le (ds a1) (ds a0)) (WF: forall a, wf (ds a)), le (ds a) (join ds).
+    Proof. i. eapply join_upperbound. Qed.
+    Let djoin_supremum: forall A (ds: A -> t) (d: t) (CHAIN: forall a0 a1, le (ds a0) (ds a1) \/ le (ds a1) (ds a0)) (WF: forall a, wf (ds a)) (WFD: wf d) (LE: forall a, le (ds a) d), le (join ds) d.
+    Proof. i. eapply join_supremum. auto. Qed.
+
+    Let djoin_wf: forall A (ds: A -> t) (CHAIN: forall a0 a1, le (ds a0) (ds a1) \/ le (ds a1) (ds a0)) (WF: forall a, wf (ds a)), wf (join ds).
+    Proof. i. ss. Qed.
+
+    Let base_wf: wf base.
+    Proof. ss. Qed.
+    Let next_wf: forall d (WF: wf d), wf (next d).
+    Proof. ss. Qed.
 
     Let le_PreOrder := le_PreOrder.
     Let join_upperbound := join_upperbound.
@@ -1211,35 +1313,31 @@ Module Ordinal.
 
     Lemma le_orec (o0 o1: t) (LE: le o0 o1): le (orec o0) (orec o1).
     Proof.
-      unfold orec. eapply rec_le; eauto.
+      unfold orec. eapply rec_le with (wf:=wf); auto. i. eapply next_eq. auto.
     Qed.
 
     Lemma eq_orec (o0 o1: t) (EQ: eq o0 o1): eq (orec o0) (orec o1).
     Proof.
-      unfold orec. eapply rec_eq; eauto.
+      unfold orec. eapply rec_eq with (wf:=wf); auto. i. eapply next_eq. auto.
     Qed.
 
     Lemma orec_is_O (o: t) (ZERO: is_O o): eq (orec o) base.
     Proof.
-      unfold orec. eapply rec_is_O; eauto.
+      unfold orec. eapply rec_is_O with (wf:=wf); auto. i. eapply next_eq. auto.
     Qed.
 
     Lemma orec_is_S o s (SUCC: is_S o s): eq (orec s) (next (orec o)).
     Proof.
-      unfold orec. eapply rec_is_S; eauto.
-      - instantiate (1:=fun _ => True). i. ss.
-      - ss.
-      - ss.
+      unfold orec. eapply rec_is_S with (wf:=wf); auto.
+      i. eapply next_eq. auto.
     Qed.
 
     Lemma orec_is_join A (os: A -> t) o
           (INHABITED: inhabited A) (OPEN: open os) (JOIN: is_join os o)
       : eq (orec o) (join (fun a => orec (os a))).
     Proof.
-      unfold orec. eapply rec_is_join; eauto.
-      - instantiate (1:=fun _ => True). i. ss.
-      - ss.
-      - ss.
+      unfold orec. eapply rec_is_join with (wf:=wf); auto.
+      i. eapply next_eq. auto.
     Qed.
   End OREC.
 
