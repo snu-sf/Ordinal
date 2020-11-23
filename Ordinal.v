@@ -352,7 +352,7 @@ Module Cardinality.
     - inv EQ. transitivity A1; auto.
   Qed.
 
-  Lemma lt_eq_or_le A B:
+  Lemma le_eq_or_lt A B:
     le A B <-> (lt A B \/ eq A B).
   Proof.
     split; i.
@@ -376,7 +376,7 @@ Module Ordinal.
       le (build os0) (build os1)
   .
   Hint Constructors le.
-  
+
   Variant lt: t -> t -> Prop :=
   | lt_intro
       o A os (a: A)
@@ -522,7 +522,7 @@ Module Ordinal.
     - destruct EQ. etransitivity; eauto.
   Qed.
 
-  Lemma lt_eq_or_le o0 o1:
+  Lemma le_eq_or_lt o0 o1:
     le o0 o1 <-> (lt o0 o1 \/ eq o0 o1).
   Proof.
     split; i.
@@ -532,6 +532,11 @@ Module Ordinal.
     - destruct H.
       + eapply lt_le; auto.
       + destruct H. auto.
+  Qed.
+
+  Lemma trichotomy o0 o1: lt o0 o1 \/ eq o0 o1 \/ lt o1 o0.
+  Proof.
+    destruct (total o0 o1); auto. eapply le_eq_or_lt in H. des; auto.
   Qed.
 
   Lemma build_upperbound A (os: A -> t): forall a, lt (os a) (build os).
@@ -895,9 +900,9 @@ Module Ordinal.
     Hypothesis dle_reflexive: forall d (WF: wf d), dle d d.
     Hypothesis dle_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (LE0: dle d0 d1) (LE1: dle d1 d2),
         dle d0 d2.
-    
-    Hypothesis djoin_upperbound: forall A (ds: A -> D) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)) (a: A), dle (ds a) (djoin ds).
-    Hypothesis djoin_supremum: forall A (ds: A -> D) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)) (d: D) (WFD: wf d) (LE: forall a, dle (ds a) d), dle (djoin ds) d.
+
+    Hypothesis djoin_upperbound: forall A (ds: A -> D) (a: A) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)), dle (ds a) (djoin ds).
+    Hypothesis djoin_supremum: forall A (ds: A -> D) (d: D) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)) (WFD: wf d) (LE: forall a, dle (ds a) d), dle (djoin ds) d.
     Hypothesis djoin_wf: forall A (ds: A -> D) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)), wf (djoin ds).
 
     Hypothesis base_wf: wf base.
@@ -917,82 +922,128 @@ Module Ordinal.
 
     Lemma rec_all (o1: t):
       (forall o0 (LE: le o0 o1), dle (rec o0) (rec o1)) /\
-      (forall o0 (LE: le o0 o1), dle (next (rec o0)) (next (rec o1))) /\
+      (forall o0 (LT: lt o0 o1), dle (next (rec o0)) (rec o1)) /\
       (wf (rec o1)) /\
       (dle base (rec o1))
     .
     Proof.
       revert o1.
       eapply (well_founded_induction lt_well_founded); auto.
-      intros o1 IH. destruct o1. ss. split.
-      { i. destruct LE. ss. eapply djoin_supremum.
-        { i. destruct a0, a1.
-          - left. eauto.
-          - destruct (classic (inhabited A0)).
-            + destruct H. left. eapply (@dle_transitive (next (rec (os0 X)))).
-              * auto.
-              * eapply next_wf. hexploit (LE X). i. des.
-                exploit (IH (os0 X)).
-                { econs. eauto. }
-                i. des. eauto.
-              * eapply djoin_wf.
-                { i. destruct (total (os0 a0) (os0 a1)).
-                  - left. eapply IH.
-                    { hexploit (LE a1). i. des. econs; eauto. }
-                    { auto. }
-                  - eapply lt_le in H. right. eapply IH.
-                    { hexploit (LE a0). i. des. econs; eauto. }
-                    { auto. }
-                }
-                { i. eapply next_wf. eapply (IH (os0 a)).
-                  hexploit (LE a); eauto. i. des. econs; eauto.
-                }
-              * admit.
-              * admit.
+      intros o1 IH. destruct o1. ss.
+
+      assert (IHS0:
+                forall
+                  A0 (os0: A0 -> t)
+                  (LE: forall a0, exists a, le (os0 a0) (os a))
+                  a0,
+                  (forall o0 (LE: le o0 (os0 a0)), dle (rec o0) (rec (os0 a0))) /\
+                  (forall o0 (LT: lt o0 (os0 a0)), dle (next (rec o0)) (rec (os0 a0))) /\
+                  wf (rec (os0 a0)) /\ dle base (rec (os0 a0))).
+      { i. eapply IH. hexploit (LE a0); eauto. i. des. econs; eauto. }
+      assert (CHAIN0:
+                forall
+                  A0 (os0: A0 -> t)
+                  (LE: forall a0, exists a, le (os0 a0) (os a))
+                  a0 a1,
+                  dle (next (rec (os0 a0))) (next (rec (os0 a1))) \/ dle (next (rec (os0 a1))) (next (rec (os0 a0)))).
+      { i. generalize (trichotomy (os0 a0) (os0 a1)). i. des.
+        - eapply IHS0 in H; auto. left. eapply (@dle_transitive (rec (os0 a1))).
+          + eapply next_wf. eapply IHS0; auto.
+          + eapply IHS0; auto.
+          + eapply next_wf. eapply IHS0; auto.
+          + auto.
+          + eapply next_le. eapply IHS0; auto.
+        - hexploit (@next_eq (rec (os0 a0)) (rec (os0 a1))).
+          + eapply IHS0; auto.
+          + eapply IHS0; auto.
+          + inv H. econs.
+            * eapply IHS0; auto.
+            * eapply IHS0; auto.
+          + i. left. eapply H0.
+        - eapply IHS0 in H; auto. right. eapply (@dle_transitive (rec (os0 a0))).
+          + eapply next_wf. eapply IHS0; auto.
+          + eapply IHS0; auto.
+          + eapply next_wf. eapply IHS0; auto.
+          + auto.
+          + eapply next_le. eapply IHS0; auto.
+      }
+      assert (WF0:
+                forall
+                  A0 (os0: A0 -> t)
+                  (LE: forall a0, exists a, le (os0 a0) (os a))
+                  a,
+                  wf (next (rec (os0 a)))).
+      { i. eapply next_wf. eapply IHS0; eauto. }
+      assert (CHAINU0:
+                forall
+                  A0 (os0: A0 -> t)
+                  (LE: forall a0, exists a, le (os0 a0) (os a))
+                  (b0 b1: bool),
+                  dle (if b0 then base else djoin (fun x => next (rec (os0 x)))) (if b1 then base else djoin (fun x => next (rec (os0 x)))) \/
+                  dle (if b1 then base else djoin (fun x => next (rec (os0 x)))) (if b0 then base else djoin (fun x => next (rec (os0 x))))).
+      { i. assert (dle base (djoin (fun x => next (rec (os0 x)))) \/
+                   dle (djoin (fun x => next (rec (os0 x)))) base).
+        { destruct (classic (inhabited A0)).
+          - destruct H as [a]. left.
+            eapply (@dle_transitive (next (rec (os0 a)))); auto.
+            + eapply (@dle_transitive (rec (os0 a))); auto.
+              * eapply IHS0; eauto.
+              * eapply IHS0; eauto.
+              * eapply next_le. eapply IHS0; eauto.
+            + eapply (djoin_upperbound (fun x => next (rec (os0 x))) a); auto.
+          - right. eapply djoin_supremum; eauto. i. exfalso. eapply H; eauto.
         }
-        }
+        destruct b0, b1; auto. des; auto.
+      }
+      assert (WFU0:
+                forall
+                  A0 (os0: A0 -> t)
+                  (LE: forall a0, exists a, le (os0 a0) (os a))
+                  (b: bool),
+                  wf (if b then base else djoin (fun x => next (rec (os0 x))))).
+      { i. destruct b; auto. }
+      assert (REFL: forall a0, exists a1, le (os a0) (os a1)).
+      { i. exists a0. reflexivity. }
 
-
-                eapply next_le.
-                
-                  i. des. eauto.
+      splits.
+      - i. dependent destruction LE. ss. eapply djoin_supremum; eauto.
+        i. destruct a.
+        + unfold dunion.
+          eapply (@djoin_upperbound _ (fun b: bool => if b then base else djoin (fun x => next (rec (os x)))) true); auto.
+        + eapply (@dle_transitive (djoin (fun x => next (rec (os x))))); eauto.
+          * eapply djoin_supremum; eauto. i. hexploit (LE a); eauto. i. des.
+            eapply (@dle_transitive (next (rec (os a1)))); eauto.
+            { eapply le_eq_or_lt in H. des.
+              { eapply IHS0 in H; eauto.
+                eapply (@dle_transitive (rec (os a1))); eauto.
+                { eapply IHS0; eauto. }
+                { eapply next_le. eapply IHS0; eauto. }
+              }
+              { assert (deq (next (rec (os0 a))) (next (rec (os a1)))).
+                2: { eapply H0. }
+                eapply next_eq; eauto.
+                { eapply IHS0; eauto. }
+                { eapply IHS0; eauto. }
+                { inv H. econs.
+                  { eapply IHS0; eauto. }
+                  { eapply IHS0; eauto. }
                 }
-                
+              }
+            }
+            { eapply (@djoin_upperbound _ (fun x => next (rec (os x))) a1); eauto. }
+          * eapply (@djoin_upperbound _  (fun b: bool => if b then base else djoin (fun x => next (rec (os x)))) false); auto.
+      - admit.
+      - eapply djoin_wf; eauto.
+      - eapply (@djoin_upperbound _  (fun b: bool => if b then base else djoin (fun x => next (rec (os x)))) true); auto.
+    Qed.
 
-                    
-                      hexploit (LE a0). i. des. eapply lt_le. econs; eauto. }
-                
-                  
-
-                
-
-              eapply djoin_upperbound.
-
-              admit.
-            + 
-
-            admit.
-          - amdit.
-            
-
-            eapply dle_reflexive. auto.
-
-            reflexivity.
-          - 
-
-        destruct o1.
-
-      i.
-
-      clear o1.
-      
 
           (o0 o1: t) (LE: le o0 o1): dle (rec o0) (rec o1).
     Proof.
       revert o0 LE. induction o1. i. dependent destruction LE. ss.
       eapply djoin_supremum.
       { i. destruct a0, a1.
-      
+
       eapply dunion_spec.
       { eapply dunion_l. }
       etransitivity; [|eapply dunion_r].
@@ -1000,13 +1051,13 @@ Module Ordinal.
       exploit H; eauto.
     Qed.
 
-    
+
     Lemma rec_le (o0 o1: t) (LE: le o0 o1): dle (rec o0) (rec o1).
     Proof.
       revert o0 LE. induction o1. i. dependent destruction LE. ss.
       eapply djoin_supremum.
       { i. destruct a0, a1.
-      
+
       eapply dunion_spec.
       { eapply dunion_l. }
       etransitivity; [|eapply dunion_r].
