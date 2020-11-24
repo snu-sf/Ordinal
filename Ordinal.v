@@ -1,6 +1,6 @@
 Require Import sflib.
 
-Require Import Coq.Classes.RelationClasses Coq.Classes.Morphisms. (* TODO: Use Morphisms *)
+Require Import Coq.Classes.RelationClasses Coq.Relations.Relation_Operators Coq.Classes.Morphisms. (* TODO: Use Morphisms *)
 Require Import ClassicalChoice PropExtensionality FunctionalExtensionality.
 Require Import Program.
 
@@ -241,8 +241,18 @@ Module Ordinal.
     destruct ACC1. ss.
     set (exist (fun a0 => R a0 a1) a0 LT).
     replace ACC0 with (from_acc_obligation_1 (Acc_intro a1 a) s).
-    2: { eapply proof_irrelevance. }
+    2: { eapply Acc_prop. }
     eapply (build_upperbound (fun a0p => from_acc (proj1_sig a0p) (from_acc_obligation_1 (Acc_intro a1 a) a0p)) s).
+  Qed.
+
+  Lemma from_acc_complete A (R: A -> A -> Prop) a1 (ACC1: Acc R a1)
+        o (LT: lt o (from_acc a1 ACC1))
+    :
+      exists a0 (ACC0: Acc R a0), eq o (from_acc a0 ACC0).
+  Proof.
+    dup ACC1. revert o LT. induction ACC0. i. destruct ACC1.
+    ss. dependent destruction LT. destruct a0 as [a0 p0]. ss.
+    eapply le_eq_or_lt in LE. des; eauto.
   Qed.
 
   Definition from_wf A (R: A -> A -> Prop) (WF: well_founded R) (a1: A): t :=
@@ -255,6 +265,15 @@ Module Ordinal.
     eapply from_acc_lt; eauto.
   Qed.
 
+  Lemma from_wf_complete A (R: A -> A -> Prop) (WF: well_founded R) a1
+        o (LT: lt o (from_wf WF a1))
+    :
+      exists a0, eq o (from_wf WF a0).
+  Proof.
+    eapply from_acc_complete in LT. des. exists a0.
+    unfold from_wf. replace (WF a0) with ACC0; auto. eapply Acc_prop.
+  Qed.
+
   Definition from_wf_set A (R: A -> A -> Prop) (WF: well_founded R): t :=
     @build A (from_wf WF).
 
@@ -262,6 +281,15 @@ Module Ordinal.
     lt (from_wf WF a) (from_wf_set WF).
   Proof.
     eapply build_upperbound.
+  Qed.
+
+  Lemma from_wf_set_complete A (R: A -> A -> Prop) (WF: well_founded R)
+        o (LT: lt o (from_wf_set WF))
+    :
+      exists a, eq o (from_wf WF a).
+  Proof.
+    dependent destruction LT. eapply le_eq_or_lt in LE. des; eauto.
+    eapply from_wf_complete in LE. eauto.
   Qed.
 
   Lemma from_acc_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
@@ -1028,12 +1056,12 @@ Module Ordinal.
     Let join_upperbound := join_upperbound.
     Let join_supremum := join_supremum.
 
-    Lemma le_orec (o0 o1: t) (LE: le o0 o1): le (orec o0) (orec o1).
+    Lemma orec_le (o0 o1: t) (LE: le o0 o1): le (orec o0) (orec o1).
     Proof.
       unfold orec. eapply rec_le with (wf:=wf); auto. i. eapply next_eq. auto.
     Qed.
 
-    Lemma eq_orec (o0 o1: t) (EQ: eq o0 o1): eq (orec o0) (orec o1).
+    Lemma orec_eq (o0 o1: t) (EQ: eq o0 o1): eq (orec o0) (orec o1).
     Proof.
       unfold orec. eapply rec_eq with (wf:=wf); auto. i. eapply next_eq. auto.
     Qed.
@@ -1055,6 +1083,12 @@ Module Ordinal.
     Proof.
       unfold orec. eapply rec_is_join with (wf:=wf); auto.
       i. eapply next_eq. auto.
+    Qed.
+
+    Lemma orec_le_base o: le base (orec o).
+    Proof.
+      eapply (@rec_le_base _ le join wf base next); ss.
+      i. eapply next_eq; auto.
     Qed.
   End OREC.
 
@@ -1089,31 +1123,42 @@ Module Ordinal.
     Variable X: Type.
     Variable x_bot: X.
 
-    Record subX: Type :=
-      subX_mk {
-          P: X -> Prop;
-          R: X -> X -> Prop;
+    Record _subX: Type :=
+      _subX_mk {
+          _P: X -> Prop;
+          _R: X -> X -> Prop;
         }.
+    Let subX := _subX.
+    Let P := _P.
+    Let R := _R.
 
-    Record wfX (X': subX): Type :=
-      wfX_intro {
-          sound: forall a0 a1 (LT: X'.(R) a0 a1), X'.(P) a0 /\ X'.(P) a1;
-          complete: forall a0 a1 (IN0: X'.(P) a0) (IN1: X'.(P) a1),
+    Record _wfX (X': subX): Type :=
+      _wfX_intro {
+          _sound: forall a0 a1 (LT: X'.(R) a0 a1), X'.(P) a0 /\ X'.(P) a1;
+          _complete: forall a0 a1 (IN0: X'.(P) a0) (IN1: X'.(P) a1),
               X'.(R) a0 a1 \/ a0 = a1 \/ X'.(R) a1 a0;
-          wfo: well_founded X'.(R);
+          _wfo: well_founded X'.(R);
         }.
+    Let wfX := _wfX.
+    Let sound := _sound.
+    Let complete := _complete.
+    Let wfo := _wfo.
 
-    Record leX (s0 s1: subX): Prop :=
-      leX_intro {
-          P_incl: forall a (IN: s0.(P) a), s1.(P) a;
-          R_incl: forall a0 a1 (LT: s0.(R) a0 a1), s1.(R) a0 a1;
-          no_insert: forall a0 a1 (IN: s0.(P) a1), s1.(R) a0 a1 <-> s0.(R) a0 a1;
+    Record _leX (s0 s1: subX): Prop :=
+      _leX_intro {
+          _P_incl: forall a (IN: s0.(P) a), s1.(P) a;
+          _R_incl: forall a0 a1 (LT: s0.(R) a0 a1), s1.(R) a0 a1;
+          _no_insert: forall a0 a1 (IN: s0.(P) a1), s1.(R) a0 a1 <-> s0.(R) a0 a1;
         }.
+    Let leX := _leX.
+    Let P_incl := _P_incl.
+    Let R_incl := _R_incl.
+    Let no_insert := _no_insert.
 
     Let joinX A (Xs: A -> subX): subX :=
-      subX_mk (fun x => exists a, (Xs a).(P) x) (fun x0 x1 => exists a, (Xs a).(R) x0 x1).
+      _subX_mk (fun x => exists a, (Xs a).(P) x) (fun x0 x1 => exists a, (Xs a).(R) x0 x1).
 
-    Let base: subX := subX_mk (fun x => x = x_bot) (fun _ _ => False).
+    Let base: subX := _subX_mk (fun x => x = x_bot) (fun _ _ => False).
 
     Let leX_reflexive: forall d (WF: wfX d), leX d d.
     Proof.
@@ -1124,7 +1169,7 @@ Module Ordinal.
         leX d0 d2.
     Proof.
       i. inv LE0. inv LE1. econs; eauto.
-      i. rewrite no_insert1; eauto.
+      i. rewrite _no_insert1; eauto.
     Qed.
 
     Let joinX_upperbound: forall A (ds: A -> subX) (a: A) (CHAIN: forall a0 a1, leX (ds a0) (ds a1) \/ leX (ds a1) (ds a0)) (WF: forall a, wfX (ds a)), leX (ds a) (joinX ds).
@@ -1278,8 +1323,6 @@ Module Ordinal.
         assert (WF: wfX (rec joinX base next o)).
         { hexploit (@rec_wf _ leX joinX wfX base next); eauto. }
         exists (rec joinX base next o).(R). splits; auto.
-        { eapply WF. }
-        { i. eapply (WF.(complete) x0 x1); auto. }
       Qed.
     End NEXT.
 
@@ -1302,7 +1345,7 @@ Module Ordinal.
         { intros d0. destruct (classic (forall x, P d0 x)).
           { exists d0. i. split; auto. }
           eapply not_all_ex_not in H. des.
-          exists (subX_mk (fun x => P d0 x \/ x = n) (fun x0 x1 => R d0 x0 x1 \/ (P d0 x0 /\ x1 = n))).
+          exists (_subX_mk (fun x => P d0 x \/ x = n) (fun x0 x1 => R d0 x0 x1 \/ (P d0 x0 /\ x1 = n))).
           i. splits.
           - econs; ss.
             + i. des; clarify; splits; auto.
@@ -1326,6 +1369,149 @@ Module Ordinal.
       des. eapply choice_then_well_ordering_theorem; eauto.
     Qed.
   End WO.
+
+  Theorem well_ordering_theorem (X: Type)
+    :
+      exists (R: X -> X -> Prop),
+        well_founded R /\
+        (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
+  Proof.
+    destruct (classic (inhabited X)) as [[x]|].
+    { eapply Ordinal.inhabited_well_ordering_theorem; auto. }
+    { exists (fun _ _ => False). econs; i; ss. exfalso. eapply H; eauto. }
+  Qed.
+
+  Section EXTEND.
+    Variable A: Type.
+    Variable RT: A -> A -> Prop.
+    Variable WFT: well_founded RT.
+    Hypothesis TOTAL: forall a0 a1, RT a0 a1 \/ a0 = a1 \/ RT a1 a0.
+
+    Variable R: A -> A -> Prop.
+    Variable WF: well_founded R.
+
+    Definition extended (a0 a1: A): Prop :=
+      lt (from_wf WF a0) (from_wf WF a1) \/
+      (eq (from_wf WF a0) (from_wf WF a1) /\ RT a0 a1)
+    .
+
+    Lemma extended_total:
+      forall a0 a1, extended a0 a1 \/ a0 = a1 \/ extended a1 a0.
+    Proof.
+      i. destruct (trichotomy (from_wf WF a0) (from_wf WF a1)) as [|[]].
+      - left. left. auto.
+      - destruct (@TOTAL a0 a1) as [|[]]; auto.
+        + left. right. auto.
+        + right. right. right. split; auto. symmetry. auto.
+      - right. right. left. auto.
+    Qed.
+
+    Lemma extended_well_founded: well_founded extended.
+    Proof.
+      ii. hexploit (well_founded_induction
+                      lt_well_founded
+                      (fun o => forall a (LE: le (from_wf WF a) o), Acc extended a)); eauto.
+      { clear a. intros o IH.
+        assert (LTS: forall a (LT: lt (from_wf WF a) o), Acc extended a).
+        { i. econs. i.
+          hexploit (IH _ LT).
+          { reflexivity. }
+          i. inv H0. eauto.
+        }
+        i. eapply le_eq_or_lt in LE. des; auto.
+        eapply (well_founded_induction
+                  WFT (fun a => eq (from_wf WF a) o -> Acc extended a)); eauto.
+        clear a LE. i. econs. i. inv H1.
+        { eapply (IH (from_wf WF y)).
+          { eapply lt_eq_lt; eauto. symmetry. auto. }
+          { reflexivity. }
+        }
+        { des. eapply H; eauto. transitivity (from_wf WF x); auto. }
+      }
+      { eapply lt_le. eapply from_wf_set_upperbound. }
+    Qed.
+
+    Lemma extended_incl:
+      forall a0 a1 (LT: R a0 a1), extended a0 a1.
+    Proof.
+      i. left. eapply from_wf_lt; auto.
+    Qed.
+  End EXTEND.
+
+  Lemma well_order_extendable A (R0: A -> A -> Prop) (WF: well_founded R0):
+    exists R1,
+      well_founded R1 /\
+      (forall a0 a1 (LT: R0 a0 a1), R1 a0 a1) /\
+      (forall a0 a1, R1 a0 a1 \/ a0 = a1 \/ R1 a1 a0).
+  Proof.
+    hexploit (well_ordering_theorem A); eauto. i. des.
+    exists (extended R WF). splits.
+    - eapply extended_well_founded; eauto.
+    - eapply extended_incl; eauto.
+    - eapply extended_total; eauto.
+  Qed.
+
+  Lemma from_wf_set_embed A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
+        (WFA: well_founded RA) (WFB: well_founded RB)
+        (LE: le (from_wf_set WFA) (from_wf_set WFB))
+        (TOTALB: forall b0 b1, RB b0 b1 \/ b0 = b1 \/ RB b1 b0)
+    :
+      exists (f: A -> B), forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1).
+  Proof.
+    exploit (choice (fun a b => eq (from_wf WFA a) (from_wf WFB b))).
+    { intros a. eapply from_wf_set_complete.
+      eapply lt_le_lt; eauto. eapply from_wf_set_upperbound. }
+    i. des. exists f. i. eapply from_wf_lt with (WF:=WFA) in LT.
+    assert (lt (from_wf WFB (f a0)) (from_wf WFB (f a1))).
+    { eapply (@le_lt_lt (from_wf WFA a0)); eauto.
+      - eapply x0.
+      - eapply (@lt_le_lt (from_wf WFA a1)); auto. eapply x0. }
+    destruct (TOTALB (f a0) (f a1)) as [|[]].
+    - auto.
+    - rewrite H0 in *. eapply lt_not_le in H; ss. reflexivity.
+    - eapply from_wf_lt with (WF:=WFB) in H0; eauto.
+      exfalso. eapply lt_not_le in H; ss. eapply lt_le; auto.
+  Qed.
+
+  Lemma from_wf_set_comparable A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
+        (WFA: well_founded RA) (WFB: well_founded RB)
+        (TOTALA: forall a0 a1, RA a0 a1 \/ a0 = a1 \/ RA a1 a0)
+        (TOTALB: forall b0 b1, RB b0 b1 \/ b0 = b1 \/ RB b1 b0)
+    :
+      (exists (f: A -> B), forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1)) \/
+      (exists (f: B -> A), forall b0 b1 (LT: RB b0 b1), RA (f b0) (f b1)).
+  Proof.
+    destruct (total_le (from_wf_set WFA) (from_wf_set WFB)).
+    - left. eapply from_wf_set_embed; eauto.
+    - right. eapply from_wf_set_embed; eauto.
+  Qed.
+
+  Section CARDINAL.
+    Let T := Type.
+    Variable A: T.
+
+    Definition is_cardinal (c: t): Prop :=
+      is_meet (fun o =>
+                 exists (R: A -> A -> Prop) (WF: well_founded R),
+                   (forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0) /\
+                   le (from_wf_set WF) o) c.
+
+    Program Definition cardinal :=
+      @build (A * @sig (A -> A -> Prop) (@well_founded A))
+             (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF)).
+
+    Lemma cardinal_is_cardinal: is_cardinal cardinal.
+    Proof.
+      split.
+      - hexploit (@well_ordering_theorem A). i. des.
+        exists R, H. splits; auto. eapply build_spec.
+        i. eapply (@build_upperbound
+                     (A * @sig (A -> A -> Prop) (@well_founded A))
+                     (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF))
+                     (a, exist _ R H)).
+      - i. des. eapply build_spec. i. destruct a as [a [R0 WF0]]. ss.
+    Admitted.
+  End CARDINAL.
 End Ordinal.
 
 Theorem well_ordering_theorem (X: Type)
@@ -1691,6 +1877,49 @@ Module Cardinal.
     - des.
       + eapply H.
       + eapply eq_le. auto.
+  Qed.
+
+  Let well_founded_irreflexive A (R: A -> A -> Prop) (WF: well_founded R)
+      a
+      (LT: R a a)
+    :
+      False.
+  Proof.
+    hexploit (well_founded_induction WF (fun a' => ~ (a' = a))).
+    { ii. des; clarify. eapply H; eauto. }
+    i. eapply H. eauto.
+  Qed.
+
+  Lemma total_le A B: le A B \/ le B A.
+  Proof.
+    hexploit (well_ordering_theorem A). intros [RA [WFA TOTALA]].
+    hexploit (well_ordering_theorem B). intros [RB [WFB TOTALB]].
+    hexploit (@Ordinal.from_wf_set_comparable A B); eauto. i. des.
+    - left. eapply le_intro with (f:=f). i.
+      destruct (TOTALA a0 a1) as [|[]].
+      + eapply H in H0. rewrite EQ in *.
+        exfalso. eapply well_founded_irreflexive in H0; eauto.
+      + auto.
+      + eapply H in H0. rewrite EQ in *.
+        exfalso. eapply well_founded_irreflexive in H0; eauto.
+    - right. eapply le_intro with (f:=f). i.
+      destruct (TOTALB a0 a1) as [|[]].
+      + eapply H in H0. rewrite EQ in *.
+        exfalso. eapply well_founded_irreflexive in H0; eauto.
+      + auto.
+      + eapply H in H0. rewrite EQ in *.
+        exfalso. eapply well_founded_irreflexive in H0; eauto.
+  Qed.
+
+  Lemma total A B: le A B \/ lt B A.
+  Proof.
+    destruct (total_le A B); auto. eapply le_eq_or_lt in H. des; auto.
+    left. eapply H.
+  Qed.
+
+  Lemma trichotomy A B: lt A B \/ eq A B \/ lt B A.
+  Proof.
+    destruct (total A B); auto. eapply le_eq_or_lt in H. des; auto.
   Qed.
 End Cardinal.
 
