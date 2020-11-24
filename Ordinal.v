@@ -7,361 +7,6 @@ Require Import Program.
 Set Implicit Arguments.
 Set Primitive Projections.
 
-Module Cardinality.
-  Variant le (A B: Type): Prop :=
-  | le_intro
-      (f: A -> B)
-      (INJ: forall a0 a1 (EQ: f a0 = f a1), a0 = a1)
-  .
-  Hint Constructors le.
-
-  Global Program Instance le_PreOrder: PreOrder le.
-  Next Obligation.
-  Proof.
-    ii. eapply le_intro with (f:=id). i. ss.
-  Qed.
-  Next Obligation.
-  Proof.
-    ii. inv H. inv H0. eapply le_intro with (f := compose f0 f).
-    i. eapply INJ. eapply INJ0. auto.
-  Qed.
-
-  Variant oto (A B: Type): Prop :=
-  | oto_intro
-      (f: A -> B)
-      (INJ: forall a0 a1 (EQ: f a0 = f a1), a0 = a1)
-      (SURJ: forall b, exists a, f a = b)
-  .
-  Hint Constructors oto.
-
-  Variant bij (A B: Type): Prop :=
-  | bij_intro
-      (f: A -> B) (g: B -> A)
-      (FG: forall a, g (f a) = a)
-      (GF: forall b, f (g b) = b)
-  .
-  Hint Constructors bij.
-
-  Lemma bij_oto_equiv A B: bij A B <-> oto A B.
-  Proof.
-    split; i.
-    - inv H. eapply oto_intro with (f:=f).
-      + i. eapply f_equal with (f:=g) in EQ.
-        repeat rewrite FG in EQ.  auto.
-      + i. exists (g b). auto.
-    - inv H. eapply choice in SURJ. des.
-      eapply bij_intro with (f:=f) (g:=f0); auto.
-  Qed.
-
-  Global Program Instance bij_Equivalence: Equivalence bij.
-  Next Obligation.
-  Proof.
-    ii. eapply bij_intro with (f:=id) (g:=id); auto.
-  Qed.
-  Next Obligation.
-  Proof.
-    ii. inv H. eapply bij_intro with (f:=g) (g:=f); auto.
-  Qed.
-  Next Obligation.
-  Proof.
-    ii. inv H. inv H0. eapply bij_intro with (f:=compose f0 f) (g:=compose g g0); auto.
-    - i. unfold compose. rewrite FG0. eapply FG.
-    - i. unfold compose. rewrite GF. eapply GF0.
-  Qed.
-
-  Global Program Instance oto_Equivalence: Equivalence oto.
-  Next Obligation.
-  Proof.
-    ii. eapply bij_oto_equiv. reflexivity.
-  Qed.
-  Next Obligation.
-  Proof.
-    ii. eapply bij_oto_equiv. eapply bij_oto_equiv in H. symmetry. auto.
-  Qed.
-  Next Obligation.
-  Proof.
-    ii. eapply bij_oto_equiv. eapply bij_oto_equiv in H. eapply bij_oto_equiv in H0.
-    transitivity y; auto.
-  Qed.
-
-  Lemma oto_le A B (OTO: oto A B): le A B.
-  Proof.
-    inv OTO. eapply le_intro with (f:=f). auto.
-  Qed.
-
-  Lemma bij_le A B (BIJ: bij A B): le A B.
-  Proof.
-    eapply bij_oto_equiv in BIJ. eapply oto_le; auto.
-  Qed.
-
-  Definition eq (A B: Type): Prop := le A B /\ le B A.
-
-  Lemma eq_le A B (EQ: eq A B): le A B.
-  Proof.
-    eapply EQ.
-  Qed.
-
-  Global Program Instance eq_Equivalence: Equivalence eq.
-  Next Obligation.
-  Proof.
-    ii. split; reflexivity.
-  Qed.
-  Next Obligation.
-  Proof.
-    ii. destruct H. split; auto.
-  Qed.
-  Next Obligation.
-  Proof.
-    ii. destruct H, H0. split; etransitivity; eauto.
-  Qed.
-
-  Global Program Instance le_eq_PartialOrder: PartialOrder eq le.
-  Next Obligation.
-  Proof. ss. Qed.
-
-  Section SANDWICH.
-    Variable A1 B A: Type.
-    Variable sub0: A1 -> B.
-    Variable sub1: B -> A.
-    Variable f: A -> A1.
-
-    Hypothesis SUB0: forall a0 a1 (EQ: sub0 a0 = sub0 a1), a0 = a1.
-    Hypothesis SUB1: forall b0 b1 (EQ: sub1 b0 = sub1 b1), b0 = b1.
-    Hypothesis INJ: forall a0 a1 (EQ: f a0 = f a1), a0 = a1.
-
-    Let Fixpoint aseq (n: nat) (a: A): A :=
-      match n with
-      | 0 => a
-      | S n' => sub1 (sub0 (f (aseq n' a)))
-      end.
-
-    Let Fixpoint bseq (n: nat) (b: B): A :=
-      match n with
-      | 0 => sub1 b
-      | S n' => sub1 (sub0 (f (bseq n' b)))
-      end.
-
-    Let bseq_aseq n:
-      forall b, exists a, bseq n b = aseq n a.
-    Proof.
-      induction n; ss.
-      - i. eauto.
-      - i. specialize (IHn b). des. exists a. rewrite IHn. auto.
-    Qed.
-
-    Let aseq_S_bseq n:
-      forall a, exists b, aseq (S n) a = bseq n b.
-    Proof.
-      induction n; ss.
-      - i. eauto.
-      - i. specialize (IHn a). des. exists b. rewrite IHn. auto.
-    Qed.
-
-    Let aseq_decrease n:
-      forall a0, exists a1, aseq (S n) a0 = aseq n a1.
-    Proof.
-      i. hexploit (aseq_S_bseq n a0). i. des.
-      hexploit (bseq_aseq n b). i. des.
-      exists a. rewrite H. auto.
-    Qed.
-
-    Let bseq_decrease n:
-      forall b0, exists b1, bseq (S n) b0 = bseq n b1.
-    Proof.
-      i. hexploit (bseq_aseq (S n) b0). i. des.
-      hexploit (aseq_S_bseq n a). i. des.
-      exists b. rewrite H. auto.
-    Qed.
-
-    Let in_gap (n: nat) (a1: A): Prop :=
-      (exists a0, aseq n a0 = a1) /\
-      (forall b0, bseq n b0 <> a1).
-
-    Let in_gap_step (n: nat) (a1: A):
-      in_gap (S n) a1 <->
-      (exists a0, in_gap n a0 /\ a1 = sub1 (sub0 (f a0))).
-    Proof.
-      unfold in_gap. split; i.
-      - des. ss. exists (aseq n a0). esplits; eauto.
-        ii. eapply (H0 b0). rewrite H1. auto.
-      - des. subst. ss. esplits; eauto. ii.
-        eapply SUB1 in H. eapply SUB0 in H.
-        eapply INJ in H. eapply H1; eauto.
-    Qed.
-
-    Let in_gap_all (a1: A): Prop :=
-      exists n, in_gap n a1.
-
-    Let is_g (g: A -> B): Prop :=
-      forall a,
-        (forall (GAP: in_gap_all a), g a = sub0 (f a)) /\
-        (forall (NGAP: ~ in_gap_all a), sub1 (g a) = a)
-    .
-
-    Let is_g_exists: exists g, is_g g.
-    Proof.
-      eapply (choice (fun a b =>
-                        (forall (GAP: in_gap_all a), b = sub0 (f a)) /\
-                        (forall (NGAP: ~ in_gap_all a), sub1 b = a))).
-      intros a. destruct (classic (in_gap_all a)).
-      - exists (sub0 (f a)). split; eauto. ss.
-      - destruct (classic (exists b, sub1 b = a)).
-        { des. exists b. splits; ss. }
-        exfalso. eapply H. exists 0. econs; ss; eauto.
-    Qed.
-
-    Let g_inj (g: A -> B) (G: is_g g):
-      forall a0 a1 (EQ: g a0 = g a1), a0 = a1.
-    Proof.
-      i. edestruct (G a0). edestruct (G a1).
-      destruct (classic (in_gap_all a0)), (classic (in_gap_all a1)).
-      - eapply H in H3. eapply H1 in H4.
-        rewrite H3 in *. rewrite H4 in *.
-        eapply SUB0 in EQ. eapply INJ in EQ; auto.
-      - exfalso. dup H3. dup H4.
-        eapply H in H5. eapply H2 in H6.
-        inv H3. eapply H4. exists (S x).
-        eapply in_gap_step. esplits; eauto.
-        rewrite <- H6. rewrite <- EQ. rewrite H5. auto.
-      - exfalso. dup H3. dup H4.
-        eapply H0 in H5. eapply H1 in H6.
-        inv H4. eapply H3. exists (S x).
-        eapply in_gap_step. esplits; eauto.
-        rewrite <- H6. rewrite <- EQ. rewrite H5. auto.
-      - eapply H0 in H3. eapply H2 in H4.
-        rewrite EQ in H3. rewrite H3 in *. auto.
-    Qed.
-
-    Let g_surj (g: A -> B) (G: is_g g):
-      forall b, exists a, g a = b.
-    Proof.
-      i. destruct (classic (in_gap_all (sub1 b))).
-      - dup H. eapply G in H0. inv H. destruct x.
-        { unfold in_gap in H1. des. ss. subst. exfalso. eapply H2; eauto. }
-        eapply in_gap_step in H1. des. eapply SUB1 in H2. subst.
-        dup H1. destruct (G a0). exploit H.
-        { exists x. auto. } i. eauto.
-      - dup H. eapply G in H0. eapply SUB1 in H0. eauto.
-    Qed.
-
-    Lemma sandwich_oto: oto A B.
-    Proof.
-      hexploit is_g_exists. i. des.
-      eapply oto_intro with (f:=g).
-      - eapply g_inj. auto.
-      - eapply g_surj. auto.
-    Qed.
-
-  End SANDWICH.
-
-  Lemma eq_oto_equiv A B: eq A B <-> oto A B.
-  Proof.
-    split; i.
-    - inv H. inv H0. inv H1.
-      eapply sandwich_oto with (A1:=A) (sub0:=f) (sub1:=f0) (f:=id); auto.
-    - eapply bij_oto_equiv in H. inv H. split.
-      + eapply le_intro with (f:=f).
-        i. eapply f_equal with (f:=g) in EQ. repeat rewrite FG in EQ. auto.
-      + eapply le_intro with (f:=g).
-        i. eapply f_equal with (f:=f) in EQ. repeat rewrite GF in EQ. auto.
-  Qed.
-
-  Lemma eq_bij_equiv A B: eq A B <-> bij A B.
-  Proof.
-    erewrite bij_oto_equiv. eapply eq_oto_equiv.
-  Qed.
-
-  Global Program Instance le_bij_PartialOrder: PartialOrder bij le.
-  Next Obligation.
-  Proof.
-    ii. ss. rewrite <- eq_bij_equiv. eauto.
-  Qed.
-
-  Global Program Instance le_oto_PartialOrder: PartialOrder oto le.
-  Next Obligation.
-  Proof.
-    ii. ss. rewrite <- eq_oto_equiv. eauto.
-  Qed.
-
-  Definition lt A B: Prop := le A B /\ ~ eq A B.
-
-  Lemma lt_le A B (LT: lt A B): le A B.
-  Proof.
-    eapply LT.
-  Qed.
-
-  Lemma lt_le_lt B A C (LT: lt A B) (LE: le B C): lt A C.
-  Proof.
-    inv LT. split.
-    - transitivity B; eauto.
-    - ii. inv H1. eapply H0. split; auto. transitivity C; auto.
-  Qed.
-
-  Lemma le_lt_lt B A C (LE: le A B) (LT: lt B C): lt A C.
-  Proof.
-    inv LT. split.
-    - transitivity B; eauto.
-    - ii. inv H1. eapply H0. split; auto. transitivity A; auto.
-  Qed.
-
-  Program Instance lt_StrictOrder: StrictOrder lt.
-  Next Obligation.
-  Proof.
-    ii. inv H. eapply H1. reflexivity.
-  Qed.
-  Next Obligation.
-  Proof.
-    ii. eapply (@lt_le_lt y); eauto. eapply lt_le; eauto.
-  Qed.
-
-  Lemma lt_not_le o0 o1 (LT: lt o0 o1) (LE: le o1 o0): False.
-  Proof.
-    eapply lt_StrictOrder. eapply le_lt_lt; eauto.
-  Qed.
-
-  Lemma lt_eq_lt A B0 B1 (EQ: eq B0 B1):
-    lt A B0 <-> lt A B1.
-  Proof.
-    split; i.
-    - inv EQ. eapply lt_le_lt; eauto.
-    - inv EQ. eapply lt_le_lt; eauto.
-  Qed.
-
-  Lemma eq_lt_lt A0 A1 B (EQ: eq A0 A1):
-    lt A0 B <-> lt A1 B.
-  Proof.
-    split; i.
-    - inv EQ. eapply le_lt_lt; eauto.
-    - inv EQ. eapply le_lt_lt; eauto.
-  Qed.
-
-  Lemma le_eq_le A B0 B1 (EQ: eq B0 B1):
-    le A B0 <-> le A B1.
-  Proof.
-    split; i.
-    - inv EQ. transitivity B0; auto.
-    - inv EQ. transitivity B1; auto.
-  Qed.
-
-  Lemma eq_le_le A0 A1 B (EQ: eq A0 A1):
-    le A0 B <-> le A1 B.
-  Proof.
-    split; i.
-    - inv EQ. transitivity A0; auto.
-    - inv EQ. transitivity A1; auto.
-  Qed.
-
-  Lemma le_eq_or_lt A B:
-    le A B <-> (lt A B \/ eq A B).
-  Proof.
-    split; i.
-    - destruct (classic (eq A B)); auto. left. split; auto.
-    - des.
-      + eapply H.
-      + eapply eq_le. auto.
-  Qed.
-End Cardinality.
-
 Module Ordinal.
   Inductive t: Type :=
   | build (A: Type) (os: A -> t)
@@ -476,6 +121,11 @@ Module Ordinal.
       destruct (os0 n). econs. i. specialize (H1 a0).
       dependent destruction H1. eauto.
     }
+  Qed.
+
+  Lemma total_le o0 o1: le o0 o1 \/ le o1 o0.
+  Proof.
+    destruct (total o0 o1); auto. right. eapply lt_le. auto.
   Qed.
 
   Lemma lt_not_le o0 o1 (LT: lt o0 o1) (LE: le o1 o0): False.
@@ -1435,7 +1085,7 @@ Module Ordinal.
     eapply (@build_upperbound _ (fun rwf => from_wf_set (proj2_sig rwf)) (@exist _ _ R WF)).
   Qed.
 
-  Section CARDINAL.
+  Section WO.
     Variable X: Type.
     Variable x_bot: X.
 
@@ -1675,19 +1325,374 @@ Module Ordinal.
       }
       des. eapply choice_then_well_ordering_theorem; eauto.
     Qed.
-  End CARDINAL.
-
-  Theorem well_ordering_theorem (X: Type)
-    :
-      exists (R: X -> X -> Prop),
-        well_founded R /\
-        (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
-  Proof.
-    destruct (classic (inhabited X)) as [[x]|].
-    { eapply inhabited_well_ordering_theorem; auto. }
-    { exists (fun _ _ => False). econs; i; ss. exfalso. eapply H; eauto. }
-  Qed.
+  End WO.
 End Ordinal.
+
+Theorem well_ordering_theorem (X: Type)
+  :
+    exists (R: X -> X -> Prop),
+      well_founded R /\
+      (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
+Proof.
+  destruct (classic (inhabited X)) as [[x]|].
+  { eapply Ordinal.inhabited_well_ordering_theorem; auto. }
+  { exists (fun _ _ => False). econs; i; ss. exfalso. eapply H; eauto. }
+Qed.
+
+Module Cardinal.
+  Variant le (A B: Type): Prop :=
+  | le_intro
+      (f: A -> B)
+      (INJ: forall a0 a1 (EQ: f a0 = f a1), a0 = a1)
+  .
+  Hint Constructors le.
+
+  Global Program Instance le_PreOrder: PreOrder le.
+  Next Obligation.
+  Proof.
+    ii. eapply le_intro with (f:=id). i. ss.
+  Qed.
+  Next Obligation.
+  Proof.
+    ii. inv H. inv H0. eapply le_intro with (f := compose f0 f).
+    i. eapply INJ. eapply INJ0. auto.
+  Qed.
+
+  Variant oto (A B: Type): Prop :=
+  | oto_intro
+      (f: A -> B)
+      (INJ: forall a0 a1 (EQ: f a0 = f a1), a0 = a1)
+      (SURJ: forall b, exists a, f a = b)
+  .
+  Hint Constructors oto.
+
+  Variant bij (A B: Type): Prop :=
+  | bij_intro
+      (f: A -> B) (g: B -> A)
+      (FG: forall a, g (f a) = a)
+      (GF: forall b, f (g b) = b)
+  .
+  Hint Constructors bij.
+
+  Lemma bij_oto_equiv A B: bij A B <-> oto A B.
+  Proof.
+    split; i.
+    - inv H. eapply oto_intro with (f:=f).
+      + i. eapply f_equal with (f:=g) in EQ.
+        repeat rewrite FG in EQ.  auto.
+      + i. exists (g b). auto.
+    - inv H. eapply choice in SURJ. des.
+      eapply bij_intro with (f:=f) (g:=f0); auto.
+  Qed.
+
+  Global Program Instance bij_Equivalence: Equivalence bij.
+  Next Obligation.
+  Proof.
+    ii. eapply bij_intro with (f:=id) (g:=id); auto.
+  Qed.
+  Next Obligation.
+  Proof.
+    ii. inv H. eapply bij_intro with (f:=g) (g:=f); auto.
+  Qed.
+  Next Obligation.
+  Proof.
+    ii. inv H. inv H0. eapply bij_intro with (f:=compose f0 f) (g:=compose g g0); auto.
+    - i. unfold compose. rewrite FG0. eapply FG.
+    - i. unfold compose. rewrite GF. eapply GF0.
+  Qed.
+
+  Global Program Instance oto_Equivalence: Equivalence oto.
+  Next Obligation.
+  Proof.
+    ii. eapply bij_oto_equiv. reflexivity.
+  Qed.
+  Next Obligation.
+  Proof.
+    ii. eapply bij_oto_equiv. eapply bij_oto_equiv in H. symmetry. auto.
+  Qed.
+  Next Obligation.
+  Proof.
+    ii. eapply bij_oto_equiv. eapply bij_oto_equiv in H. eapply bij_oto_equiv in H0.
+    transitivity y; auto.
+  Qed.
+
+  Lemma oto_le A B (OTO: oto A B): le A B.
+  Proof.
+    inv OTO. eapply le_intro with (f:=f). auto.
+  Qed.
+
+  Lemma bij_le A B (BIJ: bij A B): le A B.
+  Proof.
+    eapply bij_oto_equiv in BIJ. eapply oto_le; auto.
+  Qed.
+
+  Definition eq (A B: Type): Prop := le A B /\ le B A.
+
+  Lemma eq_le A B (EQ: eq A B): le A B.
+  Proof.
+    eapply EQ.
+  Qed.
+
+  Global Program Instance eq_Equivalence: Equivalence eq.
+  Next Obligation.
+  Proof.
+    ii. split; reflexivity.
+  Qed.
+  Next Obligation.
+  Proof.
+    ii. destruct H. split; auto.
+  Qed.
+  Next Obligation.
+  Proof.
+    ii. destruct H, H0. split; etransitivity; eauto.
+  Qed.
+
+  Global Program Instance le_eq_PartialOrder: PartialOrder eq le.
+  Next Obligation.
+  Proof. ss. Qed.
+
+  Section SANDWICH.
+    Variable A1 B A: Type.
+    Variable sub0: A1 -> B.
+    Variable sub1: B -> A.
+    Variable f: A -> A1.
+
+    Hypothesis SUB0: forall a0 a1 (EQ: sub0 a0 = sub0 a1), a0 = a1.
+    Hypothesis SUB1: forall b0 b1 (EQ: sub1 b0 = sub1 b1), b0 = b1.
+    Hypothesis INJ: forall a0 a1 (EQ: f a0 = f a1), a0 = a1.
+
+    Let Fixpoint aseq (n: nat) (a: A): A :=
+      match n with
+      | 0 => a
+      | S n' => sub1 (sub0 (f (aseq n' a)))
+      end.
+
+    Let Fixpoint bseq (n: nat) (b: B): A :=
+      match n with
+      | 0 => sub1 b
+      | S n' => sub1 (sub0 (f (bseq n' b)))
+      end.
+
+    Let bseq_aseq n:
+      forall b, exists a, bseq n b = aseq n a.
+    Proof.
+      induction n; ss.
+      - i. eauto.
+      - i. specialize (IHn b). des. exists a. rewrite IHn. auto.
+    Qed.
+
+    Let aseq_S_bseq n:
+      forall a, exists b, aseq (S n) a = bseq n b.
+    Proof.
+      induction n; ss.
+      - i. eauto.
+      - i. specialize (IHn a). des. exists b. rewrite IHn. auto.
+    Qed.
+
+    Let aseq_decrease n:
+      forall a0, exists a1, aseq (S n) a0 = aseq n a1.
+    Proof.
+      i. hexploit (aseq_S_bseq n a0). i. des.
+      hexploit (bseq_aseq n b). i. des.
+      exists a. rewrite H. auto.
+    Qed.
+
+    Let bseq_decrease n:
+      forall b0, exists b1, bseq (S n) b0 = bseq n b1.
+    Proof.
+      i. hexploit (bseq_aseq (S n) b0). i. des.
+      hexploit (aseq_S_bseq n a). i. des.
+      exists b. rewrite H. auto.
+    Qed.
+
+    Let in_gap (n: nat) (a1: A): Prop :=
+      (exists a0, aseq n a0 = a1) /\
+      (forall b0, bseq n b0 <> a1).
+
+    Let in_gap_step (n: nat) (a1: A):
+      in_gap (S n) a1 <->
+      (exists a0, in_gap n a0 /\ a1 = sub1 (sub0 (f a0))).
+    Proof.
+      unfold in_gap. split; i.
+      - des. ss. exists (aseq n a0). esplits; eauto.
+        ii. eapply (H0 b0). rewrite H1. auto.
+      - des. subst. ss. esplits; eauto. ii.
+        eapply SUB1 in H. eapply SUB0 in H.
+        eapply INJ in H. eapply H1; eauto.
+    Qed.
+
+    Let in_gap_all (a1: A): Prop :=
+      exists n, in_gap n a1.
+
+    Let is_g (g: A -> B): Prop :=
+      forall a,
+        (forall (GAP: in_gap_all a), g a = sub0 (f a)) /\
+        (forall (NGAP: ~ in_gap_all a), sub1 (g a) = a)
+    .
+
+    Let is_g_exists: exists g, is_g g.
+    Proof.
+      eapply (choice (fun a b =>
+                        (forall (GAP: in_gap_all a), b = sub0 (f a)) /\
+                        (forall (NGAP: ~ in_gap_all a), sub1 b = a))).
+      intros a. destruct (classic (in_gap_all a)).
+      - exists (sub0 (f a)). split; eauto. ss.
+      - destruct (classic (exists b, sub1 b = a)).
+        { des. exists b. splits; ss. }
+        exfalso. eapply H. exists 0. econs; ss; eauto.
+    Qed.
+
+    Let g_inj (g: A -> B) (G: is_g g):
+      forall a0 a1 (EQ: g a0 = g a1), a0 = a1.
+    Proof.
+      i. edestruct (G a0). edestruct (G a1).
+      destruct (classic (in_gap_all a0)), (classic (in_gap_all a1)).
+      - eapply H in H3. eapply H1 in H4.
+        rewrite H3 in *. rewrite H4 in *.
+        eapply SUB0 in EQ. eapply INJ in EQ; auto.
+      - exfalso. dup H3. dup H4.
+        eapply H in H5. eapply H2 in H6.
+        inv H3. eapply H4. exists (S x).
+        eapply in_gap_step. esplits; eauto.
+        rewrite <- H6. rewrite <- EQ. rewrite H5. auto.
+      - exfalso. dup H3. dup H4.
+        eapply H0 in H5. eapply H1 in H6.
+        inv H4. eapply H3. exists (S x).
+        eapply in_gap_step. esplits; eauto.
+        rewrite <- H6. rewrite <- EQ. rewrite H5. auto.
+      - eapply H0 in H3. eapply H2 in H4.
+        rewrite EQ in H3. rewrite H3 in *. auto.
+    Qed.
+
+    Let g_surj (g: A -> B) (G: is_g g):
+      forall b, exists a, g a = b.
+    Proof.
+      i. destruct (classic (in_gap_all (sub1 b))).
+      - dup H. eapply G in H0. inv H. destruct x.
+        { unfold in_gap in H1. des. ss. subst. exfalso. eapply H2; eauto. }
+        eapply in_gap_step in H1. des. eapply SUB1 in H2. subst.
+        dup H1. destruct (G a0). exploit H.
+        { exists x. auto. } i. eauto.
+      - dup H. eapply G in H0. eapply SUB1 in H0. eauto.
+    Qed.
+
+    Lemma sandwich_oto: oto A B.
+    Proof.
+      hexploit is_g_exists. i. des.
+      eapply oto_intro with (f:=g).
+      - eapply g_inj. auto.
+      - eapply g_surj. auto.
+    Qed.
+
+  End SANDWICH.
+
+  Lemma eq_oto_equiv A B: eq A B <-> oto A B.
+  Proof.
+    split; i.
+    - inv H. inv H0. inv H1.
+      eapply sandwich_oto with (A1:=A) (sub0:=f) (sub1:=f0) (f:=id); auto.
+    - eapply bij_oto_equiv in H. inv H. split.
+      + eapply le_intro with (f:=f).
+        i. eapply f_equal with (f:=g) in EQ. repeat rewrite FG in EQ. auto.
+      + eapply le_intro with (f:=g).
+        i. eapply f_equal with (f:=f) in EQ. repeat rewrite GF in EQ. auto.
+  Qed.
+
+  Lemma eq_bij_equiv A B: eq A B <-> bij A B.
+  Proof.
+    erewrite bij_oto_equiv. eapply eq_oto_equiv.
+  Qed.
+
+  Global Program Instance le_bij_PartialOrder: PartialOrder bij le.
+  Next Obligation.
+  Proof.
+    ii. ss. rewrite <- eq_bij_equiv. eauto.
+  Qed.
+
+  Global Program Instance le_oto_PartialOrder: PartialOrder oto le.
+  Next Obligation.
+  Proof.
+    ii. ss. rewrite <- eq_oto_equiv. eauto.
+  Qed.
+
+  Definition lt A B: Prop := le A B /\ ~ eq A B.
+
+  Lemma lt_le A B (LT: lt A B): le A B.
+  Proof.
+    eapply LT.
+  Qed.
+
+  Lemma lt_le_lt B A C (LT: lt A B) (LE: le B C): lt A C.
+  Proof.
+    inv LT. split.
+    - transitivity B; eauto.
+    - ii. inv H1. eapply H0. split; auto. transitivity C; auto.
+  Qed.
+
+  Lemma le_lt_lt B A C (LE: le A B) (LT: lt B C): lt A C.
+  Proof.
+    inv LT. split.
+    - transitivity B; eauto.
+    - ii. inv H1. eapply H0. split; auto. transitivity A; auto.
+  Qed.
+
+  Program Instance lt_StrictOrder: StrictOrder lt.
+  Next Obligation.
+  Proof.
+    ii. inv H. eapply H1. reflexivity.
+  Qed.
+  Next Obligation.
+  Proof.
+    ii. eapply (@lt_le_lt y); eauto. eapply lt_le; eauto.
+  Qed.
+
+  Lemma lt_not_le o0 o1 (LT: lt o0 o1) (LE: le o1 o0): False.
+  Proof.
+    eapply lt_StrictOrder. eapply le_lt_lt; eauto.
+  Qed.
+
+  Lemma lt_eq_lt A B0 B1 (EQ: eq B0 B1):
+    lt A B0 <-> lt A B1.
+  Proof.
+    split; i.
+    - inv EQ. eapply lt_le_lt; eauto.
+    - inv EQ. eapply lt_le_lt; eauto.
+  Qed.
+
+  Lemma eq_lt_lt A0 A1 B (EQ: eq A0 A1):
+    lt A0 B <-> lt A1 B.
+  Proof.
+    split; i.
+    - inv EQ. eapply le_lt_lt; eauto.
+    - inv EQ. eapply le_lt_lt; eauto.
+  Qed.
+
+  Lemma le_eq_le A B0 B1 (EQ: eq B0 B1):
+    le A B0 <-> le A B1.
+  Proof.
+    split; i.
+    - inv EQ. transitivity B0; auto.
+    - inv EQ. transitivity B1; auto.
+  Qed.
+
+  Lemma eq_le_le A0 A1 B (EQ: eq A0 A1):
+    le A0 B <-> le A1 B.
+  Proof.
+    split; i.
+    - inv EQ. transitivity A0; auto.
+    - inv EQ. transitivity A1; auto.
+  Qed.
+
+  Lemma le_eq_or_lt A B:
+    le A B <-> (lt A B \/ eq A B).
+  Proof.
+    split; i.
+    - destruct (classic (eq A B)); auto. left. split; auto.
+    - des.
+      + eapply H.
+      + eapply eq_le. auto.
+  Qed.
+End Cardinal.
 
 Module iProp.
   Definition t := Ordinal.t -> Prop.
