@@ -8,8 +8,10 @@ Set Implicit Arguments.
 Set Primitive Projections.
 
 Module Ordinal.
+  Section TYPE.
+  Let MyT := Type.
   Inductive t: Type :=
-  | build (A: Type) (os: A -> t)
+  | build (A: MyT) (os: A -> t)
   .
 
   Inductive le: t -> t -> Prop :=
@@ -233,6 +235,12 @@ Module Ordinal.
     eapply H0; eauto.
   Qed.
 
+  Let well_founded_prop A (R: A -> A -> Prop) (WF0 WF1: well_founded R):
+    WF0 = WF1.
+  Proof.
+    extensionality a. eapply Acc_prop.
+  Qed.
+
   Lemma from_acc_lt A (R: A -> A -> Prop) (a0 a1: A) (LT: R a0 a1)
         (ACC1: Acc R a1) (ACC0: Acc R a0)
     :
@@ -265,13 +273,24 @@ Module Ordinal.
     eapply from_acc_lt; eauto.
   Qed.
 
+  Lemma from_wf_supremum A (R: A -> A -> Prop) (WF: well_founded R) o a1
+        (LE: forall a0 (LT: R a0 a1), lt (from_wf WF a0) o)
+    :
+      le (from_wf WF a1) o.
+  Proof.
+    unfold from_wf. destruct (WF a1). ss.
+    eapply build_spec. i. destruct a0 as [a0 r]. ss.
+    specialize (LE a0 r). unfold from_wf in LE.
+    replace (a a0 r) with (WF a0); auto.
+  Qed.
+
   Lemma from_wf_complete A (R: A -> A -> Prop) (WF: well_founded R) a1
         o (LT: lt o (from_wf WF a1))
     :
       exists a0, eq o (from_wf WF a0).
   Proof.
     eapply from_acc_complete in LT. des. exists a0.
-    unfold from_wf. replace (WF a0) with ACC0; auto. eapply Acc_prop.
+    unfold from_wf. replace (WF a0) with ACC0; auto.
   Qed.
 
   Definition from_wf_set A (R: A -> A -> Prop) (WF: well_founded R): t :=
@@ -333,6 +352,27 @@ Module Ordinal.
     - exists (exist _ x TOP). ss.
       unfold from_wf. destruct (WF0 a1), (a x TOP). econs. i.
       exfalso. destruct a4. eapply H; eauto.
+  Qed.
+
+  Lemma from_wf_preserve A B (f: A -> B)
+        (RA: A -> A -> Prop) (RB: B -> B -> Prop)
+        (WFA: well_founded RA)
+        (WFB: well_founded RB)
+        (LE: forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1))
+    :
+      forall a, le (from_wf WFA a) (from_wf WFB (f a)).
+  Proof.
+    eapply (well_founded_induction WFA); auto.
+    intros a IH. unfold from_wf.
+    destruct (WFA a) as [GA], (WFB (f a)) as [GB].
+    ss. econs; ss. i.
+    destruct a0 as [a0 r0]. ss. exists (exist _ (f a0) (LE _ _ r0)).
+    ss. specialize (IH a0 r0). unfold from_wf in IH.
+    replace (GA a0 r0) with (WFA a0).
+    2: { eapply Acc_prop. }
+    replace (GB (f a0) (LE a0 a r0)) with (WFB (f a0)).
+    2: { eapply Acc_prop. }
+    auto.
   Qed.
 
   Definition is_meet (P: t -> Prop) (o0: t): Prop :=
@@ -484,16 +524,15 @@ Module Ordinal.
       destruct o0. econs. i. exploit LE; eauto.
     Defined.
 
-    Let T := Type.
-    Variable A: T.
+    Variable A: MyT.
     Variable os: A -> t.
-    Let Y: (A -> T) :=
+    Let Y: (A -> MyT) :=
       fun a: A =>
         match (os a) with
         | @build B _ => B
         end.
 
-    Let X: T :=
+    Let X: MyT :=
       @sigT _ Y.
 
     Definition join: t.
@@ -530,7 +569,7 @@ Module Ordinal.
     Proof.
       destruct o. econs. i. destruct a0; ss.
       specialize (LE x). remember (build os0). inv LE.
-      specialize (LE0 (@eq_rect _ (os x) (fun t0 => match t0 return T with
+      specialize (LE0 (@eq_rect _ (os x) (fun t0 => match t0 return MyT with
                                                     | @build B _ => B
                                                     end) y _ (eq_sym H0))). des.
       exists (@eq_rect _ A2 id a1 A0 (build_fst_eq H1)).
@@ -539,7 +578,7 @@ Module Ordinal.
       assert (os2 a1 = os0 (eq_rect A2 id a1 A0 (build_fst_eq H1))).
       { dependent destruction H1. ss. } rewrite <- H.
       assert ((os1
-                 (eq_rect (build os3) (fun t0 : t => match t0 return T with
+                 (eq_rect (build os3) (fun t0 : t => match t0 return MyT with
                                                   | @build B _ => B
                                                   end) y (build os1) (eq_sym H0))) =
               (os3 y)).
@@ -1121,28 +1160,30 @@ Module Ordinal.
 
   Section WO.
     Variable X: Type.
+
+    Record subos: Type :=
+      subos_mk {
+          subos_set: X -> Prop;
+          subos_rel: X -> X -> Prop;
+        }.
+    Let subX := subos.
+    Let P := subos_set.
+    Let R := subos_rel.
+
+    Record subos_wf (X': subos): Type :=
+      subos_wf_intro {
+          subos_sound: forall a0 a1 (LT: X'.(R) a0 a1), X'.(P) a0 /\ X'.(P) a1;
+          subos_complete: forall a0 a1 (IN0: X'.(P) a0) (IN1: X'.(P) a1),
+              X'.(R) a0 a1 \/ a0 = a1 \/ X'.(R) a1 a0;
+          subos_wfo: well_founded X'.(R);
+        }.
+
     Variable x_bot: X.
 
-    Record _subX: Type :=
-      _subX_mk {
-          _P: X -> Prop;
-          _R: X -> X -> Prop;
-        }.
-    Let subX := _subX.
-    Let P := _P.
-    Let R := _R.
-
-    Record _wfX (X': subX): Type :=
-      _wfX_intro {
-          _sound: forall a0 a1 (LT: X'.(R) a0 a1), X'.(P) a0 /\ X'.(P) a1;
-          _complete: forall a0 a1 (IN0: X'.(P) a0) (IN1: X'.(P) a1),
-              X'.(R) a0 a1 \/ a0 = a1 \/ X'.(R) a1 a0;
-          _wfo: well_founded X'.(R);
-        }.
-    Let wfX := _wfX.
-    Let sound := _sound.
-    Let complete := _complete.
-    Let wfo := _wfo.
+    Let wfX := subos_wf.
+    Let sound := subos_sound.
+    Let complete := subos_complete.
+    Let wfo := subos_wfo.
 
     Record _leX (s0 s1: subX): Prop :=
       _leX_intro {
@@ -1156,9 +1197,9 @@ Module Ordinal.
     Let no_insert := _no_insert.
 
     Let joinX A (Xs: A -> subX): subX :=
-      _subX_mk (fun x => exists a, (Xs a).(P) x) (fun x0 x1 => exists a, (Xs a).(R) x0 x1).
+      subos_mk (fun x => exists a, (Xs a).(P) x) (fun x0 x1 => exists a, (Xs a).(R) x0 x1).
 
-    Let base: subX := _subX_mk (fun x => x = x_bot) (fun _ _ => False).
+    Let base: subX := subos_mk (fun x => x = x_bot) (fun _ _ => False).
 
     Let leX_reflexive: forall d (WF: wfX d), leX d d.
     Proof.
@@ -1345,7 +1386,7 @@ Module Ordinal.
         { intros d0. destruct (classic (forall x, P d0 x)).
           { exists d0. i. split; auto. }
           eapply not_all_ex_not in H. des.
-          exists (_subX_mk (fun x => P d0 x \/ x = n) (fun x0 x1 => R d0 x0 x1 \/ (P d0 x0 /\ x1 = n))).
+          exists (subos_mk (fun x => P d0 x \/ x = n) (fun x0 x1 => R d0 x0 x1 \/ (P d0 x0 /\ x1 = n))).
           i. splits.
           - econs; ss.
             + i. des; clarify; splits; auto.
@@ -1377,7 +1418,7 @@ Module Ordinal.
         (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
   Proof.
     destruct (classic (inhabited X)) as [[x]|].
-    { eapply Ordinal.inhabited_well_ordering_theorem; auto. }
+    { eapply inhabited_well_ordering_theorem; auto. }
     { exists (fun _ _ => False). econs; i; ss. exfalso. eapply H; eauto. }
   Qed.
 
@@ -1486,6 +1527,409 @@ Module Ordinal.
     - right. eapply from_wf_set_embed; eauto.
   Qed.
 
+  Lemma clos_trans_well_founded
+        A (R: A -> A -> Prop) (WF: well_founded R)
+    :
+      well_founded (clos_trans_n1 _ R).
+  Proof.
+    ii. hexploit (well_founded_induction WF (fun a1 => forall a0 (LT: clos_trans_n1 A R a0 a1 \/ a0 = a1), Acc (clos_trans_n1 A R) a0)).
+    { clear a. intros a1 IH. i. econs. i. des.
+      - inv LT.
+        + eapply IH; eauto.
+        + eapply IH; eauto. left.
+          eapply Operators_Properties.clos_trans_tn1. econs 2.
+          * eapply Operators_Properties.clos_tn1_trans; eauto.
+          * eapply Operators_Properties.clos_tn1_trans; eauto.
+      - subst. inv H; eauto.
+    }
+    { right. reflexivity. }
+    { eauto. }
+  Qed.
+
+  Lemma well_founded_irreflexive A (R: A -> A -> Prop) (WF: well_founded R)
+        a
+        (LT: R a a)
+    :
+      False.
+  Proof.
+    hexploit (well_founded_induction WF (fun a' => ~ (a' = a))).
+    { ii. des; clarify. eapply H; eauto. }
+    i. eapply H. eauto.
+  Qed.
+
+  Definition union_set (A: MyT) (Ts: A -> MyT): MyT := @sigT A (fun a => option (Ts a)).
+
+  Inductive union_rel (A: MyT)
+            (Ts: A -> MyT) (R: forall a, Ts a -> Ts a -> Prop):
+    union_set Ts -> union_set Ts -> Prop :=
+  | union_rel_top
+      a x
+    :
+      union_rel R (existT _ a (Some x)) (existT _ a None)
+  | union_rel_normal
+      a x0 x1
+      (LT: R a x0 x1)
+    :
+      union_rel R (existT _ a (Some x0)) (existT _ a (Some x1))
+  .
+  Hint Constructors union_rel.
+
+  Lemma union_rel_well_founded (A: MyT) (Ts: A -> MyT)
+        (R: forall a, Ts a -> Ts a -> Prop)
+        (WF: forall a, well_founded (R a))
+    :
+      well_founded (union_rel R).
+  Proof.
+    assert (forall a x, Acc (union_rel R) (existT _ a (Some x))).
+    { intros a. eapply (well_founded_induction (WF a)); auto.
+      i. econs. i. dependent destruction H0. eapply H; eauto. }
+    ii. destruct a as [a [x|]]; eauto.
+    econs. i. inv H0; eauto.
+  Qed.
+
+  Lemma bot_well_founded A: @well_founded A (fun _ _ => False).
+  Proof.
+    ii. econs; ss.
+  Qed.
+
+  Lemma from_wf_union (A: MyT) (Ts: A -> MyT)
+        (R: forall a, Ts a -> Ts a -> Prop)
+        (WF: forall a, well_founded (R a))
+        (a: A) (x: Ts a)
+    :
+      eq (from_wf (WF a) x)
+         (from_wf (union_rel_well_founded R WF) (existT _ a (Some x))).
+  Proof.
+    revert x. eapply (well_founded_induction (WF a)).
+    i. split.
+    { eapply from_wf_supremum. i. specialize (H _ LT). inv H.
+      eapply le_lt_lt; eauto. eapply from_wf_lt. econs; eauto. }
+    { eapply from_wf_supremum. i. dependent destruction LT.
+      specialize (H _ LT). inv H.
+      eapply le_lt_lt; eauto. eapply from_wf_lt. auto. }
+  Qed.
+
+  Lemma from_wf_set_union (A: MyT) (Ts: A -> MyT)
+        (R: forall a, Ts a -> Ts a -> Prop)
+        (WF: forall a, well_founded (R a))
+    :
+      eq (@build A (fun a => from_wf_set (WF a)))
+         (from_wf_set (union_rel_well_founded R WF)).
+  Proof.
+    split.
+    { econs. i. exists (existT _ a0 None). eapply build_spec. i.
+      eapply (@le_lt_lt (from_wf (union_rel_well_founded R WF) (existT _ a0 (Some a)))).
+      { eapply from_wf_union. }
+      { eapply from_wf_lt. econs. }
+    }
+    { econs. i. destruct a0 as [a0 [x|]].
+      { exists a0. transitivity (from_wf (WF a0) x).
+        { eapply from_wf_union. }
+        { eapply lt_le. eapply from_wf_set_upperbound. }
+      }
+      { exists a0. eapply from_wf_supremum. i.
+        dependent destruction LT.
+        eapply (@le_lt_lt (from_wf (WF a0) x)).
+        { eapply from_wf_union. }
+        { eapply from_wf_set_upperbound. }
+      }
+    }
+  Qed.
+
+  Fixpoint to_set (o: t): @sigT MyT (fun A => A -> A -> Prop) :=
+    match o with
+    | @build A os => existT
+                       _
+                       (union_set (fun a => projT1 (to_set (os a))))
+                       (union_rel (fun a => projT2 (to_set (os a))))
+    end.
+
+  Lemma to_set_well_founded: forall o, well_founded (projT2 (to_set o)).
+  Proof.
+    induction o. ss. eapply union_rel_well_founded; auto.
+  Defined.
+
+  Lemma to_set_eq o:
+    eq o (from_wf_set (to_set_well_founded o)).
+  Proof.
+    induction o. etransitivity.
+    2: { eapply from_wf_set_union. }
+    split.
+    { econs. i. exists a0. eapply H. }
+    { econs. i. exists a0. eapply H. }
+  Qed.
+
+  Definition cut_rel A (R: A -> A -> Prop) (a1: A):
+    sig (fun a0 => R a0 a1) -> sig (fun a0 => R a0 a1) -> Prop :=
+    fun a0 a1 => R (proj1_sig a0) (proj1_sig a1).
+
+  Lemma cut_rel_well_founded A (R: A -> A -> Prop)
+        (WF: well_founded R)
+        (a1: A)
+    :
+      well_founded (cut_rel R a1).
+  Proof.
+    ii. destruct a as [a0 r]. revert a0 r.
+    eapply (well_founded_induction
+              WF
+              (fun a0 => forall (r: R a0 a1), Acc (cut_rel R a1) (exist _ a0 r))).
+    i. econs. i. destruct y as [a0 r0].
+    unfold cut_rel in H0. ss. eapply H; auto.
+  Qed.
+
+  Lemma cut_rel_total A (R: A -> A -> Prop)
+        (TOTAL: forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0)
+        (a: A)
+    :
+      forall a0 a1, cut_rel R a a0 a1 \/ a0 = a1 \/ cut_rel R a a1 a0.
+  Proof.
+    ii. destruct a0, a1. unfold cut_rel. ss.
+    destruct (TOTAL x x0)as [|[]]; auto. subst.
+    right. left. f_equal. eapply proof_irrelevance.
+  Qed.
+
+  Lemma from_wf_cut A (R: A -> A -> Prop) (WF: well_founded R)
+        (TOTAL: forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0)
+        (a1: A):
+    forall a0 (LT: R a0 a1),
+      eq (from_wf WF a0) (from_wf (cut_rel_well_founded WF a1) (exist _ a0 LT)).
+  Proof.
+    eapply (well_founded_induction
+              WF
+              (fun a0 => forall (LT: R a0 a1), eq (from_wf WF a0) (from_wf (cut_rel_well_founded WF a1) (exist _ a0 LT)))).
+    intros a0 IH. i. split.
+    { eapply from_wf_supremum. i.
+      assert (LT1: R a2 a1).
+      { destruct (TOTAL a2 a1) as [|[]]; auto.
+        - subst. exfalso.
+          eapply well_founded_irreflexive.
+          { eapply clos_trans_well_founded; eauto. }
+          { econs 2; eauto. econs 1; auto. }
+        - exfalso.
+          eapply well_founded_irreflexive.
+          { eapply clos_trans_well_founded; eauto. }
+          { econs 2; eauto. econs 2; eauto. econs 1; auto. }
+      }
+      eapply (@le_lt_lt (from_wf (cut_rel_well_founded WF a1)
+                                 (exist _ a2 LT1))).
+      { eapply IH; auto. }
+      { eapply from_wf_lt. ss. }
+    }
+    { eapply from_wf_supremum. i. destruct a2 as [a2 LT1].
+      unfold cut_rel in LT0. ss.
+      eapply (@le_lt_lt (from_wf WF a2)).
+      { eapply IH; auto. }
+      { eapply from_wf_lt. ss. }
+    }
+  Qed.
+
+  Lemma from_wf_set_cut A (R: A -> A -> Prop) (WF: well_founded R)
+        (TOTAL: forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0)
+        (a1: A):
+      eq (from_wf WF a1) (from_wf_set (cut_rel_well_founded WF a1)).
+  Proof.
+    split.
+    { eapply from_wf_supremum. i.
+      eapply lt_intro with (a:=exist _ a0 LT).
+      eapply from_wf_cut; eauto. }
+    { eapply build_spec. intros [a0 r].
+      eapply (@le_lt_lt (from_wf WF a0)).
+      { eapply from_wf_cut; eauto. }
+      { eapply from_wf_lt; eauto. }
+    }
+  Qed.
+
+  Lemma to_total_set_exists (o: t):
+    exists (A: MyT) (R: A -> A -> Prop) (WF: well_founded R),
+      eq o (from_wf_set WF) /\
+      (forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0).
+  Proof.
+    hexploit (to_set_eq o). intros EQ.
+    hexploit (well_order_extendable (to_set_well_founded o)). i. des.
+    assert (le o (from_wf_set H)).
+    { transitivity (from_wf_set (to_set_well_founded o)); auto.
+      { eapply EQ. }
+      { eapply from_wf_set_le; auto. }
+    }
+    eapply le_eq_or_lt in H2. des.
+    { eapply from_wf_set_complete in H2. des.
+      hexploit (from_wf_set_cut H H1 a). i.
+      eexists _, _, (cut_rel_well_founded H a). splits.
+      { transitivity (from_wf H a); auto. }
+      { eapply cut_rel_total; eauto. }
+    }
+    { esplits; eauto. }
+  Qed.
+
+  Section CARDINAL.
+    Variable A: MyT.
+
+    Definition is_cardinal (c: t): Prop :=
+      is_meet (fun o =>
+                 exists (R: A -> A -> Prop) (WF: well_founded R),
+                   (forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0) /\
+                   le (from_wf_set WF) o) c.
+
+    Let is_eq_cardinal (c: t): Prop :=
+      is_meet (fun o =>
+                 exists (R: A -> A -> Prop) (WF: well_founded R),
+                   (forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0) /\
+                   eq (from_wf_set WF) o) c.
+
+    Lemma is_cardinal_exists: exists c, is_cardinal c.
+    Proof.
+      eapply meet_exists.
+      hexploit (@well_ordering_theorem A); eauto. i. des.
+      exists (from_wf_set H), R, H. splits; auto. reflexivity.
+    Qed.
+
+    Let is_eq_cardinal_exists: exists c, is_eq_cardinal c.
+    Proof.
+      eapply meet_exists.
+      hexploit (@well_ordering_theorem A); eauto. i. des.
+      exists (from_wf_set H), R, H. splits; auto. reflexivity.
+    Qed.
+
+    Definition X: MyT :=
+      @sig
+        (@sigT (A -> Prop) (fun s => sig s -> sig s-> Prop))
+        (fun PR =>
+           well_founded (projT2 PR) /\
+           (forall a0 a1, projT2 PR a0 a1 \/ a0 = a1 \/ projT2 PR a1 a0) /\
+           (forall (f: A -> sig (projT1 PR)),
+               exists a0 a1, f a0 = f a1 /\ a0 <> a1)).
+
+    Definition Y (x: X): t :=
+      @from_wf_set (sig (projT1 (proj1_sig x))) _ (proj1 (proj2_sig x)).
+
+    Definition cardinal := @build X Y.
+
+    Lemma cardinal_is_cardinal: is_cardinal cardinal.
+    Proof.
+      split.
+      - hexploit (to_total_set_exists cardinal). i. des.
+        hexploit is_cardinal_exists. i. des.
+        unfold is_cardinal, is_meet in H1. des.
+        exists R, WF. splits; auto.
+
+
+
+
+        build
+
+
+        eapply (@eq_le_le); eauto. eapply H0.
+
+        c); eauto.
+
+        eapply H0.
+
+        eapp
+
+        destruct H.
+
+        admit.
+      - i. des. eapply build_spec. i. unfold Y.
+        destruct a as [[P0 R0] [WF0 [TOTAL SMALL]]]; ss.
+        replace (proj1 (conj WF0 (conj TOTAL SMALL))) with WF0.
+        2: { eapply well_founded_prop. }
+        eapply (@lt_le_lt (from_wf_set WF)); eauto.
+        destruct (total (from_wf_set WF) (from_wf_set WF0)); auto.
+        exfalso. exploit from_wf_set_embed; eauto. i. des.
+        hexploit (SMALL f); eauto. i. des.
+        destruct (IN a0 a1) as [|[]]; ss.
+        { eapply x0 in H2. rewrite H0 in *.
+          eapply well_founded_irreflexive in H2; eauto. }
+        { eapply x0 in H2. rewrite H0 in *.
+          eapply well_founded_irreflexive in H2; eauto. }
+    Qed.
+
+                                                   asymmetric.
+
+          ea
+
+
+
+        Local Opaque proj1. unfold proj1. ss.
+        r
+
+        unfold proj1.
+
+        unfold .
+
+        des.
+
+
+
+        ss.
+
+        hexploit (@well_ordering_theorem A). i. des.
+        exists R, H. splits; auto. eapply build_spec.
+        i. eapply (@build_upperbound
+                     (A * @sig (A -> A -> Prop) (@well_founded A))
+                     (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF))
+                     (a, exist _ R H)).
+      - i. des. eapply build_spec. i. destruct a as [a [R0 WF0]]. ss.
+
+    Definition
+
+    .
+
+
+         * (A -> A -> Prop))
+        (fun PR =>
+           well_founded (snd PR) /\
+           let (P, R) := PR in
+           (forall a0 a1 (LT: snd PR a0 a1), P a0 /\ P a1) /\
+           (forall (f: sig P -> A), exists a0 a1, f a0 = f a1 /\ a0 <> a1)).
+
+    Definition Y (x: X): t :=
+      from_wf_set (sig
+
+
+    Definition X: T :=
+      @sig
+        ((A -> Prop) * (A -> A -> Prop))
+        (fun PR =>
+           well_founded (snd PR) /\
+           let (P, R) := PR in
+           (forall a0 a1 (LT: snd PR a0 a1), P a0 /\ P a1) /\
+           (forall (f: sig P -> A), exists a0 a1, f a0 = f a1 /\ a0 <> a1)).
+
+    Definition Y (x: X): t :=
+      from_wf_set (sig
+
+
+    Definition cardinal :=
+      @build X (
+
+    Definition is_cardinal_le (c: t)
+
+        ((A -> Prop) * (
+
+      sig
+
+
+    Program Definition cardinal :=
+      @build (A * @sig (A -> A -> Prop) (@well_founded A))
+             (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF)).
+
+
+    Program Definition cardinal :=
+      @build (A * @sig (A -> A -> Prop) (@well_founded A))
+             (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF)).
+
+    Lemma cardinal_is_cardinal: is_cardinal cardinal.
+    Proof.
+      split.
+      - hexploit (@well_ordering_theorem A). i. des.
+        exists R, H. splits; auto. eapply build_spec.
+        i. eapply (@build_upperbound
+                     (A * @sig (A -> A -> Prop) (@well_founded A))
+                     (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF))
+                     (a, exist _ R H)).
+      - i. des. eapply build_spec. i. destruct a as [a [R0 WF0]]. ss.
+
   Section CARDINAL.
     Let T := Type.
     Variable A: T.
@@ -1510,6 +1954,7 @@ Module Ordinal.
                      (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF))
                      (a, exist _ R H)).
       - i. des. eapply build_spec. i. destruct a as [a [R0 WF0]]. ss.
+
     Admitted.
   End CARDINAL.
 End Ordinal.
