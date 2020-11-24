@@ -1645,11 +1645,48 @@ Module Ordinal.
                  (forall d (WF: wfX d),
                      (forall x, d.(P) x) \/
                      (exists x, (next d).(P) x /\ ~ d.(P) x))).
-      { admit. }
+      { hexploit (choice (fun d0 d1 =>
+                            forall (WF: wfX d0),
+                              wfX d1 /\ leX d0 d1 /\
+                              ((forall x, P d0 x) \/ (exists x, P d1 x /\ ~ P d0 x)))).
+        { intros d0. destruct (classic (forall x, P d0 x)).
+          { exists d0. i. split; auto. }
+          eapply not_all_ex_not in H. des.
+          exists (subX_mk (fun x => P d0 x \/ x = n) (fun x0 x1 => R d0 x0 x1 \/ (P d0 x0 /\ x1 = n))).
+          i. splits.
+          - econs; ss.
+            + i. des; clarify; splits; auto.
+              * left. eapply WF in LT. des; eauto.
+              * left. eapply WF in LT. des; eauto.
+            + i. des; clarify; eauto.
+              destruct (WF.(complete) a0 a1) as [|[|]]; auto.
+            + assert (forall x, Acc (R d0) x -> P d0 x -> Acc (fun x0 x1 : X => R d0 x0 x1 \/ P d0 x0 /\ x1 = n) x).
+              { i. revert H1. induction H0. econs. i. des; clarify.
+                eapply H1; eauto. eapply WF in H3. des; eauto. }
+              econs. i. des; clarify.
+              * eapply H0.
+                { eapply WF. }
+                { eapply WF in H1. des; auto. }
+              * eapply H0; eauto. eapply WF.
+          - econs; ss; auto. i. split; i; auto. des; clarify.
+          - i. right. ss. eauto.
+        }
+        i. des. exists f. splits; i; try apply H; eauto.
+      }
       des. eapply choice_then_well_ordering_theorem; eauto.
-    Admitted.
+    Qed.
   End CARDINAL.
 
+  Theorem well_ordering_theorem (X: Type)
+    :
+      exists (R: X -> X -> Prop),
+        well_founded R /\
+        (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
+  Proof.
+    destruct (classic (inhabited X)) as [[x]|].
+    { eapply inhabited_well_ordering_theorem; auto. }
+    { exists (fun _ _ => False). econs; i; ss. exfalso. eapply H; eauto. }
+  Qed.
 End Ordinal.
 
 Module iProp.
@@ -1721,32 +1758,32 @@ Module iProp.
 
   Definition next_o (P: t) (o: Ordinal.t): t := Ordinal.rec meet P next o.
 
-  Lemma next_o_le (P: t) (o0 o1: Ordinal.t) (LE: Ordinal.le o0 o1):
-    le (next_o P o1) (next_o P o0).
-  Proof.
-    eapply (@Ordinal.le_rec t ge meet P next); auto.
-    - eapply flip_PreOrder. eapply le_PreOrder.
-    - i. eapply meet_lowerbound.
-    - i. eapply meet_infimum. auto.
-    - i. eapply next_mon; auto.
-  Qed.
+  (* Lemma next_o_le (P: t) (o0 o1: Ordinal.t) (LE: Ordinal.le o0 o1): *)
+  (*   le (next_o P o1) (next_o P o0). *)
+  (* Proof. *)
+  (*   eapply (@Ordinal.rec_le t ge meet P next); auto. *)
+  (*   - eapply flip_PreOrder. eapply le_PreOrder. *)
+  (*   - i. eapply meet_lowerbound. *)
+  (*   - i. eapply meet_infimum. auto. *)
+  (*   - i. eapply next_mon; auto. *)
+  (* Qed. *)
 
-  Lemma next_o_eq (P: t) (o0 o1: Ordinal.t) (EQ: Ordinal.eq o0 o1):
-    next_o P o1 = next_o P o0.
-  Proof.
-    eapply le_Antisymmetric.
-    - eapply next_o_le. eapply EQ.
-    - eapply next_o_le. eapply EQ.
-  Qed.
+  (* Lemma next_o_eq (P: t) (o0 o1: Ordinal.t) (EQ: Ordinal.eq o0 o1): *)
+  (*   next_o P o1 = next_o P o0. *)
+  (* Proof. *)
+  (*   eapply le_Antisymmetric. *)
+  (*   - eapply next_o_le. eapply EQ. *)
+  (*   - eapply next_o_le. eapply EQ. *)
+  (* Qed. *)
 
-  Lemma next_o_mon P0 P1 (LE: le P0 P1) o: le (next_o P0 o) (next_o P1 o).
-  Proof.
-    revert o P0 P1 LE. induction o. i. ss.
-    eapply meet_infimum. i. etransitivity; [eapply (meet_lowerbound a)|].
-    destruct a; auto.
-    eapply meet_infimum. i. etransitivity; [eapply (meet_lowerbound a)|].
-    eapply next_mon. eauto.
-  Qed.
+  (* Lemma next_o_mon P0 P1 (LE: le P0 P1) o: le (next_o P0 o) (next_o P1 o). *)
+  (* Proof. *)
+  (*   revert o P0 P1 LE. induction o. i. ss. *)
+  (*   eapply meet_infimum. i. etransitivity; [eapply (meet_lowerbound a)|]. *)
+  (*   destruct a; auto. *)
+  (*   eapply meet_infimum. i. etransitivity; [eapply (meet_lowerbound a)|]. *)
+  (*   eapply next_mon. eauto. *)
+  (* Qed. *)
 End iProp.
 
   (* Definition bot: t := join (False_rect _). *)
