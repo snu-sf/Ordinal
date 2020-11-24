@@ -550,14 +550,38 @@ Module Ordinal.
     specialize (UB a0). dependent destruction UB. eauto.
   Qed.
 
+  Lemma acc_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        a (ACC: Acc R1 a)
+    :
+      Acc R0 a.
+  Proof.
+    induction ACC. econs. i. eapply H0; eauto.
+  Qed.
+
+  Lemma wf_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        (WF: well_founded R1)
+    :
+      well_founded R0.
+  Proof.
+    econs. i. eapply acc_mon; eauto.
+  Qed.
+
   Program Fixpoint from_acc A (R: A -> A -> Prop) (a1: A) (ACC: Acc R a1): t :=
     @build (sig (fun a0 => R a0 a1)) (fun a0p =>
                                         @from_acc _ R (proj1_sig a0p) _).
   Next Obligation.
     inv ACC. eapply H0; eauto.
   Defined.
-
   Arguments from_acc [A R] a1 ACC.
+
+  Let Acc_prop A (R: A -> A -> Prop) a (p0 p1: Acc R a):
+    p0 = p1.
+  Proof.
+    eapply (@Acc_ind _ R (fun a => forall (p0 p1: Acc R a), p0 = p1)); auto.
+    i. destruct p2, p3. f_equal.
+    extensionality y. extensionality r.
+    eapply H0; eauto.
+  Qed.
 
   Lemma from_acc_lt A (R: A -> A -> Prop) (a0 a1: A) (LT: R a0 a1)
         (ACC1: Acc R a1) (ACC0: Acc R a0)
@@ -588,6 +612,49 @@ Module Ordinal.
     lt (from_wf WF a) (from_wf_set WF).
   Proof.
     eapply build_upperbound.
+  Qed.
+
+  Lemma from_acc_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        a (ACC0: Acc R0 a) (ACC1: Acc R1 a)
+    :
+      le (from_acc a ACC0) (from_acc a ACC1).
+  Proof.
+    dup ACC1. rename ACC2 into ACC. revert ACC0 ACC1. induction ACC.
+    i. destruct ACC0, ACC1. ss. econs. i.
+    destruct a1 as [a1 p1]. ss. exists (exist _ a1 (INCL _ _ p1)). ss.
+    eapply H0; eauto.
+  Qed.
+
+  Lemma from_wf_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        (WF0: well_founded R0) (WF1: well_founded R1) a
+    :
+      le (from_wf WF0 a) (from_wf WF1 a).
+  Proof.
+    unfold from_wf. eapply from_acc_mon; eauto.
+  Qed.
+
+  Lemma from_wf_set_le A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        (WF0: well_founded R0) (WF1: well_founded R1)
+    :
+      le (from_wf_set WF0) (from_wf_set WF1).
+  Proof.
+    econs. i. exists a0. eapply from_wf_mon; auto.
+  Qed.
+
+  Lemma from_wf_set_lt A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        (WF0: well_founded R0) (WF1: well_founded R1)
+        (TOP: exists a2 x, R1 x a2 /\ forall a0 a1 (LT: R0 a0 a1), R1 a1 a2)
+    :
+      lt (from_wf_set WF0) (from_wf_set WF1).
+  Proof.
+    des. eapply lt_intro with (a:=a2).
+    unfold from_wf. destruct (WF1 a2). ss. econs. intros a1.
+    destruct (classic (exists a0, R0 a0 a1)).
+    - des. exists (exist _ a1 (TOP0 _ _ H)). ss.
+      unfold from_wf. eapply from_acc_mon; auto.
+    - exists (exist _ x TOP). ss.
+      unfold from_wf. destruct (WF0 a1), (a x TOP). econs. i.
+      exfalso. destruct a4. eapply H; eauto.
   Qed.
 
   Definition is_meet (P: t -> Prop) (o0: t): Prop :=
@@ -1355,7 +1422,7 @@ Module Ordinal.
 
   Definition is_hartogs A (h: t): Prop :=
     is_meet (fun o => forall (R: A -> A -> Prop) (WF: well_founded R),
-                 ~ eq (from_wf_set WF) o) h.
+                 ~ le o (from_wf_set WF)) h.
 
   Lemma hartogs_exists A:
     exists h, is_hartogs A h.
@@ -1364,20 +1431,22 @@ Module Ordinal.
     exists (@build
               (@sig (A -> A -> Prop) (@well_founded A))
               (fun rwf => from_wf_set (proj2_sig rwf))).
-    ii. eapply lt_StrictOrder. eapply lt_eq_lt; [eauto|].
+    ii. eapply lt_StrictOrder. eapply lt_le_lt; [|eauto].
     eapply (@build_upperbound _ (fun rwf => from_wf_set (proj2_sig rwf)) (@exist _ _ R WF)).
   Qed.
 
   Section CARDINAL.
     Variable X: Type.
+    Variable x_bot: X.
+
     Record subX: Type :=
       subX_mk {
           P: X -> Prop;
           R: X -> X -> Prop;
         }.
 
-    Record subX_wf (X': subX): Type :=
-      subX_wf_intro {
+    Record wfX (X': subX): Type :=
+      wfX_intro {
           sound: forall a0 a1 (LT: X'.(R) a0 a1), X'.(P) a0 /\ X'.(P) a1;
           complete: forall a0 a1 (IN0: X'.(P) a0) (IN1: X'.(P) a1),
               X'.(R) a0 a1 \/ a0 = a1 \/ X'.(R) a1 a0;
@@ -1394,21 +1463,21 @@ Module Ordinal.
     Let joinX A (Xs: A -> subX): subX :=
       subX_mk (fun x => exists a, (Xs a).(P) x) (fun x0 x1 => exists a, (Xs a).(R) x0 x1).
 
-    Let base: subX := subX_mk (fun _ => False) (fun _ _ => False).
+    Let base: subX := subX_mk (fun x => x = x_bot) (fun _ _ => False).
 
-    Let leX_reflexive: forall d (WF: subX_wf d), leX d d.
+    Let leX_reflexive: forall d (WF: wfX d), leX d d.
     Proof.
       i. econs; eauto.
     Qed.
 
-    Let leX_transitive: forall d1 d0 d2 (WF0: subX_wf d0) (WF1: subX_wf d1) (WF2: subX_wf d2) (LE0: leX d0 d1) (LE1: leX d1 d2),
+    Let leX_transitive: forall d1 d0 d2 (WF0: wfX d0) (WF1: wfX d1) (WF2: wfX d2) (LE0: leX d0 d1) (LE1: leX d1 d2),
         leX d0 d2.
     Proof.
       i. inv LE0. inv LE1. econs; eauto.
       i. rewrite no_insert1; eauto.
     Qed.
 
-    Let joinX_upperbound: forall A (ds: A -> subX) (a: A) (CHAIN: forall a0 a1, leX (ds a0) (ds a1) \/ leX (ds a1) (ds a0)) (WF: forall a, subX_wf (ds a)), leX (ds a) (joinX ds).
+    Let joinX_upperbound: forall A (ds: A -> subX) (a: A) (CHAIN: forall a0 a1, leX (ds a0) (ds a1) \/ leX (ds a1) (ds a0)) (WF: forall a, wfX (ds a)), leX (ds a) (joinX ds).
     Proof.
       i. econs; ss; eauto. i. split; i.
       - des. destruct (CHAIN a a2).
@@ -1417,7 +1486,7 @@ Module Ordinal.
       - eauto.
     Qed.
 
-    Let joinX_supremum: forall A (ds: A -> subX) (d: subX) (CHAIN: forall a0 a1, leX (ds a0) (ds a1) \/ leX (ds a1) (ds a0)) (WF: forall a, subX_wf (ds a)) (WFD: subX_wf d) (LE: forall a, leX (ds a) d), leX (joinX ds) d.
+    Let joinX_supremum: forall A (ds: A -> subX) (d: subX) (CHAIN: forall a0 a1, leX (ds a0) (ds a1) \/ leX (ds a1) (ds a0)) (WF: forall a, wfX (ds a)) (WFD: wfX d) (LE: forall a, leX (ds a) d), leX (joinX ds) d.
     Proof.
       i. econs; ss.
       - i. des. eapply LE in IN. auto.
@@ -1427,7 +1496,7 @@ Module Ordinal.
         + des. eapply LE; eauto.
     Qed.
 
-    Let joinX_wf: forall A (ds: A -> subX) (CHAIN: forall a0 a1, leX (ds a0) (ds a1) \/ leX (ds a1) (ds a0)) (WF: forall a, subX_wf (ds a)), subX_wf (joinX ds).
+    Let joinX_wf: forall A (ds: A -> subX) (CHAIN: forall a0 a1, leX (ds a0) (ds a1) \/ leX (ds a1) (ds a0)) (WF: forall a, wfX (ds a)), wfX (joinX ds).
     Proof.
       i. econs; ss.
       - i. des. eapply WF in LT. des. eauto.
@@ -1450,22 +1519,22 @@ Module Ordinal.
         eapply H0; eauto. eapply WF in LT. des. auto.
     Qed.
 
-    Let base_wf: subX_wf base.
+    Let base_wf: wfX base.
     Proof.
-      econs; ss.
+      econs; ss. i. subst. auto.
     Qed.
 
     Section NEXT.
       Hypothesis next: subX -> subX.
 
-      Hypothesis next_wf: forall d (WF: subX_wf d), subX_wf (next d).
-      Hypothesis next_le: forall d (WF: subX_wf d), leX d (next d).
-      Hypothesis next_exhausted: forall d (WF: subX_wf d),
+      Hypothesis next_wf: forall d (WF: wfX d), wfX (next d).
+      Hypothesis next_le: forall d (WF: wfX d), leX d (next d).
+      Hypothesis next_exhausted: forall d (WF: wfX d),
           (forall x, d.(P) x) \/
           (exists x, (next d).(P) x /\ ~ d.(P) x)
       .
 
-      Let next_eq: forall d0 d1 (WF0: subX_wf d0) (WF1: subX_wf d1) (EQ: leX d0 d1 /\ leX d1 d0), leX (next d0) (next d1) /\ leX (next d1) (next d0).
+      Let next_eq: forall d0 d1 (WF0: wfX d0) (WF1: wfX d1) (EQ: leX d0 d1 /\ leX d1 d0), leX (next d0) (next d1) /\ leX (next d1) (next d0).
       Proof.
         i. assert (d0 = d1).
         { des. destruct d0, d1. f_equal.
@@ -1480,45 +1549,104 @@ Module Ordinal.
         subst. split; auto.
       Qed.
 
-      Let hartogs_exhausted h
-            (HARTOGS: is_hartogs X h)
-        :
-          forall x, (rec joinX base next h).(P) x.
-      Proof.
-      Admitted.
+      Let srec o := rec joinX base next o.
 
-      Lemma choice_then_well_ordering_principle
+      Let srec_wf o: wfX (srec o).
+      Proof.
+        eapply rec_wf; eauto.
+      Qed.
+
+      Let srec_o o := @from_wf_set X (srec o).(R) (srec_wf o).(wfo).
+
+      Let srec_le o0 o1 (LE: le o0 o1):
+        leX (srec o0) (srec o1).
+      Proof.
+        eapply rec_le in LE; eauto.
+      Qed.
+
+      Let srec_o_le o0 o1 (LE: le o0 o1):
+        le (srec_o o0) (srec_o o1).
+      Proof.
+        unfold srec_o. eapply from_wf_set_le. eapply srec_le; auto.
+      Qed.
+
+      Let srec_o_S o0 o1 (SUCC: is_S o0 o1) (NTOP: ~ forall x, (srec o0).(P) x):
+        lt (srec_o o0) (srec_o o1).
+      Proof.
+        assert (SRECLE: leX (srec o0) (srec o1)).
+        { eapply srec_le; eauto. eapply lt_le. eapply SUCC. }
+        eapply from_wf_set_lt; auto.
+        { eapply SRECLE. }
+        hexploit (next_exhausted (srec_wf o0)). i. des.
+        { exfalso. eapply NTOP. eauto. } clear NTOP.
+        hexploit (@rec_is_S _ leX joinX wfX base next); eauto.
+        i. des.
+        assert (TOP: forall a1 (LT: P (srec o0) a1), R (srec o1) a1 x).
+        { i. hexploit ((srec_wf o1).(complete) a1 x); auto.
+          { eapply SRECLE; auto. }
+          { eapply H2; auto. }
+          i. des; auto; clarify.
+          erewrite SRECLE.(no_insert) in H3; auto.
+          eapply (srec_wf o0) in H3. des. ss.
+        }
+        exists x, x_bot. split.
+        - eapply TOP. apply (@rec_le_base _ leX joinX wfX base); ss.
+        - i. eapply TOP. eapply (srec_wf o0) in LT. des. auto.
+      Qed.
+
+      Let srec_o_lt o0 o1 (LT: lt o0 o1) (NTOP: ~ forall x, (srec o0).(P) x):
+        lt (srec_o o0) (srec_o o1).
+      Proof.
+        eapply (@lt_le_lt (srec_o (S o0))).
+        - eapply srec_o_S; eauto. eapply S_is_S.
+        - eapply srec_o_le; auto. eapply S_spec; auto.
+      Qed.
+
+      Let eventually_exhausted
+        :
+          exists o, forall x, (rec joinX base next o).(P) x.
+      Proof.
+        eapply NNPP. ii. assert (forall o, le o (srec_o o)).
+        { eapply (@well_founded_induction _ lt).
+          { eapply lt_well_founded. }
+          i. destruct (total x (srec_o x)); auto. exfalso.
+          dup H1. eapply H0 in H1. eapply srec_o_lt in H2; eauto.
+          eapply (@lt_not_le (srec_o (srec_o x)) (srec_o x)); eauto.
+        }
+        hexploit (hartogs_exists X). i. des. specialize (H0 h).
+        unfold is_hartogs, is_meet in H1. des.
+        eapply H1. eauto.
+      Qed.
+
+      Lemma choice_then_well_ordering_theorem
         :
           exists (R: X -> X -> Prop),
             well_founded R /\
             (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
       Proof.
-        hexploit (hartogs_exists X). i. des.
-        exists (rec joinX base next h).(R).
-        assert (WF: subX_wf (rec joinX base next h)).
-        { hexploit (@rec_wf _ leX joinX subX_wf base next); eauto. }
-        split.
-        - eapply WF.
-        - i. eapply WF.
-          + eapply hartogs_exhausted; auto.
-          + eapply hartogs_exhausted; auto.
+        hexploit eventually_exhausted. i. des.
+        assert (WF: wfX (rec joinX base next o)).
+        { hexploit (@rec_wf _ leX joinX wfX base next); eauto. }
+        exists (rec joinX base next o).(R). splits; auto.
+        { eapply WF. }
+        { i. eapply (WF.(complete) x0 x1); auto. }
       Qed.
     End NEXT.
 
-    Lemma well_ordering_principle
+    Lemma inhabited_well_ordering_theorem
       :
         exists (R: X -> X -> Prop),
           well_founded R /\
           (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
     Proof.
       assert (exists (next: subX -> subX),
-                 (forall d (WF: subX_wf d), subX_wf (next d)) /\
-                 (forall d (WF: subX_wf d), leX d (next d)) /\
-                 (forall d (WF: subX_wf d),
+                 (forall d (WF: wfX d), wfX (next d)) /\
+                 (forall d (WF: wfX d), leX d (next d)) /\
+                 (forall d (WF: wfX d),
                      (forall x, d.(P) x) \/
                      (exists x, (next d).(P) x /\ ~ d.(P) x))).
       { admit. }
-      des. eapply choice_then_well_ordering_principle; eauto.
+      des. eapply choice_then_well_ordering_theorem; eauto.
     Admitted.
   End CARDINAL.
 
