@@ -2720,7 +2720,7 @@ Module Ordinal.
         2: { eapply H2. }
         inv H. transitivity (from_wf_set (projected_rel_rev_well_founded WF f INJ)).
         { eapply cardinal_is_cardinal.
-          exists _, (projected_rel_rev_well_founded WF f INJ). splits; auto.
+          exists (projected_rel_rev R f), (projected_rel_rev_well_founded WF f INJ). splits; auto.
           - i. destruct (H0 (f a0) (f a1)) as [|[]]; auto.
           - reflexivity.
         }
@@ -2786,6 +2786,46 @@ Module Ordinal.
         + eapply (cardinal_is_cardinal B). esplits; eauto. reflexivity.
         + eapply EQ.
     Qed.
+
+    Lemma le_cardinal_le A B (RA: A -> A -> Prop) (RB: B -> B -> Prop) (WFA: well_founded RA) (WFB: well_founded RB)
+          (TOTAL: forall a0 a1, RA a0 a1 \/ a0 = a1 \/ RA a1 a0)
+          (LE: le (from_wf_set WFA) (from_wf_set WFB))
+      :
+        le (cardinal A) (cardinal B).
+    Proof.
+      hexploit (well_order_extendable WFB); eauto. i. des.
+      hexploit (@from_wf_set_embed _ _ _ _ WFA H); eauto.
+      { transitivity (from_wf_set WFB); auto.
+        eapply from_wf_set_le; eauto. }
+      i. des. eapply _cardinal_le_iff.
+      eapply _cardinal_le_intro with (f:=f). i.
+      destruct (TOTAL a0 a1) as [|[]]; auto.
+      { eapply H2 in H3. rewrite EQ in *.
+        exfalso. eapply (well_founded_irreflexive H); eauto. }
+      { eapply H2 in H3. rewrite EQ in *.
+        exfalso. eapply (well_founded_irreflexive H); eauto. }
+    Qed.
+
+    Lemma to_total_le o0 o1 (LE: le o0 o1):
+      le (cardinal (to_total_set o0)) (cardinal (to_total_set o1)).
+    Proof.
+      eapply le_cardinal_le.
+      { eapply to_total_total. }
+      instantiate (1:=to_total_well_founded o1).
+      instantiate (1:=to_total_well_founded o0).
+      transitivity o0.
+      { eapply to_total_eq. }
+      transitivity o1; auto.
+      { eapply to_total_eq. }
+    Qed.
+
+    Lemma cardinal_to_total_adjoint A:
+      eq (cardinal A) (cardinal (to_total_set (cardinal A))).
+    Proof.
+      eapply cardinal_size_eq.
+      { eapply to_total_total. }
+      eapply to_total_eq.
+    Qed.
   End CARDINALITY.
 
   Section ALEPH.
@@ -2810,65 +2850,61 @@ Module Ordinal.
       Lemma next_cardinal_supremum B (CARD: lt (cardinal A) (cardinal B)):
         le next_cardinal (cardinal B).
       Proof.
-        eapply build_spec. i. unfold
-
-      Lemma next_cardinal_upperbound: lt (cardinal A) next_cardinal.
-      Proof.
-        hexploit (cardinal_is_cardinal A); eauto. i. inv H. des.
-        eapply eq_lt_lt.
-        { symmetry. eapply H2. }
-        eapply (@build_upperbound X Y (exist _ R WF)).
+        eapply build_spec. i. destruct a as [R WF]. unfold Y. ss.
+        destruct (total (cardinal B) (from_wf_set WF)); auto.
+        hexploit (cardinal_is_cardinal B); eauto. i. inv H0. des.
+        hexploit (well_order_extendable WF); eauto. i. des.
+        hexploit (@from_wf_set_embed _ _ _ _ WF0 H3); auto.
+        { transitivity (cardinal B); auto.
+          { eapply H0. }
+          transitivity (from_wf_set WF); auto.
+          eapply from_wf_set_le; auto.
+        }
+        i. des. exfalso.
+        eapply _cardinal_lt_iff in CARD. des.
+        eapply CARD0. split; auto.
+        eapply _cardinal_le_intro with (f:=f). i.
+        destruct (H1 a0 a1) as [|[]]; auto.
+        - eapply H6 in H7. rewrite EQ in *.
+          exfalso. eapply (well_founded_irreflexive H3); eauto.
+        - eapply H6 in H7. rewrite EQ in *.
+          exfalso. eapply (well_founded_irreflexive H3); eauto.
       Qed.
 
+      Lemma next_cardinal_is_cardinal:
+        is_cardinal (to_total_set next_cardinal) next_cardinal.
+      Proof.
+        split.
+        { exists (to_total_rel next_cardinal), (to_total_well_founded next_cardinal).
+          splits; auto.
+          - eapply to_total_total.
+          - symmetry. apply to_total_eq.
+        }
+        i. des. eapply build_spec. i. destruct a as [R0 WF0]. unfold Y. ss.
+        destruct (total o1 (from_wf_set WF0)); auto.
+        assert (LE: le (from_wf_set WF) (from_wf_set WF0)).
+        { transitivity o1; auto. eapply IN0. }
+        eapply le_cardinal_le in LE; auto. exfalso.
+        eapply (next_cardinal_upperbound (to_total_well_founded next_cardinal)) in LE.
+        eapply lt_not_le.
+        { eapply LE. }
+        { eapply to_total_eq. }
+      Qed.
+    End NEXT.
 
+    Definition aleph := orec omega (fun o => next_cardinal (to_total_set o)).
+  End ALEPH.
 
-      Lemma next_cardinal_upperbound B (R: B -> B -> Prop) (WF: well_founded R)
-            (LE:
+  Section INACCESSIBLE.
+    Let SmallT: MyT := Type.
+    Let X := @sig (@sigT SmallT (fun X => X -> X -> Prop))
+                  (fun PR => well_founded (projT2 PR)).
+    Let Y : X -> t := fun PRWF => from_wf_set (proj2_sig PRWF).
 
-        lt (cardinal A)
+    Definition kappa := @build X Y.
 
-
-      Lemma next_cardinal_upperbound: lt (cardinal A)
-
-                 next_o := @build X Y.
-
-      Let next_o
-
-  Section ALEPH.
-    Section NEXT.
-      Variable A: MyT.
-      Let X: MyT := @sig (@sig (A -> A -> Prop) (@well_founded _))
-                         (fun s => _cardinal_le (to_total_set (from_wf_set (proj2_sig s))) A).
-
-      Let Y (x: X): t :=
-        from_wf_set (proj2_sig (proj1_sig x)).
-
-      Let next_o := @build X Y.
-
-
-
-  Section ALEPH.
-    Section NEXT.
-      Variable A: MyT.
-      Variable B: MyT.
-      Let X: MyT := @sig (@sig (B -> B -> Prop) (@well_founded _))
-                         (fun s => _cardinal_le (to_total_set (from_wf_set (proj2_sig s))) A).
-
-      Let Y (x: X): t :=
-        from_wf_set (proj2_sig (proj1_sig x)).
-
-      Let next_o := @build X Y.
-
-
-
-    Let next_cardinal (A: MyT): MyT :=
-      build (fun
-
-    Let next (o: t):
-
-  Section INCACCESSIBLE.
-
-
+    (* TODO: properties of kappa *)
+  End INACCESSIBLE.
 End TYPE.
 End Ordinal.
 
@@ -2878,10 +2914,10 @@ Theorem well_ordering_theorem (X: Type)
       well_founded R /\
       (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
 Proof.
-  destruct (classic (inhabited X)) as [[x]|].
-  { eapply Ordinal.inhabited_well_ordering_theorem; auto. }
-  { exists (fun _ _ => False). econs; i; ss. exfalso. eapply H; eauto. }
+  eapply Ordinal._well_ordering_theorem.
 Qed.
+
+(* TODO: state zorn lemmas *)
 
 Module Cardinal.
   Variant le (A B: Type): Prop :=
@@ -3239,30 +3275,18 @@ Module Cardinal.
 
   Lemma total_le A B: le A B \/ le B A.
   Proof.
-    hexploit (well_ordering_theorem A). intros [RA [WFA TOTALA]].
-    hexploit (well_ordering_theorem B). intros [RB [WFB TOTALB]].
-    hexploit (@Ordinal.from_wf_set_comparable A B); eauto. i. des.
-    - left. eapply le_intro with (f:=f). i.
-      destruct (TOTALA a0 a1) as [|[]].
-      + eapply H in H0. rewrite EQ in *.
-        exfalso. eapply well_founded_irreflexive in H0; eauto.
-      + auto.
-      + eapply H in H0. rewrite EQ in *.
-        exfalso. eapply well_founded_irreflexive in H0; eauto.
-    - right. eapply le_intro with (f:=f). i.
-      destruct (TOTALB a0 a1) as [|[]].
-      + eapply H in H0. rewrite EQ in *.
-        exfalso. eapply well_founded_irreflexive in H0; eauto.
-      + auto.
-      + eapply H in H0. rewrite EQ in *.
-        exfalso. eapply well_founded_irreflexive in H0; eauto.
+    hexploit (Ordinal.set_comparable A B). i. des.
+    - left. econs; eauto.
+    - right. econs; eauto.
   Qed.
 
-  Lemma total A B: le A B \/ lt B A.
+  Lemma total
+
+  Lemma lt_not_le o0 o1 (LT: lt o0 o1) (LE: le o1 o0): False.
   Proof.
-    destruct (total_le A B); auto. eapply le_eq_or_lt in H. des; auto.
-    left. eapply H.
+    eapply lt_StrictOrder. eapply le_lt_lt; eauto.
   Qed.
+
 
   Lemma trichotomy A B: lt A B \/ eq A B \/ lt B A.
   Proof.
