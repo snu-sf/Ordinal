@@ -673,7 +673,7 @@ Module Ordinal.
   Section REC.
     Variable D: Type.
     Variable dle: D -> D -> Prop.
-    Variable djoin: forall A (ds: A -> D), D.
+    Variable djoin: forall (A: MyT) (ds: A -> D), D.
     Variable wf: D -> Prop.
 
     Let deq: D -> D -> Prop :=
@@ -1422,6 +1422,438 @@ Module Ordinal.
     { exists (fun _ _ => False). econs; i; ss. exfalso. eapply H; eauto. }
   Qed.
 
+  Lemma clos_trans_well_founded
+        A (R: A -> A -> Prop) (WF: well_founded R)
+    :
+      well_founded (clos_trans_n1 _ R).
+  Proof.
+    ii. hexploit (well_founded_induction WF (fun a1 => forall a0 (LT: clos_trans_n1 A R a0 a1 \/ a0 = a1), Acc (clos_trans_n1 A R) a0)).
+    { clear a. intros a1 IH. i. econs. i. des.
+      - inv LT.
+        + eapply IH; eauto.
+        + eapply IH; eauto. left.
+          eapply Operators_Properties.clos_trans_tn1. econs 2.
+          * eapply Operators_Properties.clos_tn1_trans; eauto.
+          * eapply Operators_Properties.clos_tn1_trans; eauto.
+      - subst. inv H; eauto.
+    }
+    { right. reflexivity. }
+    { eauto. }
+  Qed.
+
+  Lemma well_founded_irreflexive A (R: A -> A -> Prop) (WF: well_founded R)
+        a
+        (LT: R a a)
+    :
+      False.
+  Proof.
+    hexploit (well_founded_induction WF (fun a' => ~ (a' = a))).
+    { ii. des; clarify. eapply H; eauto. }
+    i. eapply H. eauto.
+  Qed.
+
+  Section ZORNLT.
+    Variable B: MyT.
+    Variable R: B -> B -> Prop.
+    Hypothesis antisym: forall b0 b1 (LT0: R b0 b1) (LT1: R b1 b0), False.
+
+    Let chain := B -> Prop.
+
+    Let restricted_order (c: chain): B -> B -> Prop :=
+      fun b0 b1 => R b0 b1 /\ c b0 /\ c b1.
+
+    Let wf: chain -> Prop :=
+      fun c =>
+        (forall b0 b1 (IN0: c b0) (IN1: c b1), R b0 b1 \/ b0 = b1 \/ R b1 b0) /\
+        (well_founded (restricted_order c))
+    .
+
+    Let chain_le (c0 c1: chain) :=
+      (forall b (IN: c0 b), c1 b) /\
+      (forall b1 (IN: c1 b1), c0 b1 \/ (forall b0 (IN: c0 b0), R b0 b1))
+    .
+
+    Let chain_le_restricted (c0 c1: chain) (LE: chain_le c0 c1):
+      forall b0 b1 (LT: restricted_order c0 b0 b1), restricted_order c1 b0 b1.
+    Proof.
+      i. inv LT. des. econs; eauto. split.
+      - eapply LE; eauto.
+      - eapply LE; eauto.
+    Qed.
+
+    Let chain_le_antisymmetric (c0 c1: chain) (LE0: chain_le c0 c1) (LE1: chain_le c1 c0): c0 = c1.
+    Proof.
+      extensionality b. eapply propositional_extensionality.
+      destruct LE0, LE1. split; auto.
+    Qed.
+
+    Let chain_join (A: MyT) (cs: A -> chain): chain := fun b => exists a, cs a b.
+
+    Let chain_le_reflexive: forall d (WF: wf d), chain_le d d.
+    Proof.
+      split; ii; auto.
+    Qed.
+
+    Let chain_le_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (LE0: chain_le d0 d1) (LE1: chain_le d1 d2),
+        chain_le d0 d2.
+    Proof.
+      i. destruct LE0, LE1. split; ii; auto.
+      eapply H2 in IN. des; auto.
+    Qed.
+
+    Let chain_join_upperbound: forall A (ds: A -> chain) (a: A) (CHAIN: forall a0 a1, chain_le (ds a0) (ds a1) \/ chain_le (ds a1) (ds a0)) (WF: forall a, wf (ds a)), chain_le (ds a) (chain_join ds).
+    Proof.
+      ii. split.
+      - exists a. auto.
+      - i. inv IN. destruct (CHAIN a x).
+        + eapply H0 in H. des; auto.
+        + eapply H0 in H. auto.
+    Qed.
+
+    Let chain_join_supremum: forall A (ds: A -> chain) (d: chain) (CHAIN: forall a0 a1, chain_le (ds a0) (ds a1) \/ chain_le (ds a1) (ds a0)) (WF: forall a, wf (ds a)) (WFD: wf d) (LE: forall a, chain_le (ds a) d), chain_le (chain_join ds) d.
+    Proof.
+      ii. split.
+      - i. destruct IN. eapply LE in H. eauto.
+      - i. eapply NNPP. ii. eapply not_or_and in H. des. eapply H0.
+        i. inv IN0. eapply (LE x) in IN. des; auto.
+        exfalso. eapply H. econs; eauto.
+    Qed.
+
+    Let chain_join_wf: forall A (ds: A -> chain) (CHAIN: forall a0 a1, chain_le (ds a0) (ds a1) \/ chain_le (ds a1) (ds a0)) (WF: forall a, wf (ds a)), wf (chain_join ds).
+    Proof.
+      ii. split.
+      - i. unfold chain_join in IN0, IN1. des. destruct (CHAIN a0 a).
+        + eapply H in IN0. destruct (proj1 (WF a) b0 b1); auto.
+        + eapply H in IN1. destruct (proj1 (WF a0) b0 b1); auto.
+      - assert (forall (a: A) b (IN: ds a b), Acc (restricted_order (chain_join ds)) b).
+        { intros a. eapply (well_founded_induction (proj2 (WF a)) (fun b => forall (IN: ds a b), Acc (restricted_order (chain_join ds)) b)).
+          i. econs. i. inv H0. des. clear H0. inv H2.
+          destruct (CHAIN a x0).
+          { dup H0. eapply H2 in H0. des.
+            { eapply H; eauto. econs; eauto. }
+            { exfalso. dup IN. eapply H0 in IN.
+              eapply well_founded_irreflexive.
+              { eapply clos_trans_well_founded. eapply (WF x0). }
+              econs 2.
+              { econs; eauto. split; auto. eapply H2; eauto. }
+              econs 1; eauto. econs; eauto. split; auto. eapply H2; auto.
+            }
+          }
+          { eapply H2 in H0. eapply H; eauto. econs; eauto. }
+        }
+        ii. econs. i. dup H0. inv H0. des. inv H0.
+        eapply H in H4; eauto. eapply H4. auto.
+    Qed.
+
+    Section INCR.
+      Variable f: chain -> B.
+      Hypothesis INCR: forall c (WF: wf c) b (IN: c b), R b (f c).
+
+      Let base := fun b => b = f (fun _ => False).
+      Let base_wf: wf base.
+      Proof.
+        split.
+        - ii. inv IN0; inv IN1; auto.
+        - ii. econs. i. inv H. des. inv H1; inv H2.
+          exfalso. eapply antisym; eauto.
+      Qed.
+
+      Let next: chain -> chain := fun c => fun b => c b \/ b = f c.
+      Let next_wf: forall d (WF: wf d), wf (next d).
+      Proof.
+        i. dup WF. inv WF. split.
+        - unfold next. i. des; subst; auto.
+        - assert (forall b (IN: d b), Acc (restricted_order (next d)) b).
+          { eapply (well_founded_induction H0 (fun b => forall (IN: d b), Acc (restricted_order (next d)) b)).
+            i. econs. i. inv H2. unfold next in H4. destruct H4 as [[|] _].
+            - eapply H1; eauto. econs; eauto.
+            - subst. exfalso. eapply antisym.
+              + eapply H3.
+              + eapply INCR; eauto.
+          }
+          ii. econs. i. dup H2. inv H2. des. destruct H2.
+          { eapply (H1 a); auto. }
+          { subst. destruct H5.
+            { eapply H1 in H2; auto. }
+            { subst. exfalso. eapply antisym; eauto. }
+          }
+      Qed.
+
+      Let next_le: forall d (WF: wf d), chain_le d (next d).
+      Proof.
+        i. split.
+        { i. left. auto. }
+        { i. destruct IN; auto. subst. right. i. eapply INCR; eauto. }
+      Qed.
+
+      Let next_eq: forall d0 d1 (WF0: wf d0) (WF1: wf d1) (EQ: chain_le d0 d1 /\ chain_le d1 d0),
+          chain_le (next d0) (next d1) /\ chain_le (next d1) (next d0).
+      Proof.
+        i. des. assert (d0 = d1).
+        { eapply chain_le_antisymmetric; auto. }
+        subst. split.
+        { split; auto. }
+        { split; auto. }
+      Qed.
+
+      Let srec := rec chain_join base next.
+
+      Let srec_wf o: wf (srec o).
+      Proof.
+        eapply (@rec_wf _ chain_le chain_join wf base next); auto.
+      Qed.
+
+      Let srec_le o0 o1 (LE: le o0 o1):
+        le (from_wf_set (proj2 (srec_wf o0))) (from_wf_set (proj2 (srec_wf o1))).
+      Proof.
+        eapply from_wf_set_le. eapply chain_le_restricted; eauto.
+        eapply (@rec_le _ chain_le chain_join wf base next); eauto.
+      Qed.
+
+      Let next_lt c (WF: wf c) (BASE: chain_le base c):
+        lt (from_wf_set (proj2 WF)) (from_wf_set (proj2 (next_wf WF))).
+      Proof.
+        eapply from_wf_set_lt.
+        { eapply chain_le_restricted; eauto. }
+        { exists (f c), (f (fun _ => False)). split.
+          { econs.
+            - eapply INCR; auto. eapply BASE. ss.
+            - unfold next. split; auto. left.
+              eapply BASE. ss.
+          }
+          { i. inv LT. des. econs.
+            - eapply INCR; eauto.
+            - unfold next. splits; auto.
+          }
+        }
+      Qed.
+
+      Let srec_lt o0 o1 (LT: lt o0 o1):
+        lt (from_wf_set (proj2 (srec_wf o0))) (from_wf_set (proj2 (srec_wf o1))).
+      Proof.
+        eapply lt_le_lt.
+        { eapply next_lt.
+          eapply (@rec_le_base _ chain_le chain_join wf base next); eauto. }
+        eapply S_spec in LT. eapply srec_le in LT.
+        etransitivity; [|eapply LT]. eapply from_wf_set_le.
+        eapply chain_le_restricted.
+        eapply (@rec_S _ chain_le chain_join wf base next); eauto.
+      Qed.
+
+      Let srec_larger:
+        forall o, le o (from_wf_set (proj2 (srec_wf o))).
+      Proof.
+        induction o. eapply build_spec. i.
+        eapply le_lt_lt; [eapply H|].
+        eapply srec_lt. eapply build_upperbound.
+      Qed.
+
+      Lemma eventually_maximal h (HARTOGS: is_hartogs B h): False.
+      Proof.
+        hexploit (srec_larger h). i.
+        unfold is_hartogs, is_meet in HARTOGS. des. eapply HARTOGS; eauto.
+      Qed.
+    End INCR.
+
+    Hypothesis transitive: forall b0 b1 b2 (LT0: R b0 b1) (LT1: R b1 b2), R b0 b2.
+
+    Hypothesis upperbound_exists:
+      forall (c: B -> Prop) (CHAIN: forall b0 b1 (IN0: c b0) (IN1: c b1), R b0 b1 \/ b0 = b1 \/ R b1 b0),
+      exists b_u, forall b (IN: c b), R b b_u \/ b = b_u.
+
+    Theorem zorn_lemma_lt:
+      exists b_m, forall b, ~ R b_m b.
+    Proof.
+      eapply NNPP. ii.
+      hexploit (choice (fun (c: chain) (b1: B) =>
+                          forall (WF: wf c) b0 (IN: c b0), R b0 b1)).
+      { intros c. destruct (classic (wf c)).
+        - hexploit upperbound_exists.
+          { eapply H0. }
+          i. des. eapply not_ex_all_not in H. eapply not_all_ex_not in H. des.
+          eapply NNPP in H. exists n. i.
+          destruct (H1 b0 IN); subst; eauto.
+        - hexploit (upperbound_exists (fun _ => False)); ss.
+          i. des. exists b_u. ss.
+      }
+      i. des. hexploit (hartogs_exists B); eauto. i. des.
+      eapply eventually_maximal; eauto.
+    Qed.
+  End ZORNLT.
+
+  Section ZORNANTISYM.
+    Variable B: MyT.
+    Variable R: B -> B -> Prop.
+    Hypothesis le_PreOrder: PreOrder R.
+    Local Existing Instance le_PreOrder.
+    Hypothesis antisym: forall b0 b1 (LE0: R b0 b1) (LE1: R b1 b0), b0 = b1.
+
+    Hypothesis upperbound_exists:
+      forall (c: B -> Prop) (CHAIN: forall b0 b1 (IN0: c b0) (IN1: c b1), R b0 b1 \/ R b1 b0),
+      exists b_u, forall b (IN: c b), R b b_u.
+
+    Theorem zorn_lemma_antisym:
+      exists b_m, forall b (LE: R b_m b), b = b_m.
+    Proof.
+      hexploit (@zorn_lemma_lt B (fun b0 b1 => R b0 b1 /\ b0 <> b1)).
+      { i. des. exploit antisym; eauto. }
+      { i. des. splits; auto.
+        - etransitivity; eauto.
+        - ii. subst. hexploit antisym; eauto. }
+      { i. hexploit (upperbound_exists c).
+        { i. hexploit (CHAIN b0 b1); eauto.
+          i. des; auto. subst. left. reflexivity.
+        }
+        i. des. exists b_u. i. destruct (classic (b = b_u)); auto.
+      }
+      i. des. exists b_m. i. eapply NNPP. ii. eapply H; eauto.
+    Qed.
+  End ZORNANTISYM.
+
+  Section ZORN.
+    Variable B: MyT.
+    Variable R: B -> B -> Prop.
+    Hypothesis le_PreOrder: PreOrder R.
+    Local Existing Instance le_PreOrder.
+
+    Hypothesis upperbound_exists:
+      forall (c: B -> Prop) (CHAIN: forall b0 b1 (IN0: c b0) (IN1: c b1), R b0 b1 \/ R b1 b0),
+      exists b_u, forall b (IN: c b), R b b_u.
+
+    Let equiv_class: MyT :=
+      @sig (B -> Prop) (fun s => (exists a, s a) /\
+                                 (forall a0 a1 (IN0: s a0),
+                                     s a1 <-> (R a0 a1 /\ R a1 a0))).
+
+    Let to_equiv_class_p (a0: B):
+      (fun s => (exists a, s a) /\
+                (forall a0 a1 (IN0: s a0),
+                    s a1 <-> (R a0 a1 /\ R a1 a0)))
+        (fun a1 => R a0 a1 /\ R a1 a0).
+    Proof.
+      split.
+      { exists a0. split; reflexivity. }
+      { i. split; i.
+        - des. split; etransitivity; eauto.
+        - des. split; etransitivity; eauto.
+      }
+    Qed.
+
+    Let to_equiv_class (a0: B): equiv_class :=
+      exist _ (fun a1 => R a0 a1 /\ R a1 a0) (to_equiv_class_p a0).
+
+    Let equiv_class_rel: equiv_class -> equiv_class -> Prop :=
+      fun s0 s1 => exists a0 a1, (proj1_sig s0) a0 /\ (proj1_sig s1) a1 /\ R a0 a1.
+
+    Let to_equiv_class_eq a (s: equiv_class) (IN: proj1_sig s a):
+      s = to_equiv_class a.
+    Proof.
+      destruct s. unfold to_equiv_class.
+      assert (x = (fun a1 : B => R a a1 /\ R a1 a)).
+      { ss. des.
+        extensionality b. eapply propositional_extensionality. split; i.
+        - eapply a1; eauto.
+        - eapply a1; eauto.
+      }
+      subst. f_equal. apply proof_irrelevance.
+    Qed.
+
+    Let equiv_class_rel_PreOrder: PreOrder equiv_class_rel.
+    Proof.
+      econs.
+      - ii. destruct x. des. exists a1, a1.
+        ss. splits; auto. reflexivity.
+      - ii. inv H. inv H0. des. exists x0, a1. splits; auto.
+        etransitivity; eauto. etransitivity; eauto.
+        destruct y. ss. des. exploit (a2 x1 a0); eauto.
+        i. eapply x4; eauto.
+    Qed.
+    Local Existing Instance equiv_class_rel_PreOrder.
+
+    Let antisym: forall b0 b1 (LE0: equiv_class_rel b0 b1) (LE1: equiv_class_rel b1 b0), b0 = b1.
+    Proof.
+      i. inv LE0. inv LE1. des.
+      assert (R x a1 /\ R a1 x).
+      { eapply (proj2_sig b0); eauto. }
+      assert (R x0 a0 /\ R a0 x0).
+      { eapply (proj2_sig b1); eauto. } des.
+      assert (proj1_sig b0 x0).
+      { eapply (proj2_sig b0); eauto. split.
+        - transitivity x; auto. transitivity a0; auto.
+        - transitivity a0; auto. transitivity x0; auto. }
+      transitivity (to_equiv_class x0).
+      { eapply to_equiv_class_eq; eauto. }
+      { symmetry. eapply to_equiv_class_eq; eauto. }
+    Qed.
+
+    Let to_equiv_class_preserve a0 a1:
+      R a0 a1 <-> equiv_class_rel (to_equiv_class a0) (to_equiv_class a1).
+    Proof.
+      split; i.
+      { exists a0, a1. ss. splits; auto.
+        - reflexivity.
+        - reflexivity.
+        - reflexivity.
+        - reflexivity. }
+      { inv H. des. ss. des.
+        transitivity x; auto. transitivity a2; auto. }
+    Qed.
+
+    Let to_equiv_rel_iff a0 a1 (s0 s1: equiv_class) (IN0: proj1_sig s0 a0) (IN1: proj1_sig s1 a1):
+      R a0 a1 <-> equiv_class_rel s0 s1.
+    Proof.
+      eapply to_equiv_class_eq in IN0.
+      eapply to_equiv_class_eq in IN1. subst.
+      eapply to_equiv_class_preserve.
+    Qed.
+
+    Let equiv_class_upperbound_exists:
+      forall (c: equiv_class -> Prop) (CHAIN: forall b0 b1 (IN0: c b0) (IN1: c b1), equiv_class_rel b0 b1 \/ equiv_class_rel b1 b0),
+      exists b_u, forall b (IN: c b), equiv_class_rel b b_u.
+    Proof.
+      i. hexploit (@upperbound_exists (fun b => exists s, c s /\ proj1_sig s b)).
+      { i. des. hexploit (CHAIN s0 s); eauto. i.
+        hexploit (to_equiv_rel_iff _ _ _ _ IN3 IN2). i.
+        hexploit (to_equiv_rel_iff _ _ _ _ IN2 IN3). i. des; eauto. }
+      { i. des. exists (to_equiv_class b_u). i.
+        hexploit (proj2_sig b); eauto. i. des.
+        exploit H; eauto. i.
+        eapply to_equiv_class_eq in H0. subst.
+        eapply to_equiv_class_preserve; eauto. }
+    Qed.
+
+    Theorem zorn_lemma:
+      exists b_m, forall b (LE: R b_m b), R b b_m.
+    Proof.
+      hexploit (@zorn_lemma_antisym _ equiv_class_rel); eauto. i. des.
+      hexploit (proj2_sig b_m); eauto. i. des. exists a. i.
+      eapply to_equiv_class_preserve in LE.
+      eapply to_equiv_class_eq in H0; eauto. subst. ss.
+      eapply H in LE; eauto.
+      eapply to_equiv_class_preserve. rewrite LE. reflexivity.
+    Qed.
+  End ZORN.
+
+  Section ZORNWEAK.
+    Variable B: MyT.
+    Hypothesis INHABITED: inhabited B.
+    Variable R: B -> B -> Prop.
+    Hypothesis le_PreOrder: PreOrder R.
+
+    Hypothesis upperbound_exists:
+      forall (c: B -> Prop) (INHABITED: exists b, c b)
+             (CHAIN: forall b0 b1 (IN0: c b0) (IN1: c b1), R b0 b1 \/ R b1 b0),
+      exists b_u, forall b (IN: c b), R b b_u.
+
+    Theorem zorn_lemma_weak:
+      exists b_m, forall b (LE: R b_m b), R b b_m.
+    Proof.
+      eapply zorn_lemma; eauto. i. destruct (classic (exists b, c b)).
+      { eapply upperbound_exists; eauto. }
+      { dup INHABITED. inv INHABITED. exists X. i. exfalso. eapply H; eauto. }
+    Qed.
+  End ZORNWEAK.
+
   Section EXTEND.
     Variable A: Type.
     Variable RT: A -> A -> Prop.
@@ -1527,34 +1959,57 @@ Module Ordinal.
     - right. eapply from_wf_set_embed; eauto.
   Qed.
 
-  Lemma clos_trans_well_founded
-        A (R: A -> A -> Prop) (WF: well_founded R)
+  Lemma from_wf_inj A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
+        (WFA: well_founded RA) (WFB: well_founded RB)
+        f
+        (INJ: forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1))
     :
-      well_founded (clos_trans_n1 _ R).
+      forall a, le (from_wf WFA a) (from_wf WFB (f a)).
   Proof.
-    ii. hexploit (well_founded_induction WF (fun a1 => forall a0 (LT: clos_trans_n1 A R a0 a1 \/ a0 = a1), Acc (clos_trans_n1 A R) a0)).
-    { clear a. intros a1 IH. i. econs. i. des.
-      - inv LT.
-        + eapply IH; eauto.
-        + eapply IH; eauto. left.
-          eapply Operators_Properties.clos_trans_tn1. econs 2.
-          * eapply Operators_Properties.clos_tn1_trans; eauto.
-          * eapply Operators_Properties.clos_tn1_trans; eauto.
-      - subst. inv H; eauto.
-    }
-    { right. reflexivity. }
-    { eauto. }
+    eapply (well_founded_induction WFA). i. eapply from_wf_supremum.
+    i. dup LT. eapply H in LT. eapply le_lt_lt; eauto.
+    eapply from_wf_lt; eauto.
   Qed.
 
-  Lemma well_founded_irreflexive A (R: A -> A -> Prop) (WF: well_founded R)
-        a
-        (LT: R a a)
+  Lemma from_wf_set_inj A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
+        (WFA: well_founded RA) (WFB: well_founded RB)
+        f
+        (INJ: forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1))
     :
-      False.
+      le (from_wf_set WFA) (from_wf_set WFB).
   Proof.
-    hexploit (well_founded_induction WF (fun a' => ~ (a' = a))).
-    { ii. des; clarify. eapply H; eauto. }
-    i. eapply H. eauto.
+    eapply build_spec. i. eapply le_lt_lt.
+    { eapply from_wf_inj; eauto. }
+    eapply from_wf_set_upperbound.
+  Qed.
+
+  Inductive projected_rel A B (RA: A -> A -> Prop) (f: A -> B): B -> B -> Prop :=
+  | projected_rel_intro
+      a0 a1 (LT: RA a0 a1)
+    :
+      projected_rel RA f (f a0) (f a1)
+  .
+  Hint Constructors projected_rel.
+
+  Lemma inj_projected_rel_incl A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
+        f
+        (INJ: forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1))
+    :
+      forall b0 b1 (FLT: projected_rel RA f b0 b1), RB b0 b1.
+  Proof.
+    i. inv FLT. eapply INJ; eauto.
+  Qed.
+
+  Lemma inj_projected_rel_well_founded A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
+        (WFA: well_founded RA) (WFB: well_founded RB)
+        f
+        (INJ: forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1))
+    :
+      well_founded (projected_rel RA f).
+  Proof.
+    eapply wf_mon.
+    { eapply inj_projected_rel_incl. eapply INJ. }
+    { eauto. }
   Qed.
 
   Definition union_set (A: MyT) (Ts: A -> MyT): MyT := @sigT A (fun a => option (Ts a)).
@@ -1761,6 +2216,145 @@ Module Ordinal.
     { esplits; eauto. }
   Qed.
 
+  Section TOTALIFY.
+    (* propositional extensionality is used in this section *)
+    Variable A: MyT.
+    Variable R: A -> A -> Prop.
+    Hypothesis WF: well_founded R.
+
+    Definition equiv_class: MyT :=
+      @sig (A -> Prop) (fun s => (exists a, s a) /\
+                                 (forall a0 a1 (IN0: s a0), s a1 <-> eq (from_wf WF a0) (from_wf WF a1))).
+
+    Program Definition to_equiv_class (a0: A): equiv_class :=
+      exist _ (fun a1 => eq (from_wf WF a0) (from_wf WF a1)) _.
+    Next Obligation.
+      split.
+      { exists a0. reflexivity. }
+      { i. split; i.
+        - transitivity (from_wf WF a0); eauto. symmetry. auto.
+        - transitivity (from_wf WF a1); eauto.
+      }
+    Qed.
+
+    Let to_equiv_class_equiv a (s: equiv_class) (IN: proj1_sig s a):
+      s = to_equiv_class a.
+    Proof.
+      destruct s. ss. unfold to_equiv_class.
+      assert (x = (fun a1 : A => eq (from_wf WF a) (from_wf WF a1))).
+      { extensionality a1. eapply propositional_extensionality. des. split.
+        { i. eapply a2; eauto. }
+        { i. eapply a2; eauto. }
+      }
+      subst. f_equal. eapply proof_irrelevance.
+    Qed.
+
+    Definition equiv_class_rel: equiv_class -> equiv_class -> Prop :=
+      fun s0 s1 => exists a0 a1, (proj1_sig s0) a0 /\ (proj1_sig s1) a1 /\ lt (from_wf WF a0) (from_wf WF a1).
+
+    Lemma to_equiv_class_preserve a0 a1 (LT: R a0 a1):
+      equiv_class_rel (to_equiv_class a0) (to_equiv_class a1).
+    Proof.
+      exists a0, a1. ss. splits.
+      - reflexivity.
+      - reflexivity.
+      - eapply from_wf_lt; auto.
+    Qed.
+
+    Lemma equiv_class_total:
+      forall s0 s1, equiv_class_rel s0 s1 \/ s0 = s1 \/ equiv_class_rel s1 s0.
+    Proof.
+      i. hexploit (proj2_sig s0). i. des. hexploit (proj2_sig s1). i. des.
+      destruct (trichotomy (from_wf WF a) (from_wf WF a0)) as [|[]].
+      - left. unfold equiv_class_rel. esplits; eauto.
+      - right. left. assert (proj1_sig s0 = proj1_sig s1).
+        { extensionality x. eapply propositional_extensionality. split; i.
+          - eapply H2; eauto. transitivity (from_wf WF a); eauto.
+            + symmetry. auto.
+            + eapply (H0 a x); auto.
+          - eapply H0; eauto. transitivity (from_wf WF a0); eauto.
+            eapply (H2 a0 x); auto.
+        }
+        destruct s0, s1. ss. subst. f_equal. eapply proof_irrelevance.
+      - right. right. unfold equiv_class_rel. esplits; eauto.
+    Qed.
+
+    Lemma equiv_class_well_founded: well_founded equiv_class_rel.
+    Proof.
+      assert (forall (o: t), forall (s: equiv_class) a0 (IN: proj1_sig s a0) (LT: lt (from_wf WF a0) o), Acc equiv_class_rel s).
+      { eapply (well_founded_induction lt_well_founded (fun o => forall (s: equiv_class) a0 (IN: proj1_sig s a0) (LT: lt (from_wf WF a0) o), Acc equiv_class_rel s)).
+        i. econs. i. unfold equiv_class_rel in H0. des.
+        hexploit (proj2 (proj2_sig s) a0 a2); auto. i. dup H1.
+        eapply H3 in H4. clear H3. eapply (H (from_wf WF a0)); eauto.
+        eapply lt_eq_lt; eauto.
+      }
+      ii. hexploit (proj2_sig a); eauto. i. des.
+      hexploit (H (S (from_wf WF a0))); eauto. eapply S_lt.
+    Qed.
+
+    Lemma to_equiv_class_eq a:
+      eq (from_wf WF a) (from_wf equiv_class_well_founded (to_equiv_class a)).
+    Proof.
+      assert (forall (o: t), forall a (LT: lt (from_wf WF a) o), eq (from_wf WF a) (from_wf equiv_class_well_founded (to_equiv_class a))).
+      { eapply (well_founded_induction lt_well_founded (fun o => forall a (LT: lt (from_wf WF a) o), eq (from_wf WF a) (from_wf equiv_class_well_founded (to_equiv_class a)))).
+        i. split.
+        { eapply from_wf_supremum. i. dup LT0. eapply (from_wf_lt WF) in LT0; eauto.
+          hexploit H; eauto. i. eapply le_lt_lt; [eapply H0|].
+          eapply from_wf_lt. eapply to_equiv_class_preserve. auto.
+        }
+        { eapply from_wf_supremum. i. unfold equiv_class_rel in LT0. des. ss.
+          hexploit (H _ LT a2).
+          { eapply lt_eq_lt; eauto. } i.
+          eapply lt_eq_lt; eauto. eapply le_lt_lt; eauto.
+          etransitivity; [|eapply H0].
+          eapply to_equiv_class_equiv in LT0. subst. reflexivity.
+        }
+      }
+      eapply (H (S (from_wf WF a))). eapply S_lt.
+    Qed.
+
+    Lemma from_wf_set_equiv_class:
+      eq (from_wf_set WF) (from_wf_set equiv_class_well_founded).
+    Proof.
+      split.
+      { eapply build_spec. i. eapply eq_lt_lt.
+        { eapply to_equiv_class_eq. }
+        { eapply from_wf_set_upperbound. }
+      }
+      { eapply build_spec. i. hexploit (proj2_sig a). i. des.
+        eapply to_equiv_class_equiv in H. subst.
+        eapply eq_lt_lt.
+        { symmetry. eapply to_equiv_class_eq. }
+        { eapply from_wf_set_upperbound. }
+      }
+    Qed.
+  End TOTALIFY.
+
+  Definition to_total_set (o: t): MyT := equiv_class (to_set_well_founded o).
+  Definition to_total_rel (o: t): (to_total_set o) -> (to_total_set o) -> Prop :=
+    @equiv_class_rel _ _ (to_set_well_founded o).
+  Arguments to_total_rel: clear implicits.
+
+  Lemma to_total_well_founded (o: t): well_founded (to_total_rel o).
+  Proof.
+    eapply equiv_class_well_founded.
+  Defined.
+  Arguments to_total_well_founded: clear implicits.
+
+  Lemma to_total_eq (o: t):
+    eq o (from_wf_set (@to_total_well_founded o)).
+  Proof.
+    etransitivity.
+    - eapply to_set_eq.
+    - eapply (from_wf_set_equiv_class (@to_set_well_founded o)).
+  Qed.
+
+  Lemma to_total_total (o: t):
+    forall (x0 x1: to_total_set o), to_total_rel o x0 x1 \/ x0 = x1 \/ to_total_rel o x1 x0.
+  Proof.
+    eapply equiv_class_total.
+  Qed.
+
   Section CARDINAL.
     Variable A: MyT.
 
@@ -1807,27 +2401,10 @@ Module Ordinal.
     Lemma cardinal_is_cardinal: is_cardinal cardinal.
     Proof.
       split.
-      - hexploit (to_total_set_exists cardinal). i. des.
-        hexploit is_cardinal_exists. i. des.
-        unfold is_cardinal, is_meet in H1. des.
+      - hexploit is_cardinal_exists. i. des.
+        unfold is_cardinal, is_meet in H. des.
         exists R, WF. splits; auto.
-
-
-
-
-        build
-
-
-        eapply (@eq_le_le); eauto. eapply H0.
-
-        c); eauto.
-
-        eapply H0.
-
-        eapp
-
-        destruct H.
-
+        destruct (total (from_wf_set WF) cardinal); auto. exfalso.
         admit.
       - i. des. eapply build_spec. i. unfold Y.
         destruct a as [[P0 R0] [WF0 [TOTAL SMALL]]]; ss.
@@ -1842,119 +2419,6 @@ Module Ordinal.
           eapply well_founded_irreflexive in H2; eauto. }
         { eapply x0 in H2. rewrite H0 in *.
           eapply well_founded_irreflexive in H2; eauto. }
-    Qed.
-
-                                                   asymmetric.
-
-          ea
-
-
-
-        Local Opaque proj1. unfold proj1. ss.
-        r
-
-        unfold proj1.
-
-        unfold .
-
-        des.
-
-
-
-        ss.
-
-        hexploit (@well_ordering_theorem A). i. des.
-        exists R, H. splits; auto. eapply build_spec.
-        i. eapply (@build_upperbound
-                     (A * @sig (A -> A -> Prop) (@well_founded A))
-                     (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF))
-                     (a, exist _ R H)).
-      - i. des. eapply build_spec. i. destruct a as [a [R0 WF0]]. ss.
-
-    Definition
-
-    .
-
-
-         * (A -> A -> Prop))
-        (fun PR =>
-           well_founded (snd PR) /\
-           let (P, R) := PR in
-           (forall a0 a1 (LT: snd PR a0 a1), P a0 /\ P a1) /\
-           (forall (f: sig P -> A), exists a0 a1, f a0 = f a1 /\ a0 <> a1)).
-
-    Definition Y (x: X): t :=
-      from_wf_set (sig
-
-
-    Definition X: T :=
-      @sig
-        ((A -> Prop) * (A -> A -> Prop))
-        (fun PR =>
-           well_founded (snd PR) /\
-           let (P, R) := PR in
-           (forall a0 a1 (LT: snd PR a0 a1), P a0 /\ P a1) /\
-           (forall (f: sig P -> A), exists a0 a1, f a0 = f a1 /\ a0 <> a1)).
-
-    Definition Y (x: X): t :=
-      from_wf_set (sig
-
-
-    Definition cardinal :=
-      @build X (
-
-    Definition is_cardinal_le (c: t)
-
-        ((A -> Prop) * (
-
-      sig
-
-
-    Program Definition cardinal :=
-      @build (A * @sig (A -> A -> Prop) (@well_founded A))
-             (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF)).
-
-
-    Program Definition cardinal :=
-      @build (A * @sig (A -> A -> Prop) (@well_founded A))
-             (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF)).
-
-    Lemma cardinal_is_cardinal: is_cardinal cardinal.
-    Proof.
-      split.
-      - hexploit (@well_ordering_theorem A). i. des.
-        exists R, H. splits; auto. eapply build_spec.
-        i. eapply (@build_upperbound
-                     (A * @sig (A -> A -> Prop) (@well_founded A))
-                     (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF))
-                     (a, exist _ R H)).
-      - i. des. eapply build_spec. i. destruct a as [a [R0 WF0]]. ss.
-
-  Section CARDINAL.
-    Let T := Type.
-    Variable A: T.
-
-    Definition is_cardinal (c: t): Prop :=
-      is_meet (fun o =>
-                 exists (R: A -> A -> Prop) (WF: well_founded R),
-                   (forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0) /\
-                   le (from_wf_set WF) o) c.
-
-    Program Definition cardinal :=
-      @build (A * @sig (A -> A -> Prop) (@well_founded A))
-             (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF)).
-
-    Lemma cardinal_is_cardinal: is_cardinal cardinal.
-    Proof.
-      split.
-      - hexploit (@well_ordering_theorem A). i. des.
-        exists R, H. splits; auto. eapply build_spec.
-        i. eapply (@build_upperbound
-                     (A * @sig (A -> A -> Prop) (@well_founded A))
-                     (fun aRWF => from_wf (proj2_sig (snd aRWF)) (fst aRWF))
-                     (a, exist _ R H)).
-      - i. des. eapply build_spec. i. destruct a as [a [R0 WF0]]. ss.
-
     Admitted.
   End CARDINAL.
 End Ordinal.
