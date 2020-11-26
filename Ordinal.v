@@ -709,8 +709,8 @@ Module Ordinal.
     Let deq: D -> D -> Prop :=
       fun d0 d1 => dle d0 d1 /\ dle d1 d0.
 
-    Variable base: D.
     Variable next: D -> D.
+    Variable base: D.
 
     Hypothesis dle_reflexive: forall d (WF: wf d), dle d d.
     Hypothesis dle_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (LE0: dle d0 d1) (LE1: dle d1 d2),
@@ -1080,7 +1080,7 @@ Module Ordinal.
     Hypothesis djoin_upperbound: forall A (ds: A -> D) (a: A), dle (ds a) (djoin ds).
     Hypothesis djoin_supremum: forall A (ds: A -> D) (d: D) (LE: forall a, dle (ds a) d), dle (djoin ds) d.
 
-    Lemma rec_mon o: dle (rec djoin base0 next0 o) (rec djoin base1 next1 o).
+    Lemma rec_mon o: dle (rec djoin next0 base0 o) (rec djoin next1 base1 o).
     Proof.
       induction o. ss. eapply djoin_supremum. i.
       etransitivity; [|eapply (djoin_upperbound _ a)]. ss. destruct a; auto.
@@ -1091,10 +1091,10 @@ Module Ordinal.
   End REC2.
 
   Section OREC.
-    Variable base: t.
     Variable next: t -> t.
+    Variable base: t.
 
-    Definition orec: t -> t := rec join base next.
+    Definition orec: t -> t := rec join next base.
 
     Hypothesis next_le: forall o, le o (next o).
     Hypothesis next_eq: forall o0 o1 (EQ: eq o0 o1), eq (next o0) (next o1).
@@ -1156,14 +1156,14 @@ Module Ordinal.
 
     Lemma orec_le_base o: le base (orec o).
     Proof.
-      eapply (@rec_le_base _ le join wf base next); ss.
+      eapply (@rec_le_base _ le join wf next base); ss.
       i. eapply next_eq; auto.
     Qed.
   End OREC.
 
-  Definition add (o0: t): forall (o1: t), t := orec o0 S.
-  Definition mult (o0: t): forall (o1: t), t := orec O (flip add o0).
-  Definition expn (o0: t): forall (o1: t), t := orec (S O) (flip mult o0).
+  Definition add (o0: t): forall (o1: t), t := orec S o0.
+  Definition mult (o0: t): forall (o1: t), t := orec (flip add o0) O.
+  Definition expn (o0: t): forall (o1: t), t := orec (flip mult o0) (S O).
 
   Fixpoint from_nat (n: nat): t :=
     match n with
@@ -1315,7 +1315,7 @@ Module Ordinal.
         subst. split; auto.
       Qed.
 
-      Let srec o := rec joinX base next o.
+      Let srec o := rec joinX next base o.
 
       Let srec_wf o: wfX (srec o).
       Proof.
@@ -1345,7 +1345,7 @@ Module Ordinal.
         { eapply SRECLE. }
         hexploit (next_exhausted (srec_wf o0)). i. des.
         { exfalso. eapply NTOP. eauto. } clear NTOP.
-        hexploit (@rec_is_S _ leX joinX wfX base next); eauto.
+        hexploit (@rec_is_S _ leX joinX wfX next base); eauto.
         i. des.
         assert (TOP: forall a1 (LT: P (srec o0) a1), R (srec o1) a1 x).
         { i. hexploit ((srec_wf o1).(complete) a1 x); auto.
@@ -1356,7 +1356,7 @@ Module Ordinal.
           eapply (srec_wf o0) in H3. des. ss.
         }
         exists x, x_bot. split.
-        - eapply TOP. apply (@rec_le_base _ leX joinX wfX base); ss.
+        - eapply TOP. apply (@rec_le_base _ leX joinX wfX); ss.
         - i. eapply TOP. eapply (srec_wf o0) in LT. des. auto.
       Qed.
 
@@ -1370,7 +1370,7 @@ Module Ordinal.
 
       Let eventually_exhausted
         :
-          exists o, forall x, (rec joinX base next o).(P) x.
+          exists o, forall x, (rec joinX next base o).(P) x.
       Proof.
         eapply NNPP. ii. assert (forall o, le o (srec_o o)).
         { eapply (@well_founded_induction _ lt).
@@ -1391,9 +1391,9 @@ Module Ordinal.
             (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
       Proof.
         hexploit eventually_exhausted. i. des.
-        assert (WF: wfX (rec joinX base next o)).
-        { hexploit (@rec_wf _ leX joinX wfX base next); eauto. }
-        exists (rec joinX base next o).(R). splits; auto.
+        assert (WF: wfX (rec joinX next base o)).
+        { hexploit (@rec_wf _ leX joinX wfX next base); eauto. }
+        exists (rec joinX next base o).(R). splits; auto.
       Qed.
     End NEXT.
 
@@ -1596,18 +1596,18 @@ Module Ordinal.
         { split; auto. }
       Qed.
 
-      Let srec := rec chain_join base next.
+      Let srec := rec chain_join next base.
 
       Let srec_wf o: wf (srec o).
       Proof.
-        eapply (@rec_wf _ chain_le chain_join wf base next); auto.
+        eapply (@rec_wf _ chain_le chain_join wf next base); auto.
       Qed.
 
       Let srec_le o0 o1 (LE: le o0 o1):
         le (from_wf_set (proj2 (srec_wf o0))) (from_wf_set (proj2 (srec_wf o1))).
       Proof.
         eapply from_wf_set_le. eapply chain_le_restricted; eauto.
-        eapply (@rec_le _ chain_le chain_join wf base next); eauto.
+        eapply (@rec_le _ chain_le chain_join wf next base); eauto.
       Qed.
 
       Let next_lt c (WF: wf c) (BASE: chain_le base c):
@@ -1633,11 +1633,11 @@ Module Ordinal.
       Proof.
         eapply lt_le_lt.
         { eapply next_lt.
-          eapply (@rec_le_base _ chain_le chain_join wf base next); eauto. }
+          eapply (@rec_le_base _ chain_le chain_join wf next base); eauto. }
         eapply S_spec in LT. eapply srec_le in LT.
         etransitivity; [|eapply LT]. eapply from_wf_set_le.
         eapply chain_le_restricted.
-        eapply (@rec_S _ chain_le chain_join wf base next); eauto.
+        eapply (@rec_S _ chain_le chain_join wf next base); eauto.
       Qed.
 
       Let srec_larger:
@@ -2892,7 +2892,7 @@ Module Ordinal.
       Qed.
     End NEXT.
 
-    Definition aleph := orec omega (fun o => next_cardinal (to_total_set o)).
+    Definition aleph := orec (fun o => next_cardinal (to_total_set o)) omega.
   End ALEPH.
 
   Section INACCESSIBLE.
@@ -3619,6 +3619,182 @@ Module Cardinal.
     ii. eapply (H (Ordinal.cardinal a)). reflexivity.
   Qed.
 End Cardinal.
+
+Module Fix.
+  Section FIXPOINT.
+    Variable A: Type.
+    Definition kappa := Ordinal.next_cardinal (A -> Prop).
+    Definition le: (A -> Prop) -> (A -> Prop) -> Prop :=
+      fun P0 P1 => forall a (IN0: P0 a), P1 a.
+    Definition join (X: Type) (Ps: X -> A -> Prop): A -> Prop :=
+      fun a => exists x, Ps x a.
+    Definition bot: A -> Prop := fun _ => False.
+    Definition top: A -> Prop := fun _ => True.
+
+    Variable f: (A -> Prop) -> (A -> Prop).
+
+    Hypothesis mon: forall (P0 P1: A -> Prop) (LE: le P0 P1), le (f P0) (f P1).
+
+    Definition rec := @Ordinal.rec (A -> Prop) join f.
+    Definition mu := rec bot kappa.
+    Definition nu := rec top kappa.
+
+    Let le_reflexive: forall P, le P P.
+    Proof.
+      ii. auto.
+    Qed.
+
+    Let le_transitive: forall P1 P0 P2 (LE0: le P0 P1) (LE1: le P1 P2), le P0 P2.
+    Proof.
+      ii. auto.
+    Qed.
+
+    Let join_upperbound: forall B (Ps: B -> A -> Prop) (b: B), le (Ps b) (join Ps).
+    Proof.
+      ii. exists b. auto.
+    Qed.
+
+    Let join_supremum: forall B (Ps: B -> A -> Prop) (P: A -> Prop) (LE: forall b, le (Ps b) P), le (join Ps) P.
+    Proof.
+      ii. inv IN0. eapply LE; eauto.
+    Qed.
+
+    Hypothesis f_eq: forall P0 P1 (EQ: le P0 P1 /\ le P1 P0), le (f P0) (f P1) /\ le (f P1) (f P0).
+
+    Section LEAST.
+      Let wf (P: A -> Prop) := le P (f P).
+      Let bot_wf: wf bot.
+      Proof.
+        ii. ss.
+      Qed.
+
+      Let JOINWF: forall (A0 : Type) (ds : A0 -> A -> Prop),
+          (forall a0 a1 : A0, le (ds a0) (ds a1) \/ le (ds a1) (ds a0)) -> (forall a : A0, wf (ds a)) -> wf (join ds).
+      Proof.
+        unfold wf, join. ii. des. eapply H0 in IN0. eapply mon; eauto.
+      Qed.
+
+      Let NEXTWF: forall d : A -> Prop, wf d -> wf (f d).
+      Proof.
+        unfold wf. i. eapply mon in H. auto.
+      Qed.
+
+      Lemma rec_bot_wf o: wf (rec bot o).
+      Proof.
+        eapply (Ordinal.rec_wf le join wf f bot); eauto.
+      Qed.
+
+      Lemma rec_bot_le o0 o1 (LE: Ordinal.le o0 o1): le (rec bot o0) (rec bot o1).
+      Proof.
+        eapply (Ordinal.rec_le le join wf f bot); eauto.
+      Qed.
+
+      Inductive least_lt: (A -> Prop) -> (A -> Prop) -> Prop :=
+      | least_lt_intro
+          o0 o1
+          (LT: Ordinal.lt o0 o1)
+          (INCR: ~ le (rec bot o1) (rec bot o0))
+        :
+          least_lt (rec bot o0) (rec bot o1)
+      .
+
+      Lemma least_lt_well_founded: well_founded least_lt.
+      Proof.
+        assert (forall o, Acc least_lt (rec bot o)).
+        { eapply (well_founded_induction Ordinal.lt_well_founded).
+          i. econs. i. inv H0. eapply H.
+          destruct (Ordinal.total x o0); auto. exfalso.
+          eapply INCR. rewrite H3. eapply rec_bot_le; eauto.
+        }
+        ii. econs. i. inv H0. eapply H.
+      Qed.
+
+      Definition not_fixed (o1: Ordinal.t): Prop :=
+        forall o0 (LT: Ordinal.lt o0 o1), ~ le (rec bot o1) (rec bot o0).
+
+      Let fixed_point_incl P (FIX: le (f P) P): forall o, le (rec bot o) P.
+      Proof.
+        eapply Ordinal.ind.
+        { i. hexploit (Ordinal.rec_is_O le join wf f bot); eauto.
+          i. des. eapply le_transitive.
+          { eapply H. }
+          ss.
+        }
+        { i. hexploit (Ordinal.rec_is_S le join wf f bot); eauto.
+          i. des. eapply le_transitive.
+          { eapply H. }
+          eapply mon in IH. eapply le_transitive.
+          { eapply IH. }
+          auto.
+        }
+        { i. hexploit (Ordinal.rec_is_join le join wf f bot); eauto.
+          i. des. eapply le_transitive.
+          { eapply H. }
+          eapply join_supremum. i. eapply IH.
+        }
+      Qed.
+
+      Let end_le_end o0 o1 (LE: Ordinal.le o0 o1) (NEND: not_fixed o1): not_fixed o0.
+      Proof.
+        ii. eapply NEND.
+        { eapply (@Ordinal.lt_le_lt o0); eauto. }
+        eapply fixed_point_incl. eapply Ordinal.S_spec in LT.
+        eapply rec_bot_le in LT.
+        hexploit (Ordinal.rec_is_S le join wf f bot); eauto.
+        { eapply Ordinal.S_is_S. }
+        i. des. eapply le_transitive.
+        { eapply H1. } eapply le_transitive.
+        { eapply LT. }
+        { eauto. }
+      Qed.
+
+      Let least_lt_incr_acc o1 (INCR: not_fixed o1):
+        Ordinal.le o1 (Ordinal.from_wf least_lt_well_founded (rec bot o1)).
+      Proof.
+        revert o1 INCR.
+        eapply (well_founded_induction Ordinal.lt_well_founded
+                                       (fun o1 => forall (INCR: not_fixed o1),
+                                            Ordinal.le o1 (Ordinal.from_wf least_lt_well_founded (rec bot o1)))).
+        i. destruct (Ordinal.total x (Ordinal.from_wf least_lt_well_founded (rec bot x))); auto.
+        destruct x. eapply Ordinal.build_spec. i.
+        hexploit (Ordinal.build_upperbound os a). i.
+        hexploit (H (os a)); eauto.
+        { eapply end_le_end; eauto. eapply Ordinal.lt_le; auto. }
+        i. eapply Ordinal.le_lt_lt.
+        { eapply H2. }
+        eapply Ordinal.from_wf_lt. econs; eauto.
+      Qed.
+
+      Let kappa_fixed: ~ not_fixed kappa.
+      Proof.
+        ii. eapply least_lt_incr_acc in H; eauto.
+        eapply Ordinal.lt_not_le.
+        2: { eapply H. }
+        eapply Ordinal.le_lt_lt.
+        { eapply Ordinal.lt_le. eapply Ordinal.from_wf_set_upperbound. }
+        eapply Ordinal.next_cardinal_upperbound. reflexivity.
+      Qed.
+
+      Theorem generalized_kleene_least_fixpoint:
+        le (f (rec bot kappa)) (rec bot kappa).
+      Proof.
+        eapply NNPP. ii. eapply kappa_fixed. eapply end_le_end.
+        { eapply Ordinal.lt_le. eapply Ordinal.S_lt. }
+        ii. eapply H.
+        hexploit (Ordinal.rec_S le join wf f bot); auto.
+        { eauto. }
+        i. des. eapply le_transitive.
+        { eapply H2. } eapply le_transitive.
+        { eapply H0. }
+        eapply rec_bot_le. destruct (Ordinal.total o0 kappa); auto.
+        eapply Ordinal.S_spec in H3.
+        exfalso. eapply Ordinal.lt_not_le.
+        { eapply LT. }
+        { eapply H3. }
+      Qed.
+    End LEAST.
+  End FIXPOINT.
+End Fix.
 
 Module iProp.
   Definition t := Ordinal.t -> Prop.
