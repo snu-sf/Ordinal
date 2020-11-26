@@ -2903,7 +2903,181 @@ Module Ordinal.
 
     Definition kappa := @build X Y.
 
-    (* TODO: properties of kappa *)
+    Section UNION.
+      Variable A: SmallT.
+      Variable Ts: A -> SmallT.
+      Variable R: forall a, Ts a -> Ts a -> Prop.
+      Arguments R: clear implicits.
+      Hypothesis WF: forall a, well_founded (R a).
+      Arguments WF: clear implicits.
+      Let _union_set: SmallT := @sigT A (fun a => option (Ts a)).
+
+      Inductive _union_rel:
+        _union_set -> _union_set -> Prop :=
+      | _union_rel_top
+          a x
+        :
+          _union_rel (existT _ a (Some x)) (existT _ a None)
+      | _union_rel_normal
+          a x0 x1
+          (LT: R a x0 x1)
+        :
+          _union_rel (existT _ a (Some x0)) (existT _ a (Some x1))
+      .
+      Hint Constructors union_rel.
+
+      Let _union_rel_well_founded:
+          well_founded _union_rel.
+      Proof.
+        assert (forall a x, Acc _union_rel (existT _ a (Some x))).
+        { intros a. eapply (well_founded_induction (WF a)); auto.
+          i. econs. i. dependent destruction H0. eapply H; eauto. }
+        ii. destruct a as [a [x|]]; eauto.
+        econs. i. inv H0; eauto.
+      Qed.
+
+      Let _from_wf_union (a: A) (x: Ts a)
+        :
+          eq (from_wf (WF a) x)
+             (from_wf _union_rel_well_founded (existT _ a (Some x))).
+      Proof.
+        revert x. eapply (well_founded_induction (WF a)).
+        i. split.
+        { eapply from_wf_supremum. i. specialize (H _ LT). inv H.
+          eapply le_lt_lt; eauto. eapply from_wf_lt. econs; eauto. }
+        { eapply from_wf_supremum. i. dependent destruction LT.
+          specialize (H _ LT). inv H.
+          eapply le_lt_lt; eauto. eapply from_wf_lt. auto. }
+      Qed.
+
+      Let _from_wf_set_union:
+        eq (@build A (fun a => from_wf_set (WF a)))
+           (from_wf_set _union_rel_well_founded).
+      Proof.
+        split.
+        { econs. i. exists (existT _ a0 None). eapply build_spec. i.
+          eapply (@le_lt_lt (from_wf _union_rel_well_founded (existT _ a0 (Some a)))).
+          { eapply _from_wf_union. }
+          { eapply from_wf_lt. econs. }
+        }
+        { econs. i. destruct a0 as [a0 [x|]].
+          { exists a0. transitivity (from_wf (WF a0) x).
+            { eapply _from_wf_union. }
+            { eapply lt_le. eapply from_wf_set_upperbound. }
+          }
+          { exists a0. eapply from_wf_supremum. i.
+            dependent destruction LT.
+            eapply (@le_lt_lt (from_wf (WF a0) x)).
+            { eapply _from_wf_union. }
+            { eapply from_wf_set_upperbound. }
+          }
+        }
+      Qed.
+
+      Lemma small_join_small:
+        exists (U: SmallT) (RU: U -> U -> Prop) (WFU: well_founded RU),
+          forall a, lt (from_wf_set (WF a)) (from_wf_set WFU).
+      Proof.
+        exists _union_set, _union_rel, _union_rel_well_founded. i.
+        eapply lt_eq_lt.
+        { symmetry. eapply _from_wf_set_union. }
+        eapply (@build_upperbound _ (fun a0 => from_wf_set (WF a0)) a).
+      Qed.
+    End UNION.
+
+    Lemma kappa_inaccessible_build (A: SmallT) (os: A -> t) (LT: forall a, lt (os a) kappa)
+      :
+      lt (build os) kappa.
+    Proof.
+      hexploit (choice (fun (a: A) (XRWF: @sig (@sigT SmallT (fun X => X -> X -> Prop)) (fun XR => well_founded (projT2 XR))) =>
+                          le (os a) (from_wf_set (proj2_sig XRWF)))).
+      { i. eapply NNPP. ii. eapply lt_not_le.
+        { eapply (LT x). }
+        eapply build_spec. i. destruct (total (os x) (Y a)); auto.
+        exfalso. eapply H. exists a. auto.
+      }
+      i. des.
+      hexploit (@small_join_small A (fun a => projT1 (proj1_sig (f a))) (fun a => projT2 (proj1_sig (f a))) (fun a => proj2_sig (f a))).
+      i. des. eapply (@le_lt_lt (from_wf_set WFU)).
+      { eapply build_spec; eauto. i. eapply (@le_lt_lt (from_wf_set (proj2_sig (f a)))).
+        { eapply H. }
+        { eapply H0. }
+      }
+      eapply (@build_upperbound X Y (exist _ (existT _ U RU) WFU)).
+    Qed.
+
+    Lemma kappa_inaccessible_is_join (A: SmallT) (os: A -> t) (LT: forall a, lt (os a) kappa)
+          o (JOIN: is_join os o)
+      :
+      lt o kappa.
+    Proof.
+      eapply (@le_lt_lt (build os)).
+      2: { eapply kappa_inaccessible_build; auto. }
+      eapply is_join_supremum; eauto.
+      i. eapply lt_le. eapply build_upperbound.
+    Qed.
+
+    Lemma kappa_inaccessible_join (A: SmallT) (os: A -> t) (LT: forall a, lt (os a) kappa):
+      lt (join os) kappa.
+    Proof.
+      eapply kappa_inaccessible_is_join; eauto. eapply join_is_join.
+    Qed.
+
+    Let D: SmallT := unit.
+    Let D_well_founded: @well_founded D (fun _ _ => False).
+    Proof.
+      ii. econs; ss.
+    Qed.
+
+    Lemma kappa_inaccesible_from_acc (A: SmallT) (R: A -> A -> Prop) a (ACC: Acc R a):
+      lt (from_acc a ACC) kappa.
+    Proof.
+      dup ACC. revert ACC. induction ACC0. i.
+      destruct ACC. ss.
+      hexploit (@kappa_inaccessible_build (sig (fun a0 => R a0 x)) (fun a0p : {a0 : A | R a0 x} => from_acc (` a0p) (from_acc_obligation_1 (Acc_intro x a) a0p))); eauto.
+      i. destruct a0. ss. eapply H0; eauto.
+    Qed.
+
+    Lemma kappa_inaccesible_from_wf (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R) a:
+      lt (from_wf WF a) kappa.
+    Proof.
+      eapply kappa_inaccesible_from_acc.
+    Qed.
+
+    Lemma kappa_inaccesible_from_wf_set (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R):
+      lt (from_wf_set WF) kappa.
+    Proof.
+      eapply kappa_inaccessible_build. i. eapply kappa_inaccesible_from_wf.
+    Qed.
+
+    Lemma kappa_inaccessible_is_O o (ZERO: is_O o):
+      lt o kappa.
+    Proof.
+      eapply le_lt_lt.
+      { eapply ZERO. }
+      eapply (@build_upperbound X Y (exist _ (existT _ D (fun _ _ => False)) D_well_founded)).
+    Qed.
+
+    Lemma kappa_inaccessible_O:
+      lt O kappa.
+    Proof.
+      eapply kappa_inaccessible_is_O. eapply O_is_O.
+    Qed.
+
+    Lemma kappa_inaccessible_is_S o s (SUCC: is_S o s) (LT: lt o kappa):
+      lt s kappa.
+    Proof.
+      eapply (@le_lt_lt (@build D (fun _ => o))).
+      { eapply SUCC. eapply (build_upperbound (fun _ : D => o) tt). }
+      { eapply kappa_inaccessible_build; eauto. }
+    Qed.
+
+    Lemma kappa_inaccessible_S o (LT: lt o kappa):
+      lt (S o) kappa.
+    Proof.
+      eapply kappa_inaccessible_is_S; eauto.
+      eapply S_is_S.
+    Qed.
   End INACCESSIBLE.
 End TYPE.
 End Ordinal.
@@ -2917,7 +3091,70 @@ Proof.
   eapply Ordinal._well_ordering_theorem.
 Qed.
 
-(* TODO: state zorn lemmas *)
+Section ZORNLT.
+  Variable B: Type.
+  Variable R: B -> B -> Prop.
+  Hypothesis antisym: forall b0 b1 (LT0: R b0 b1) (LT1: R b1 b0), False.
+  Hypothesis transitive: forall b0 b1 b2 (LT0: R b0 b1) (LT1: R b1 b2), R b0 b2.
+  Hypothesis upperbound_exists:
+    forall (c: B -> Prop) (CHAIN: forall b0 b1 (IN0: c b0) (IN1: c b1), R b0 b1 \/ b0 = b1 \/ R b1 b0),
+    exists b_u, forall b (IN: c b), R b b_u \/ b = b_u.
+
+  Theorem zorn_lemma_lt:
+    exists b_m, forall b, ~ R b_m b.
+  Proof.
+    eapply Ordinal._zorn_lemma_lt; eauto.
+  Qed.
+End ZORNLT.
+
+Section ZORNANTISYM.
+  Variable B: Type.
+  Variable R: B -> B -> Prop.
+  Hypothesis le_PreOrder: PreOrder R.
+  Hypothesis antisym: forall b0 b1 (LE0: R b0 b1) (LE1: R b1 b0), b0 = b1.
+  Hypothesis upperbound_exists:
+    forall (c: B -> Prop) (CHAIN: forall b0 b1 (IN0: c b0) (IN1: c b1), R b0 b1 \/ R b1 b0),
+    exists b_u, forall b (IN: c b), R b b_u.
+
+  Theorem zorn_lemma_antisym:
+    exists b_m, forall b (LE: R b_m b), b = b_m.
+  Proof.
+    eapply Ordinal._zorn_lemma_antisym; eauto.
+  Qed.
+End ZORNANTISYM.
+
+Section ZORN.
+  Variable B: Type.
+  Variable R: B -> B -> Prop.
+  Hypothesis le_PreOrder: PreOrder R.
+  Hypothesis upperbound_exists:
+    forall (c: B -> Prop) (CHAIN: forall b0 b1 (IN0: c b0) (IN1: c b1), R b0 b1 \/ R b1 b0),
+    exists b_u, forall b (IN: c b), R b b_u.
+
+  Theorem zorn_lemma:
+    exists b_m, forall b (LE: R b_m b), R b b_m.
+  Proof.
+    eapply Ordinal._zorn_lemma; eauto.
+  Qed.
+End ZORN.
+
+Section ZORNWEAK.
+  Variable B: Type.
+  Hypothesis INHABITED: inhabited B.
+  Variable R: B -> B -> Prop.
+  Hypothesis le_PreOrder: PreOrder R.
+  Hypothesis upperbound_exists:
+    forall (c: B -> Prop) (INHABITED: exists b, c b)
+           (CHAIN: forall b0 b1 (IN0: c b0) (IN1: c b1), R b0 b1 \/ R b1 b0),
+    exists b_u, forall b (IN: c b), R b b_u.
+
+  Theorem zorn_lemma_weak:
+    exists b_m, forall b (LE: R b_m b), R b b_m.
+  Proof.
+    eapply Ordinal._zorn_lemma_weak; eauto.
+  Qed.
+End ZORNWEAK.
+
 
 Module Cardinal.
   Variant le (A B: Type): Prop :=
