@@ -2924,6 +2924,14 @@ Module Ordinal.
       Qed.
     End NEXT.
 
+    Lemma next_cardinal_le A B
+          (CARDINAL: le (cardinal A) (cardinal B)):
+      le (next_cardinal A) (next_cardinal B).
+    Proof.
+      hexploit (next_cardinal_is_cardinal A). i. inv H. des.
+
+
+
     Definition aleph := orec (fun o => next_cardinal (to_total_set o)) omega.
   End ALEPH.
 
@@ -3111,35 +3119,52 @@ Module Ordinal.
       eapply S_is_S.
     Qed.
 
-    (* Lemma kappa_next_cardinal o (LT: lt o kappa): *)
-    (*   lt (next_cardinal (to_total_set o)) kappa. *)
-    (* Proof. *)
-    (*   assert (exists (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R), *)
-    (*              le o (from_wf_set WF)). *)
-    (*   { eapply NNPP. ii. eapply lt_not_le. *)
-    (*     { eapply LT. } *)
-    (*     eapply build_spec. i. destruct a as [[A R] WF]. unfold Y. ss. *)
-    (*     destruct (total o (from_wf_set WF)); auto. *)
-    (*     exfalso. eapply H. esplits; eauto. } *)
-    (*   des. eapply (@le_lt_lt (next_cardinal A)). *)
-    (*   { admit. } *)
-    (*   eapply (@le_lt_lt (cardinal (A -> Prop))). *)
-    (*   { eapply next_cardinal_le_power_set. } *)
-    (*   hexploit (cardinal_is_cardinal (A -> Prop)). i. inv H0. *)
-    (*   des. eapply eq_lt_lt. *)
-    (*   { symmetry. eapply H0. } *)
-    (*   eapply (@build_upperbound X Y (exist _ (existT _ (A -> Prop) R0) WF0)). *)
-    (* Admitted. *)
+    Lemma kappa_complete o (LT: lt o kappa):
+      exists (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R),
+        le o (from_wf_set WF).
+    Proof.
+      eapply NNPP. ii. eapply lt_not_le.
+      { eapply LT. }
+      eapply build_spec. i. destruct a as [[A R] WF]. unfold Y. ss.
+      destruct (total o (from_wf_set WF)); auto.
+      exfalso. eapply H. esplits; eauto.
+    Qed.
 
-    (* Lemma kappa_less_cardinal o (LT: lt o kappa): *)
-    (*   lt (aleph o) kappa. *)
-    (* Proof. *)
-    (* Admitted. *)
+    Lemma kappa_next_cardinal o (LT: lt o kappa):
+      lt (next_cardinal (to_total_set o)) kappa.
+    Proof.
+      hexploit (kappa_complete LT); eauto. i. des.
+      eapply (@le_lt_lt (next_cardinal A)).
+      { admit. }
+      eapply (@le_lt_lt (cardinal (A -> Prop))).
+      { eapply next_cardinal_le_power_set. }
+      hexploit (cardinal_is_cardinal (A -> Prop)). i. inv H0.
+      des. eapply eq_lt_lt.
+      { symmetry. eapply H0. }
+      eapply (@build_upperbound X Y (exist _ (existT _ (A -> Prop) R0) WF0)).
+    Admitted.
 
-    (* Lemma kappa_aleph_fixpoint: *)
-    (*   eq kappa (aleph kappa). *)
-    (* Proof. *)
-    (* Admitted. *)
+    Lemma kappa_less_cardinal o (LT: lt o kappa):
+      lt (aleph o) kappa.
+    Proof.
+      revert o LT.
+      eapply (ind (fun o => forall (LT: lt o kappa), lt (aleph o) kappa)).
+      { i. hexploit (orec_is_O (fun o => next_cardinal (to_total_set o))); eauto.
+        { admit. }
+        { i. inv EQ. split.
+          - eapply to_total_le in H. a
+
+          admit. }}
+      {
+
+        admit. }
+      { i.
+    Admitted.
+
+    Lemma kappa_aleph_fixpoint:
+      eq kappa (aleph kappa).
+    Proof.
+    Admitted.
   End INACCESSIBLE.
 
   Section FIXPOINT.
