@@ -3079,6 +3079,402 @@ Module Ordinal.
       eapply S_is_S.
     Qed.
   End INACCESSIBLE.
+
+  Section FIXPOINT.
+    Variable D: MyT.
+    Variable dle: D -> D -> Prop.
+    Variable djoin: forall (A: MyT) (ds: A -> D), D.
+    Variable wf: D -> Prop.
+
+    Let deq: D -> D -> Prop :=
+      fun d0 d1 => dle d0 d1 /\ dle d1 d0.
+
+    Variable next: D -> D.
+    Variable base: D.
+
+    Hypothesis dle_reflexive: forall d (WF: wf d), dle d d.
+    Hypothesis dle_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (LE0: dle d0 d1) (LE1: dle d1 d2),
+        dle d0 d2.
+
+    Hypothesis djoin_upperbound: forall A (ds: A -> D) (a: A) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)), dle (ds a) (djoin ds).
+    Hypothesis djoin_supremum: forall A (ds: A -> D) (d: D) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)) (WFD: wf d) (LE: forall a, dle (ds a) d), dle (djoin ds) d.
+    Hypothesis djoin_wf: forall A (ds: A -> D) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)), wf (djoin ds).
+
+    Hypothesis base_wf: wf base.
+    Hypothesis next_wf: forall d (WF: wf d), wf (next d).
+
+    Hypothesis next_le: forall d (WF: wf d), dle d (next d).
+    Hypothesis next_eq: forall d0 d1 (WF0: wf d0) (WF1: wf d1) (EQ: deq d0 d1), deq (next d0) (next d1).
+
+    Let deq_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (EQ0: deq d0 d1) (EQ1: deq d1 d2),
+        deq d0 d2.
+    Proof.
+      i. inv EQ0. inv EQ1. split.
+      - eapply (@dle_transitive d1); auto.
+      - eapply (@dle_transitive d1); auto.
+    Qed.
+
+    Let deq_symmetric: forall d0 d1 (EQ: deq d0 d1), deq d1 d0.
+    Proof.
+      i. inv EQ. split; auto.
+    Qed.
+
+    Let _rec_wf: forall o, wf (rec djoin next base o).
+    Proof.
+      eapply rec_wf; eauto.
+    Qed.
+
+    Let _rec_next_wf: forall o, wf (next (rec djoin next base o)).
+    Proof.
+      i. eapply next_wf. eapply rec_wf; eauto.
+    Qed.
+
+    Let k := next_cardinal D.
+
+    Inductive strictly_increasing: D -> D -> Prop :=
+    | strictly_increasing_intro
+        o0 o1
+        (LT: lt o0 o1)
+        (INCR: ~ dle (rec djoin next base o1) (rec djoin next base o0))
+      :
+        strictly_increasing (rec djoin next base o0) (rec djoin next base o1)
+    .
+
+    Lemma strictly_increasing_well_founded: well_founded strictly_increasing.
+    Proof.
+      assert (forall o, Acc strictly_increasing (rec djoin next base o)).
+      { eapply (well_founded_induction lt_well_founded).
+        i. econs. i. inv H0. eapply H.
+        destruct (total x o0); auto. exfalso.
+        eapply INCR. rewrite H3. eapply rec_le; eauto.
+      }
+      ii. econs. i. inv H0. eapply H.
+    Qed.
+
+    Definition not_fixed (o1: t): Prop :=
+      forall o0 (LT: lt o0 o1), ~ dle (rec djoin next base o1) (rec djoin next base o0).
+
+    Lemma fixed_point_after o0 (FIX: dle (next (rec djoin next base o0)) (rec djoin next base o0)):
+      forall o1 (LE: le o0 o1),
+        dle (rec djoin next base o1) (rec djoin next base o0).
+    Proof.
+      eapply (@ind (fun o1 => forall (LE: le o0 o1),
+                        dle (rec djoin next base o1) (rec djoin next base o0))).
+      { i. eapply rec_le; eauto. }
+      { i. eapply le_eq_or_lt in LE. des.
+        2: { eapply rec_le; eauto. eapply LE. }
+        hexploit (rec_is_S dle djoin wf next base); auto.
+        { eauto. } i.
+        assert (deq (rec djoin next base s) (next (rec djoin next base o))).
+        { des. split; auto. } clear H.
+        assert (LE0: le o0 o).
+        { destruct (total o0 o); auto. exfalso. eapply SUCC in H.
+          eapply (@lt_not_le o0 s); eauto. }
+        hexploit IH; auto. i.
+        assert (deq (next (rec djoin next base o0)) (rec djoin next base o0)).
+        { split; auto. } clear FIX.
+        assert (deq (rec djoin next base o) (rec djoin next base o0)).
+        { split; auto. eapply rec_le; eauto. }
+        eapply (@deq_transitive (rec djoin next base o)); auto.
+        eapply (@deq_transitive (next (rec djoin next base o))); auto.
+        dup H2. eapply next_eq in H2; eauto.
+      }
+      { i. hexploit (rec_is_join dle djoin wf next base); eauto. i. des.
+        assert (forall a0 a1 : A,
+                   dle (rec djoin next base (os a0)) (rec djoin next base (os a1)) \/ dle (rec djoin next base (os a1)) (rec djoin next base (os a0))).
+        { i. destruct (total_le (os a0) (os a1)).
+          { left. eapply rec_le; eauto. }
+          { right. eapply rec_le; eauto. }
+        }
+        assert (wf (djoin (fun a : A => rec djoin next base (os a)))); auto.
+        eapply (@dle_transitive (djoin (fun a : A => rec djoin next base (os a)))); auto.
+        eapply djoin_supremum; auto. i.
+        hexploit (IH a); eauto.
+
+        eapply IH.
+        transitivity o; auto. eapply JOIN; auto. i. re
+
+
+        auto.
+        eapply H1.
+
+
+
+        eapply (
+
+        { auto. eapply deq_symmetric. eapply H2. }
+
+          eap
+
+
+          split; auto. } clear FIX.
+
+
+
+        eapply (@deq_transitive (next (rec djoin next base o))); auto.
+        {
+
+
+        next o = next o0 = s
+        o=o0=(next o0)
+             o = o0
+                    next o = s
+
+                               s o0
+                               next o0
+
+
+        admit.
+      }
+      { i. split.
+        { eapply rec_le; eauto. }
+        hexploit (rec_is_join dle djoin wf next base); eauto. i.
+        eapply (@deq_transitive (djoin (fun a : A => rec djoin next base (os a)))); eauto.
+        { eapply djoin_wf; eauto. i. des.
+          destruct (total_le (os a0) (os a1)).
+          { left. eapply rec_le; eauto. }
+          { right. eapply rec_le; eauto. }
+        }
+        2: { des. split; auto. }
+        split.
+        {
+
+    Lemma fixed_point_S_incl o0 (FIX: deq (rec djoin next base o0) (next (rec djoin next base o0))):
+      forall o1 (LE: le o0 o1),
+        deq (rec djoin next base o0) (rec djoin next base o1).
+    Proof.
+      eapply (@ind (fun o1 => forall (LE: le o0 o1),
+                        deq (rec djoin next base o0) (rec djoin next base o1))).
+      { i. eapply rec_eq; eauto. split; auto. }
+      { i. eapply le_eq_or_lt in LE. des.
+        2: { eapply rec_eq; eauto. }
+        hexploit (rec_is_S dle djoin wf next base); auto.
+        { eauto. } i. des.
+        assert (LE0: le o0 o).
+        { destruct (total o0 o); auto. exfalso. eapply SUCC in H1.
+          eapply (@lt_not_le o0 s); eauto. }
+        hexploit IH; auto. i.
+        admit.
+      }
+      { i. split.
+        { eapply rec_le; eauto. }
+        hexploit (rec_is_join dle djoin wf next base); eauto. i.
+        eapply (@deq_transitive (djoin (fun a : A => rec djoin next base (os a)))); eauto.
+        { eapply djoin_wf; eauto. i. des.
+          destruct (total_le (os a0) (os a1)).
+          { left. eapply rec_le; eauto. }
+          { right. eapply rec_le; eauto. }
+        }
+        2: { des. split; auto. }
+        split.
+        {
+
+
+        hexploit (IH
+
+
+          eapply H.
+
+
+          des. split; auto. eapply H.
+
+        { eauto. } i. des.
+
+
+        eapply djoin_supremum.
+
+
+
+        eapply next_eq in H1; auto.
+        eapply (@deq_transitive (next (rec djoin next base o))); auto.
+        { eapply (@deq_transitive (rec djoin next base o0)); auto.
+
+
+
+
+          { eapply H1. }
+          eapply SUCC in H1.
+
+
+
+
+        inv FIX. split.
+          - eapply (@dle_transitive (next (rec djoin next base o))); eauto.
+            { eapply rec_wf; eauto. }
+            { eapply next_wf. eapply rec_wf; eauto. }
+            { eapply rec_wf; eauto. }
+            eapply (@dle_transitive (next (rec djoin next base o))); eauto.
+            { eapply rec_wf; eauto. }
+            { eapply next_wf. eapply rec_wf; eauto. }
+            { eapply rec_wf; eauto.
+            }
+            {
+
+          split.
+          -
+
+          etransitivity.
+
+          eapply HELPER; eauto.
+
+          eapply IH.
+
+        hexploit rec_is_O; eauto. i. des.
+
+
+
+        (BASE: dle base P) (WF: wf P)
+        (FIX: deq (next P) P): forall o, deq (rec djoin next base o) P.
+    Proof.
+      eapply ind.
+      { i. hexploit (rec_is_O dle djoin wf next base); eauto.
+        i. des. eapply (@dle_transitive base); eauto.
+        { eapply rec_wf; eauto. }
+      }
+      { i. hexploit (rec_is_S dle djoin wf next base); eauto.
+        i. des. eapply (@dle_transitive (next (rec djoin next base o))); eauto.
+        { eapply rec_wf; eauto. }
+        { eapply next_wf. eapply rec_wf; eauto. }
+        eapply (@dle_transitive (next P)); eauto.
+        { eapply next_wf. eapply rec_wf; eauto. }
+        {
+
+
+    Let end_le_end o0 o1 (LE: le o0 o1) (NEND: not_fixed o1): not_fixed o0.
+    Proof.
+      ii. eapply NEND.
+      { eapply (@lt_le_lt o0); eauto. }
+      eapply fixed_point_incl. eapply Ordinal.S_spec in LT.
+      eapply rec_bot_le in LT.
+      hexploit (Ordinal.rec_is_S dle djoin wf next base); eauto.
+      { eapply Ordinal.S_is_S. }
+      i. des. eapply le_transitive.
+      { eapply H1. } eapply le_transitive.
+      { eapply LT. }
+      { eauto. }
+    Qed.
+
+
+    Let fixed_point_incl P (BASE: dle base P) (WF: wf P)
+        (FIX: deq (next P) P): forall o, deq (rec djoin next base o) P.
+    Proof.
+      eapply ind.
+      { i. hexploit (rec_is_O dle djoin wf next base); eauto.
+        i. des. eapply (@dle_transitive base); eauto.
+        { eapply rec_wf; eauto. }
+      }
+      { i. hexploit (rec_is_S dle djoin wf next base); eauto.
+        i. des. eapply (@dle_transitive (next (rec djoin next base o))); eauto.
+        { eapply rec_wf; eauto. }
+        { eapply next_wf. eapply rec_wf; eauto. }
+        eapply (@dle_transitive (next P)); eauto.
+        { eapply next_wf. eapply rec_wf; eauto. }
+        {
+
+        eapply next
+
+        eapply (@dle_transitive (rec djoin next base S.
+        { eapply IH. }
+        auto.
+      }
+      { i. hexploit (Ordinal.rec_is_join dle djoin wf next base); eauto.
+        i. des. eapply le_transitive.
+        { eapply H. }
+        eapply join_supremum. i. eapply IH.
+      }
+    Qed.
+
+
+    Let fixed_point_incl P (BASE: dle base P) (WF: wf P)
+        (FIX: dle (next P) P): forall o, dle (rec djoin next base o) P.
+    Proof.
+      eapply ind.
+      { i. hexploit (rec_is_O dle djoin wf next base); eauto.
+        i. des. eapply (@dle_transitive base); eauto.
+        { eapply rec_wf; eauto. }
+      }
+      { i. hexploit (rec_is_S dle djoin wf next base); eauto.
+        i. des. eapply (@dle_transitive (next (rec djoin next base o))); eauto.
+        { eapply rec_wf; eauto. }
+        { eapply next_wf. eapply rec_wf; eauto. }
+        eapply (@dle_transitive (next P)); eauto.
+        { eapply next_wf. eapply rec_wf; eauto. }
+        {
+
+        eapply next
+
+        eapply (@dle_transitive (rec djoin next base S.
+        { eapply IH. }
+        auto.
+      }
+      { i. hexploit (Ordinal.rec_is_join dle djoin wf next base); eauto.
+        i. des. eapply le_transitive.
+        { eapply H. }
+        eapply join_supremum. i. eapply IH.
+      }
+    Qed.
+
+      Let end_le_end o0 o1 (LE: Ordinal.le o0 o1) (NEND: not_fixed o1): not_fixed o0.
+      Proof.
+        ii. eapply NEND.
+        { eapply (@Ordinal.lt_le_lt o0); eauto. }
+        eapply fixed_point_incl. eapply Ordinal.S_spec in LT.
+        eapply rec_bot_le in LT.
+        hexploit (Ordinal.rec_is_S dle djoin wf next base); eauto.
+        { eapply Ordinal.S_is_S. }
+        i. des. eapply le_transitive.
+        { eapply H1. } eapply le_transitive.
+        { eapply LT. }
+        { eauto. }
+      Qed.
+
+      Let least_lt_incr_acc o1 (INCR: not_fixed o1):
+        Ordinal.le o1 (Ordinal.from_wf least_lt_well_founded (rec djoin next base o1)).
+      Proof.
+        revert o1 INCR.
+        eapply (well_founded_induction Ordinal.lt_well_founded
+                                       (fun o1 => forall (INCR: not_fixed o1),
+                                            Ordinal.le o1 (Ordinal.from_wf least_lt_well_founded (rec djoin next base o1)))).
+        i. destruct (Ordinal.total x (Ordinal.from_wf least_lt_well_founded (rec djoin next base x))); auto.
+        destruct x. eapply Ordinal.build_spec. i.
+        hexploit (Ordinal.build_upperbound os a). i.
+        hexploit (H (os a)); eauto.
+        { eapply end_le_end; eauto. eapply Ordinal.lt_le; auto. }
+        i. eapply Ordinal.le_lt_lt.
+        { eapply H2. }
+        eapply Ordinal.from_wf_lt. econs; eauto.
+      Qed.
+
+      Let kappa_fixed: ~ not_fixed kappa.
+      Proof.
+        ii. eapply least_lt_incr_acc in H; eauto.
+        eapply Ordinal.lt_not_le.
+        2: { eapply H. }
+        eapply Ordinal.le_lt_lt.
+        { eapply Ordinal.lt_le. eapply Ordinal.from_wf_set_upperbound. }
+        eapply Ordinal.next_cardinal_upperbound. reflexivity.
+      Qed.
+
+      Theorem generalized_kleene_least_fixpoint:
+        le (f (rec djoin next base kappa)) (rec djoin next base kappa).
+      Proof.
+        eapply NNPP. ii. eapply kappa_fixed. eapply end_le_end.
+        { eapply Ordinal.lt_le. eapply Ordinal.S_lt. }
+        ii. eapply H.
+        hexploit (Ordinal.rec_S dle djoin wf next base); auto.
+        { eauto. }
+        i. des. eapply le_transitive.
+        { eapply H2. } eapply le_transitive.
+        { eapply H0. }
+        eapply rec_bot_le. destruct (Ordinal.total o0 kappa); auto.
+        eapply Ordinal.S_spec in H3.
+        exfalso. eapply Ordinal.lt_not_le.
+        { eapply LT. }
+        { eapply H3. }
+      Qed.
+
+
+
 End TYPE.
 End Ordinal.
 
