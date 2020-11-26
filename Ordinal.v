@@ -2791,7 +2791,75 @@ Module Ordinal.
   Section ALEPH.
     Section NEXT.
       Variable A: MyT.
-      Let next_o := @build (
+      Let X: MyT := @sig (A -> A -> Prop) (@well_founded _).
+
+      Let Y (x: X): t := from_wf_set (proj2_sig x).
+
+      Definition next_cardinal := @build X Y.
+
+      Lemma next_cardinal_upperbound B (R: B -> B -> Prop) (WF: well_founded R)
+            (CARD: le (cardinal B) (cardinal A))
+        : lt (from_wf_set WF) next_cardinal.
+      Proof.
+        eapply _cardinal_le_iff in CARD. inv CARD.
+        eapply (@le_lt_lt (from_wf_set (embed_projected_rel_well_founded WF f INJ))).
+        { eapply from_wf_set_inj. instantiate (1:=f). i. econs; eauto. }
+        eapply (@build_upperbound X Y (exist _ _ (embed_projected_rel_well_founded WF f INJ))).
+      Qed.
+
+      Lemma next_cardinal_supremum B (CARD: lt (cardinal A) (cardinal B)):
+        le next_cardinal (cardinal B).
+      Proof.
+        eapply build_spec. i. unfold
+
+      Lemma next_cardinal_upperbound: lt (cardinal A) next_cardinal.
+      Proof.
+        hexploit (cardinal_is_cardinal A); eauto. i. inv H. des.
+        eapply eq_lt_lt.
+        { symmetry. eapply H2. }
+        eapply (@build_upperbound X Y (exist _ R WF)).
+      Qed.
+
+
+
+      Lemma next_cardinal_upperbound B (R: B -> B -> Prop) (WF: well_founded R)
+            (LE:
+
+        lt (cardinal A)
+
+
+      Lemma next_cardinal_upperbound: lt (cardinal A)
+
+                 next_o := @build X Y.
+
+      Let next_o
+
+  Section ALEPH.
+    Section NEXT.
+      Variable A: MyT.
+      Let X: MyT := @sig (@sig (A -> A -> Prop) (@well_founded _))
+                         (fun s => _cardinal_le (to_total_set (from_wf_set (proj2_sig s))) A).
+
+      Let Y (x: X): t :=
+        from_wf_set (proj2_sig (proj1_sig x)).
+
+      Let next_o := @build X Y.
+
+
+
+  Section ALEPH.
+    Section NEXT.
+      Variable A: MyT.
+      Variable B: MyT.
+      Let X: MyT := @sig (@sig (B -> B -> Prop) (@well_founded _))
+                         (fun s => _cardinal_le (to_total_set (from_wf_set (proj2_sig s))) A).
+
+      Let Y (x: X): t :=
+        from_wf_set (proj2_sig (proj1_sig x)).
+
+      Let next_o := @build X Y.
+
+
 
     Let next_cardinal (A: MyT): MyT :=
       build (fun
