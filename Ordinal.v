@@ -1169,7 +1169,79 @@ Module Ordinal.
       eapply (@rec_le_base _ le join wf next base); ss.
       i. eapply next_eq; auto.
     Qed.
+
+    Lemma orec_build_supremum o1 r
+          (BASE: le base r)
+          (UPPERBOUND: forall o0 (LT: lt o0 o1), le (next (orec o0)) r)
+      :
+        le (orec o1) r.
+    Proof.
+      revert o1 r BASE UPPERBOUND.
+      eapply (ind (fun o1 => forall
+                       r (BASE: le base r)
+                       (UPPERBOUND: forall o0 (LT: lt o0 o1), le (next (orec o0)) r),
+                       le (orec o1) r)).
+      { i. hexploit orec_is_O; eauto. i. etransitivity.
+        { eapply H. }
+        auto.
+      }
+      { i. hexploit orec_is_S; eauto. i. etransitivity.
+        { eapply H. }
+        eapply UPPERBOUND. eapply SUCC.
+      }
+      { i. hexploit orec_is_join; eauto. i. etransitivity.
+        { eapply H. }
+        eapply join_supremum. i. eapply IH; auto.
+        i. eapply UPPERBOUND. eapply lt_le_lt; eauto.
+        eapply JOIN.
+      }
+    Qed.
   End OREC.
+
+  Lemma S_eq o0 o1 (EQ: eq o0 o1):
+    eq (S o0) (S o1).
+  Proof.
+    inv EQ. split.
+    - rewrite <- S_le_mon. auto.
+    - rewrite <- S_le_mon. auto.
+  Qed.
+
+  Lemma S_le o:
+    le o (S o).
+  Proof.
+    eapply lt_le. eapply S_lt.
+  Qed.
+
+  Lemma orec_of_S: forall o, eq o (orec S O o).
+  Proof.
+    set S_eq. set S_le.
+    eapply ind.
+    { i. hexploit (orec_is_O S O); eauto. i.
+      transitivity O; auto.
+      { eapply is_O_eq; auto. eapply O_is_O. }
+      { symmetry. apply H. }
+    }
+    { i. hexploit (orec_is_S S O); eauto. i.
+      transitivity (S (orec S O o)); auto.
+      { transitivity (S o).
+        { eapply is_S_eq; eauto. eapply S_is_S. }
+        { eapply S_eq. auto. }
+      }
+      { symmetry. apply H. }
+    }
+    { i. hexploit (orec_is_join S O); eauto. i.
+      transitivity (join (fun a : A => orec S O (os a))); auto.
+      { split.
+        - eapply JOIN. i. etransitivity.
+          + eapply IH.
+          + eapply (join_upperbound (fun a0 : A => orec S O (os a0)) a).
+        - eapply join_supremum. i. etransitivity.
+          + eapply IH.
+          + eapply JOIN.
+      }
+      { symmetry. apply H. }
+    }
+  Qed.
 
   Definition add (o0: t): forall (o1: t), t := orec S o0.
   Definition mult (o0: t): forall (o1: t), t := orec (flip add o0) O.
@@ -2829,6 +2901,18 @@ Module Ordinal.
       { eapply to_total_eq. }
     Qed.
 
+    Lemma to_total_cardinal_le o:
+      le (cardinal (to_total_set o)) o.
+    Proof.
+      transitivity (from_wf_set (to_total_well_founded o)).
+      { eapply cardinal_is_cardinal.
+        exists _, (to_total_well_founded o). split; auto.
+        - eapply to_total_total.
+        - reflexivity.
+      }
+      { eapply to_total_eq. }
+    Qed.
+
     Lemma cardinal_to_total_adjoint A:
       eq (cardinal A) (cardinal (to_total_set (cardinal A))).
     Proof.
@@ -2836,7 +2920,113 @@ Module Ordinal.
       { eapply to_total_total. }
       eapply to_total_eq.
     Qed.
+
+    Lemma from_wf_set_to_total A (R: A -> A -> Prop) (WF: well_founded R):
+      le (cardinal (to_total_set (from_wf_set WF))) (cardinal A).
+    Proof.
+      hexploit (well_order_extendable WF); eauto. i. des.
+      assert (le (from_wf_set (to_total_well_founded (from_wf_set WF))) (from_wf_set H)).
+      { transitivity (from_wf_set WF).
+        { eapply to_total_eq. }
+        { eapply from_wf_set_le; auto. }
+      }
+      dup H2. eapply from_wf_set_embed in H2; auto. des.
+      hexploit (@from_wf_set_embed _ _ _ _ (to_total_well_founded (from_wf_set WF)) H); auto.
+      i. des. eapply _cardinal_le_iff.
+      eapply _cardinal_le_intro with (f:=f0).
+      i. destruct (to_total_total a0 a1) as [|[]]; auto.
+      { eapply H4 in H5. rewrite EQ in *. exfalso.
+        eapply (well_founded_irreflexive H); eauto. }
+      { eapply H4 in H5. rewrite EQ in *. exfalso.
+        eapply (well_founded_irreflexive H); eauto. }
+    Qed.
+
+    Lemma total_from_wf_inj A (R: A -> A -> Prop) (WF: well_founded R)
+          (TOTAL: forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0)
+      :
+        forall a0 a1,
+          a0 = a1 <-> eq (from_wf WF a0) (from_wf WF a1).
+    Proof.
+      i. split.
+      { i. subst. reflexivity. }
+      { i. destruct (TOTAL a0 a1) as [|[]]; auto.
+        { eapply (from_wf_lt WF) in H0. exfalso.
+          eapply lt_not_le; eauto. eapply H. }
+        { eapply (from_wf_lt WF) in H0. exfalso.
+          eapply lt_not_le; eauto. eapply H. }
+      }
+    Qed.
+
+    Lemma same_cardinality_bijection A B
+          (CARDINAL: eq (cardinal A) (cardinal B))
+      :
+        exists (f: A -> B),
+          (forall a0 a1 (EQ: f a0 = f a1), a0 = a1) /\
+          (forall b, exists a, f a = b).
+    Proof.
+      hexploit (cardinal_is_cardinal A). i. inv H. des.
+      hexploit (cardinal_is_cardinal B). i. inv H. des.
+      hexploit (choice (fun a b => eq (from_wf WF a) (from_wf WF0 b))).
+      { i. hexploit (@from_wf_set_complete _ _ WF0 (from_wf WF x)).
+        { eapply lt_eq_lt.
+          { eapply H5. }
+          eapply lt_eq_lt.
+          { symmetry. eapply CARDINAL. }
+          eapply lt_eq_lt.
+          { symmetry. eapply H2. }
+          eapply from_wf_set_upperbound.
+        }
+        i. des. eauto.
+      }
+      i. des. exists f. splits; auto.
+      { i. eapply (total_from_wf_inj WF); eauto.
+        etransitivity.
+        { eapply H. }
+        etransitivity.
+        2: { symmetry. eapply H. }
+        rewrite EQ. reflexivity.
+      }
+      { i. hexploit (@from_wf_set_complete _ _ WF (from_wf WF0 b)).
+        { eapply lt_eq_lt.
+          { eapply H2. }
+          eapply lt_eq_lt.
+          { eapply CARDINAL. }
+          eapply lt_eq_lt.
+          { symmetry. eapply H5. }
+          eapply from_wf_set_upperbound.
+        }
+        i. des. exists a. eapply (total_from_wf_inj WF0); auto.
+        etransitivity.
+        { symmetry. eapply H. }
+        { symmetry. eapply H6. }
+      }
+    Qed.
+
+    Lemma sum_of_smaller o:
+      exists (os: to_total_set o -> t),
+        eq o (build os).
+    Proof.
+      hexploit (to_total_eq o). i.
+      exists (fun x => from_wf (to_total_well_founded o) x).
+      eapply H.
+    Qed.
+
+    Lemma sum_of_smaller_same_cardinal o A (EQ: eq (cardinal A) (cardinal (to_total_set o))):
+      exists (os: A -> t),
+        eq o (build os).
+    Proof.
+      hexploit (sum_of_smaller o). i. des.
+      eapply same_cardinality_bijection in EQ. des.
+      exists (fun a => os (f a)). etransitivity.
+      { eapply H. }
+      split.
+      { eapply build_spec. i. hexploit (EQ0 a). i. des.
+        subst. eapply (build_upperbound (fun a => os (f a)) a0). }
+      { eapply build_spec. i.
+        eapply (build_upperbound os (f a)). }
+    Qed.
   End CARDINALITY.
+
 
   Section ALEPH.
     Section NEXT.
@@ -2855,6 +3045,16 @@ Module Ordinal.
         eapply (@le_lt_lt (from_wf_set (embed_projected_rel_well_founded WF f INJ))).
         { eapply from_wf_set_inj. instantiate (1:=f). i. econs; eauto. }
         eapply (@build_upperbound X Y (exist _ _ (embed_projected_rel_well_founded WF f INJ))).
+      Qed.
+
+      Lemma next_cardinal_incr
+        : lt (cardinal A) next_cardinal.
+      Proof.
+        hexploit (cardinal_is_cardinal A). i. inv H. des.
+        eapply eq_lt_lt.
+        { symmetry. eapply H2. }
+        eapply next_cardinal_upperbound.
+        reflexivity.
       Qed.
 
       Lemma next_cardinal_supremum B (CARD: lt (cardinal A) (cardinal B)):
@@ -2928,11 +3128,132 @@ Module Ordinal.
           (CARDINAL: le (cardinal A) (cardinal B)):
       le (next_cardinal A) (next_cardinal B).
     Proof.
-      hexploit (next_cardinal_is_cardinal A). i. inv H. des.
+      assert (EQ: eq (next_cardinal B) (cardinal (to_total_set (next_cardinal B)))).
+      { eapply cardinal_unique.
+        { eapply next_cardinal_is_cardinal. }
+        { eapply cardinal_is_cardinal. }
+      }
+      transitivity (cardinal (to_total_set (next_cardinal B))).
+      2: { apply EQ. }
+      eapply next_cardinal_supremum.
+      eapply lt_le_lt.
+      2: { eapply EQ. }
+      eapply le_lt_lt.
+      { eapply CARDINAL. }
+      { eapply next_cardinal_incr. }
+    Qed.
 
+    Lemma next_cardinal_eq A B
+          (CARDINAL: eq (cardinal A) (cardinal B)):
+      eq (next_cardinal A) (next_cardinal B).
+    Proof.
+      split.
+      - eapply next_cardinal_le. eapply CARDINAL.
+      - eapply next_cardinal_le. eapply CARDINAL.
+    Qed.
 
+    Lemma next_cardinal_lt A B
+          (CARDINAL: lt (cardinal A) (cardinal B)):
+      lt (next_cardinal A) (next_cardinal B).
+    Proof.
+      eapply next_cardinal_supremum in CARDINAL.
+      eapply le_lt_lt.
+      { eapply CARDINAL. }
+      { eapply next_cardinal_incr. }
+    Qed.
 
-    Definition aleph := orec (fun o => next_cardinal (to_total_set o)) omega.
+    Lemma next_cardinal_le_iff A B:
+      le (cardinal A) (cardinal B) <-> le (next_cardinal A) (next_cardinal B).
+    Proof.
+      split; i.
+      { eapply next_cardinal_le; auto. }
+      { destruct (total (cardinal A) (cardinal B)); auto.
+        eapply next_cardinal_lt in H0. exfalso. eapply lt_not_le; eauto. }
+    Qed.
+
+    Lemma next_cardinal_eq_iff A B:
+      eq (cardinal A) (cardinal B) <-> eq (next_cardinal A) (next_cardinal B).
+    Proof.
+      split; i.
+      { split.
+        { eapply next_cardinal_le_iff. eapply H. }
+        { eapply next_cardinal_le_iff. eapply H. }
+      }
+      { split.
+        { eapply next_cardinal_le_iff. eapply H. }
+        { eapply next_cardinal_le_iff. eapply H. }
+      }
+    Qed.
+
+    Lemma next_cardinal_lt_iff A B:
+      lt (cardinal A) (cardinal B) <-> lt (next_cardinal A) (next_cardinal B).
+    Proof.
+      destruct (total (cardinal B) (cardinal A)).
+      { split.
+        { i. exfalso. eapply lt_not_le; eauto. }
+        { i. eapply next_cardinal_le_iff in H.
+          exfalso. eapply lt_not_le; eauto. }
+      }
+      { split; i; auto. eapply next_cardinal_lt; auto. }
+    Qed.
+
+    Lemma aleph_gen_eq o0 o1 (EQ: eq o0 o1):
+      eq (next_cardinal (to_total_set o0)) (next_cardinal (to_total_set o1)).
+    Proof.
+      i. eapply next_cardinal_eq. split.
+      - eapply to_total_le. apply EQ.
+      - eapply to_total_le. apply EQ.
+    Qed.
+
+    Lemma aleph_gen_lt o:
+      lt o (next_cardinal (to_total_set o)).
+    Proof.
+      eapply eq_lt_lt.
+      { eapply to_total_eq. }
+      eapply next_cardinal_upperbound.
+      reflexivity.
+    Qed.
+
+    Lemma aleph_gen_le o:
+      le o (next_cardinal (to_total_set o)).
+    Proof.
+      eapply lt_le. eapply aleph_gen_lt.
+    Qed.
+
+    Definition aleph_gen (o: t) := next_cardinal (to_total_set o).
+    Definition aleph := orec aleph_gen omega.
+
+    Lemma aleph_mon o0 o1 (LE: le o0 o1):
+      le (aleph o0) (aleph o1).
+    Proof.
+      eapply orec_le.
+      { eapply aleph_gen_le. }
+      { eapply aleph_gen_eq. }
+      auto.
+    Qed.
+
+    Lemma aleph_le_omega o:
+      le omega (aleph o).
+    Proof.
+      eapply orec_le_base.
+      { eapply aleph_gen_le. }
+      { eapply aleph_gen_eq. }
+    Qed.
+
+    Lemma aleph_expand:
+      forall o, le o (aleph o).
+    Proof.
+      i. transitivity (orec S O o).
+      { eapply orec_of_S. }
+      eapply (@rec_mon _ le join O S omega aleph_gen).
+      { eapply O_bot. }
+      { i. eapply S_spec. eapply le_lt_lt; eauto.
+        eapply aleph_gen_lt.
+      }
+      { eapply le_PreOrder. }
+      { i. eapply join_upperbound. }
+      { i. eapply join_supremum. auto. }
+    Qed.
   End ALEPH.
 
   Section INACCESSIBLE.
@@ -3130,41 +3451,119 @@ Module Ordinal.
       exfalso. eapply H. esplits; eauto.
     Qed.
 
-    Lemma kappa_next_cardinal o (LT: lt o kappa):
+    Lemma kappa_incaccessible_nat n: lt (from_nat n) kappa.
+    Proof.
+      induction n; ss.
+      - eapply kappa_inaccessible_O.
+      - eapply kappa_inaccessible_S. auto.
+    Qed.
+
+    Lemma kappa_incaccessible_omega: lt omega kappa.
+    Proof.
+      eapply kappa_inaccessible_join.
+      eapply kappa_incaccessible_nat.
+    Qed.
+
+    Lemma kappa_inaccessible_next_cardinal o (LT: lt o kappa):
       lt (next_cardinal (to_total_set o)) kappa.
     Proof.
       hexploit (kappa_complete LT); eauto. i. des.
       eapply (@le_lt_lt (next_cardinal A)).
-      { admit. }
+      { eapply next_cardinal_le.
+        etransitivity.
+        { eapply to_total_le. eapply H. }
+        eapply from_wf_set_to_total.
+      }
       eapply (@le_lt_lt (cardinal (A -> Prop))).
       { eapply next_cardinal_le_power_set. }
       hexploit (cardinal_is_cardinal (A -> Prop)). i. inv H0.
       des. eapply eq_lt_lt.
       { symmetry. eapply H0. }
       eapply (@build_upperbound X Y (exist _ (existT _ (A -> Prop) R0) WF0)).
-    Admitted.
+    Qed.
 
-    Lemma kappa_less_cardinal o (LT: lt o kappa):
+    Lemma smaller_cardinal_small (A: MyT) (B: SmallT)
+          (LE: le (cardinal A) (cardinal B))
+      :
+        exists (A': SmallT),
+          eq (cardinal A) (cardinal A').
+    Proof.
+      eapply _cardinal_le_iff in LE. inv LE.
+      set (A' := @sig B (fun b => exists a, f a = b)). exists A'.
+      split.
+      { eapply _cardinal_le_iff.
+        eapply _cardinal_le_intro with (f:=fun a => exist _ (f a) (ex_intro _ a eq_refl)).
+        i. inv EQ. eapply INJ; eauto.
+      }
+      { hexploit (choice (fun (a': A') (a: A) =>
+                            f a = proj1_sig a')).
+        { i. destruct x. s. eauto. }
+        i. des. eapply _cardinal_le_iff.
+        eapply _cardinal_le_intro with (f:=f0).
+        i. destruct a0, a1. des. subst.
+        dup EQ. eapply f_equal with (f:=f) in EQ0.
+        rewrite H in EQ0. rewrite H in EQ0. ss.
+        eapply INJ in EQ0. subst. auto.
+      }
+    Qed.
+
+    Lemma small_odinal_small o (LT: lt o kappa):
+      exists (A: SmallT), eq (cardinal A) (cardinal (to_total_set o)).
+    Proof.
+      eapply kappa_complete in LT. des.
+      hexploit (@smaller_cardinal_small (to_total_set o) A).
+      { etransitivity.
+        2: { eapply from_wf_set_to_total. }
+        { eapply to_total_le. eauto. }
+      }
+      i. des. esplits. symmetry. eapply H.
+    Qed.
+
+    Lemma sum_of_small o (LT: lt o kappa):
+      exists (A: SmallT) (os: A -> t), eq o (build os).
+    Proof.
+      hexploit small_odinal_small; eauto. i. des.
+      hexploit sum_of_smaller_same_cardinal; eauto.
+    Qed.
+
+    Lemma kappa_inaccessible_aleph o (LT: lt o kappa):
       lt (aleph o) kappa.
     Proof.
       revert o LT.
-      eapply (ind (fun o => forall (LT: lt o kappa), lt (aleph o) kappa)).
-      { i. hexploit (orec_is_O (fun o => next_cardinal (to_total_set o))); eauto.
-        { admit. }
-        { i. inv EQ. split.
-          - eapply to_total_le in H. a
-
-          admit. }}
-      {
-
-        admit. }
-      { i.
-    Admitted.
+      eapply (well_founded_induction
+                lt_well_founded
+                (fun o => forall (LT: lt o kappa), lt (aleph o) kappa)).
+      i. dup LT. eapply sum_of_small in LT. des.
+      eapply le_lt_lt.
+      { eapply aleph_mon. eapply LT. }
+      eapply kappa_inaccessible_join. i. destruct a.
+      { eapply kappa_incaccessible_omega. }
+      { eapply kappa_inaccessible_join. i.
+        eapply kappa_inaccessible_next_cardinal. eapply H; auto.
+        { eapply lt_eq_lt.
+          { eapply LT. }
+          { eapply build_upperbound. }
+        }
+        { etransitivity.
+          { eapply build_upperbound. }
+          { eapply eq_lt_lt; eauto. symmetry. eauto. }
+        }
+      }
+    Qed.
 
     Lemma kappa_aleph_fixpoint:
       eq kappa (aleph kappa).
     Proof.
-    Admitted.
+      split.
+      - eapply aleph_expand.
+      - eapply orec_build_supremum.
+        { eapply aleph_gen_le. }
+        { eapply aleph_gen_eq. }
+        { eapply lt_le. eapply kappa_incaccessible_omega. }
+        { i. eapply lt_le. unfold aleph_gen.
+          eapply kappa_inaccessible_next_cardinal.
+          eapply kappa_inaccessible_aleph. auto. }
+    Qed.
   End INACCESSIBLE.
 
   Section FIXPOINT.
@@ -3921,119 +4320,118 @@ Section FIXPOINT.
   Qed.
 End FIXPOINT.
 
-Module Kleene.
-  Section FIXPOINT.
-    Variable A: Type.
-    Definition kappa := Ordinal.next_cardinal (A -> Prop).
-    Definition le: (A -> Prop) -> (A -> Prop) -> Prop :=
-      fun P0 P1 => forall a (IN0: P0 a), P1 a.
-    Definition ge: (A -> Prop) -> (A -> Prop) -> Prop :=
-      fun P0 P1 => forall a (IN0: P1 a), P0 a.
-    Definition join (X: Type) (Ps: X -> A -> Prop): A -> Prop :=
-      fun a => exists x, Ps x a.
-    Definition meet (X: Type) (Ps: X -> A -> Prop): A -> Prop :=
-      fun a => forall x, Ps x a.
-    Definition bot: A -> Prop := fun _ => False.
-    Definition top: A -> Prop := fun _ => True.
 
-    Variable f: (A -> Prop) -> (A -> Prop).
+Section KLEENE.
+  Variable A: Type.
+  Let kappa := Ordinal.next_cardinal (A -> Prop).
+  Let le: (A -> Prop) -> (A -> Prop) -> Prop :=
+    fun P0 P1 => forall a (IN0: P0 a), P1 a.
+  Let ge: (A -> Prop) -> (A -> Prop) -> Prop :=
+    fun P0 P1 => forall a (IN0: P1 a), P0 a.
+  Let join (X: Type) (Ps: X -> A -> Prop): A -> Prop :=
+    fun a => exists x, Ps x a.
+  Let meet (X: Type) (Ps: X -> A -> Prop): A -> Prop :=
+    fun a => forall x, Ps x a.
+  Let bot: A -> Prop := fun _ => False.
+  Let top: A -> Prop := fun _ => True.
 
-    Hypothesis mon: forall (P0 P1: A -> Prop) (LE: le P0 P1), le (f P0) (f P1).
-    Let mon_rev: forall (P0 P1: A -> Prop) (LE: ge P0 P1), ge (f P0) (f P1).
-    Proof.
-      ii. eapply mon; eauto.
-    Qed.
+  Variable f: (A -> Prop) -> (A -> Prop).
+  Hypothesis mon: forall (P0 P1: A -> Prop) (LE: le P0 P1), le (f P0) (f P1).
 
-    Definition mu := Ordinal.rec join f bot kappa.
-    Definition nu := Ordinal.rec meet f top kappa.
+  Let mon_rev: forall (P0 P1: A -> Prop) (LE: ge P0 P1), ge (f P0) (f P1).
+  Proof.
+    ii. eapply mon; eauto.
+  Qed.
 
-    Theorem mu_fixpoint:
-      le mu (f mu) /\ le (f mu) mu.
-    Proof.
-      split.
-      { hexploit (Ordinal.rec_wf le join (fun P => le P (f P))); eauto.
-        { ii. ss. }
-        { ii. eapply LE1; eauto. }
-        { ii. exists a. auto. }
-        { ii. inv IN0. eapply LE; eauto. }
-        { ii. inv IN0. eapply WF in H.
-          eapply mon; eauto. ii. exists x. auto. }
-        { ii. ss. }
-        { ii. des. split; apply mon; auto. }
-      }
-      { hexploit (fixpoint_theorem le join (fun P => le P (f P)) f bot); eauto.
-        { ii. ss. }
-        { ii. eapply LE1; eauto. }
-        { ii. exists a. auto. }
-        { ii. inv IN0. eapply LE; eauto. }
-        { ii. inv IN0. eapply WF in H.
-          eapply mon; eauto. ii. exists x. auto. }
-        { ii. ss. }
-        { ii. des. split; apply mon; auto. }
-      }
-    Qed.
+  Definition mu := Ordinal.rec join f bot kappa.
+  Definition nu := Ordinal.rec meet f top kappa.
 
-    Theorem mu_least P (LE: le (f P) P): le mu P.
-    Proof.
-      eapply (Ordinal.rec_wf le join (fun P0 => le P0 (f P0) /\ le P0 P) f bot); eauto.
+  Theorem mu_fixpoint:
+    le mu (f mu) /\ le (f mu) mu.
+  Proof.
+    split.
+    { hexploit (Ordinal.rec_wf le join (fun P => le P (f P))); eauto.
       { ii. ss. }
       { ii. eapply LE1; eauto. }
       { ii. exists a. auto. }
-      { ii. inv IN0. eapply LE0; eauto. }
-      { ii. split; auto.
-        - ii. inv IN0. destruct (WF x). eapply H0 in H.
-          eapply mon; eauto. ii. exists x. auto.
-        - ii. inv IN0. destruct (WF x). eapply H1 in H; auto. }
-      { split; ss. }
-      { i. des. splits; auto. ii. eapply LE. eapply mon; eauto. }
-      { i. des. auto. }
-      { i. des. splits; auto. }
-    Qed.
+      { ii. inv IN0. eapply LE; eauto. }
+      { ii. inv IN0. eapply WF in H.
+        eapply mon; eauto. ii. exists x. auto. }
+      { ii. ss. }
+      { ii. des. split; apply mon; auto. }
+    }
+    { hexploit (fixpoint_theorem le join (fun P => le P (f P)) f bot); eauto.
+      { ii. ss. }
+      { ii. eapply LE1; eauto. }
+      { ii. exists a. auto. }
+      { ii. inv IN0. eapply LE; eauto. }
+      { ii. inv IN0. eapply WF in H.
+        eapply mon; eauto. ii. exists x. auto. }
+      { ii. ss. }
+      { ii. des. split; apply mon; auto. }
+    }
+  Qed.
 
-    Theorem nu_fixpoint:
-      le nu (f nu) /\ le (f nu) nu.
-    Proof.
-      split.
-      { hexploit (fixpoint_theorem ge meet (fun P => le (f P) P) f top); eauto.
-        { ii. ss. }
-        { ii. eapply LE0; eauto. }
-        { ii. eapply IN0; eauto. }
-        { ii. eapply LE. auto. }
-        { ii. eapply WF. eapply mon_rev in IN0; eauto.
-          ii. eapply IN1; auto. }
-        { ii. ss. }
-        { ii. des. split; apply mon_rev; auto. }
-      }
-      { hexploit (Ordinal.rec_wf ge meet (fun P => le (f P) P) f top); eauto.
-        { ii. ss. }
-        { ii. eapply LE0; eauto. }
-        { ii. eapply IN0; eauto. }
-        { ii. eapply LE. auto. }
-        { ii. eapply WF. eapply mon_rev in IN0; eauto.
-          ii. eapply IN1; auto. }
-        { ii. ss. }
-        { ii. des. split; apply mon_rev; auto. }
-      }
-    Qed.
+  Theorem mu_least P (LE: le (f P) P): le mu P.
+  Proof.
+    eapply (Ordinal.rec_wf le join (fun P0 => le P0 (f P0) /\ le P0 P) f bot); eauto.
+    { ii. ss. }
+    { ii. eapply LE1; eauto. }
+    { ii. exists a. auto. }
+    { ii. inv IN0. eapply LE0; eauto. }
+    { ii. split; auto.
+      - ii. inv IN0. destruct (WF x). eapply H0 in H.
+        eapply mon; eauto. ii. exists x. auto.
+      - ii. inv IN0. destruct (WF x). eapply H1 in H; auto. }
+    { split; ss. }
+    { i. des. splits; auto. ii. eapply LE. eapply mon; eauto. }
+    { i. des. auto. }
+    { i. des. splits; auto. }
+  Qed.
 
-    Theorem nu_greatest P (LE: le P (f P)): le P nu.
-    Proof.
-      eapply (Ordinal.rec_wf ge meet (fun P0 => le (f P0) P0 /\ le P P0) f top); eauto.
+  Theorem nu_fixpoint:
+    le nu (f nu) /\ le (f nu) nu.
+  Proof.
+    split.
+    { hexploit (fixpoint_theorem ge meet (fun P => le (f P) P) f top); eauto.
       { ii. ss. }
       { ii. eapply LE0; eauto. }
       { ii. eapply IN0; eauto. }
-      { ii. eapply LE0. auto. }
-      { ii. split.
-        - ii. edestruct (WF x). eapply H. eapply mon_rev in IN0; eauto.
-          ii. eapply IN1; auto.
-        - ii. eapply WF. auto. }
+      { ii. eapply LE. auto. }
+      { ii. eapply WF. eapply mon_rev in IN0; eauto.
+        ii. eapply IN1; auto. }
       { ii. ss. }
-      { ii. des. splits; auto. ii. eapply LE in IN0. eapply mon; eauto. }
-      { ii. des. auto. }
-      { i. des. splits; auto. }
-    Qed.
-  End FIXPOINT.
-End Kleene.
+      { ii. des. split; apply mon_rev; auto. }
+    }
+    { hexploit (Ordinal.rec_wf ge meet (fun P => le (f P) P) f top); eauto.
+      { ii. ss. }
+      { ii. eapply LE0; eauto. }
+      { ii. eapply IN0; eauto. }
+      { ii. eapply LE. auto. }
+      { ii. eapply WF. eapply mon_rev in IN0; eauto.
+        ii. eapply IN1; auto. }
+      { ii. ss. }
+      { ii. des. split; apply mon_rev; auto. }
+    }
+  Qed.
+
+  Theorem nu_greatest P (LE: le P (f P)): le P nu.
+  Proof.
+    eapply (Ordinal.rec_wf ge meet (fun P0 => le (f P0) P0 /\ le P P0) f top); eauto.
+    { ii. ss. }
+    { ii. eapply LE0; eauto. }
+    { ii. eapply IN0; eauto. }
+    { ii. eapply LE0. auto. }
+    { ii. split.
+      - ii. edestruct (WF x). eapply H. eapply mon_rev in IN0; eauto.
+        ii. eapply IN1; auto.
+      - ii. eapply WF. auto. }
+    { ii. ss. }
+    { ii. des. splits; auto. ii. eapply LE in IN0. eapply mon; eauto. }
+    { ii. des. auto. }
+    { i. des. splits; auto. }
+  Qed.
+End KLEENE.
 
 Module iProp.
   Definition t := Ordinal.t -> Prop.
