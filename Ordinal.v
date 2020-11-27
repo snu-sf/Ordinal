@@ -2651,6 +2651,14 @@ Module Ordinal.
         - eapply CARD2; eauto.
       Qed.
 
+      Lemma eq_is_cardinal c0 c1 (EQ: eq c0 c1) (CARD0: is_cardinal c0):
+        is_cardinal c1.
+      Proof.
+        unfold is_cardinal, is_meet in *. des. split.
+        - exists R, WF. splits; auto. transitivity c0; auto.
+        - i. transitivity c0; auto. eapply EQ.
+      Qed.
+
       Let X: MyT :=
         @sig
           (@sigT (A -> Prop) (fun s => sig s -> sig s-> Prop))
@@ -2921,6 +2929,20 @@ Module Ordinal.
       eapply to_total_eq.
     Qed.
 
+    Lemma is_cardinal_to_total_adjoint A c (CARDINAL: is_cardinal A c):
+      eq c (cardinal (to_total_set c)).
+    Proof.
+      hexploit cardinal_unique.
+      { eapply CARDINAL. }
+      { eapply cardinal_is_cardinal. }
+      i. transitivity (cardinal A); auto.
+      transitivity (cardinal (to_total_set (cardinal A))).
+      { eapply cardinal_to_total_adjoint. }
+      split.
+      { eapply to_total_le. apply H. }
+      { eapply to_total_le. apply H. }
+    Qed.
+
     Lemma from_wf_set_to_total A (R: A -> A -> Prop) (WF: well_founded R):
       le (cardinal (to_total_set (from_wf_set WF))) (cardinal A).
     Proof.
@@ -3027,175 +3049,386 @@ Module Ordinal.
     Qed.
   End CARDINALITY.
 
+  Lemma join_le_same A (os0 os1: A -> t) (LE: forall a, le (os0 a) (os1 a)):
+    le (join os0) (join os1).
+  Proof.
+    eapply join_le. i. exists a0. auto.
+  Qed.
 
-  Section ALEPH.
-    Section NEXT.
-      Variable A: MyT.
-      Let X: MyT := @sig (A -> A -> Prop) (@well_founded _).
+  Lemma join_eq A (os0 os1: A -> t) (LE: forall a, eq (os0 a) (os1 a)):
+    eq (join os0) (join os1).
+  Proof.
+    split; apply join_le_same; i; eapply LE.
+  Qed.
 
-      Let Y (x: X): t := from_wf_set (proj2_sig x).
+  Section NEXT.
+    Variable A: MyT.
+    Let X: MyT := @sig (A -> A -> Prop) (@well_founded _).
 
-      Definition next_cardinal := @build X Y.
+    Let Y (x: X): t := from_wf_set (proj2_sig x).
 
-      Lemma next_cardinal_upperbound B (R: B -> B -> Prop) (WF: well_founded R)
-            (CARD: le (cardinal B) (cardinal A))
-        : lt (from_wf_set WF) next_cardinal.
-      Proof.
-        eapply _cardinal_le_iff in CARD. inv CARD.
-        eapply (@le_lt_lt (from_wf_set (embed_projected_rel_well_founded WF f INJ))).
-        { eapply from_wf_set_inj. instantiate (1:=f). i. econs; eauto. }
-        eapply (@build_upperbound X Y (exist _ _ (embed_projected_rel_well_founded WF f INJ))).
-      Qed.
+    Definition next_cardinal := @build X Y.
 
-      Lemma next_cardinal_incr
-        : lt (cardinal A) next_cardinal.
-      Proof.
-        hexploit (cardinal_is_cardinal A). i. inv H. des.
-        eapply eq_lt_lt.
-        { symmetry. eapply H2. }
-        eapply next_cardinal_upperbound.
-        reflexivity.
-      Qed.
-
-      Lemma next_cardinal_supremum B (CARD: lt (cardinal A) (cardinal B)):
-        le next_cardinal (cardinal B).
-      Proof.
-        eapply build_spec. i. destruct a as [R WF]. unfold Y. ss.
-        destruct (total (cardinal B) (from_wf_set WF)); auto.
-        hexploit (cardinal_is_cardinal B); eauto. i. inv H0. des.
-        hexploit (well_order_extendable WF); eauto. i. des.
-        hexploit (@from_wf_set_embed _ _ _ _ WF0 H3); auto.
-        { transitivity (cardinal B); auto.
-          { eapply H0. }
-          transitivity (from_wf_set WF); auto.
-          eapply from_wf_set_le; auto.
-        }
-        i. des. exfalso.
-        eapply _cardinal_lt_iff in CARD. des.
-        eapply CARD0. split; auto.
-        eapply _cardinal_le_intro with (f:=f). i.
-        destruct (H1 a0 a1) as [|[]]; auto.
-        - eapply H6 in H7. rewrite EQ in *.
-          exfalso. eapply (well_founded_irreflexive H3); eauto.
-        - eapply H6 in H7. rewrite EQ in *.
-          exfalso. eapply (well_founded_irreflexive H3); eauto.
-      Qed.
-
-      Lemma next_cardinal_is_cardinal:
-        is_cardinal (to_total_set next_cardinal) next_cardinal.
-      Proof.
-        split.
-        { exists (to_total_rel next_cardinal), (to_total_well_founded next_cardinal).
-          splits; auto.
-          - eapply to_total_total.
-          - symmetry. apply to_total_eq.
-        }
-        i. des. eapply build_spec. i. destruct a as [R0 WF0]. unfold Y. ss.
-        destruct (total o1 (from_wf_set WF0)); auto.
-        assert (LE: le (from_wf_set WF) (from_wf_set WF0)).
-        { transitivity o1; auto. eapply IN0. }
-        eapply le_cardinal_le in LE; auto. exfalso.
-        eapply (next_cardinal_upperbound (to_total_well_founded next_cardinal)) in LE.
-        eapply lt_not_le.
-        { eapply LE. }
-        { eapply to_total_eq. }
-      Qed.
-
-      Lemma next_cardinal_le_power_set:
-        le next_cardinal (cardinal (A -> Prop)).
-      Proof.
-        eapply next_cardinal_supremum.
-        eapply _cardinal_lt_iff.
-        assert (LE: _cardinal_le A (A -> Prop)).
-        { eapply _cardinal_le_intro with (fun a0 a1 => a0 = a1).
-          i. eapply equal_f with (x:=a1) in EQ.
-          rewrite EQ. auto.
-        }
-        { split; auto. ii. des. inv H0.
-          hexploit (choice (fun (a: A) (P1: A -> Prop) =>
-                              forall P0, f P0 = a -> P0 = P1)).
-          { i. destruct (classic (exists P0, f P0 = x)).
-            { des. exists P0. i. rewrite <- H0 in *. eauto. }
-            { exists (fun _ => True). i. exfalso. eapply H0; eauto. }
-          }
-          i. des. hexploit (cantor_theorem f0). i. des.
-          eapply (H1 (f P)). exploit H0; eauto.
-        }
-      Qed.
-    End NEXT.
-
-    Lemma next_cardinal_le A B
-          (CARDINAL: le (cardinal A) (cardinal B)):
-      le (next_cardinal A) (next_cardinal B).
+    Lemma next_cardinal_upperbound B (R: B -> B -> Prop) (WF: well_founded R)
+          (CARD: le (cardinal B) (cardinal A))
+      : lt (from_wf_set WF) next_cardinal.
     Proof.
-      assert (EQ: eq (next_cardinal B) (cardinal (to_total_set (next_cardinal B)))).
-      { eapply cardinal_unique.
-        { eapply next_cardinal_is_cardinal. }
-        { eapply cardinal_is_cardinal. }
-      }
-      transitivity (cardinal (to_total_set (next_cardinal B))).
-      2: { apply EQ. }
-      eapply next_cardinal_supremum.
-      eapply lt_le_lt.
-      2: { eapply EQ. }
-      eapply le_lt_lt.
-      { eapply CARDINAL. }
-      { eapply next_cardinal_incr. }
+      eapply _cardinal_le_iff in CARD. inv CARD.
+      eapply (@le_lt_lt (from_wf_set (embed_projected_rel_well_founded WF f INJ))).
+      { eapply from_wf_set_inj. instantiate (1:=f). i. econs; eauto. }
+      eapply (@build_upperbound X Y (exist _ _ (embed_projected_rel_well_founded WF f INJ))).
     Qed.
 
-    Lemma next_cardinal_eq A B
-          (CARDINAL: eq (cardinal A) (cardinal B)):
-      eq (next_cardinal A) (next_cardinal B).
+    Lemma next_cardinal_incr
+      : lt (cardinal A) next_cardinal.
+    Proof.
+      hexploit (cardinal_is_cardinal A). i. inv H. des.
+      eapply eq_lt_lt.
+      { symmetry. eapply H2. }
+      eapply next_cardinal_upperbound.
+      reflexivity.
+    Qed.
+
+    Lemma next_cardinal_supremum B (CARD: lt (cardinal A) (cardinal B)):
+      le next_cardinal (cardinal B).
+    Proof.
+      eapply build_spec. i. destruct a as [R WF]. unfold Y. ss.
+      destruct (total (cardinal B) (from_wf_set WF)); auto.
+      hexploit (cardinal_is_cardinal B); eauto. i. inv H0. des.
+      hexploit (well_order_extendable WF); eauto. i. des.
+      hexploit (@from_wf_set_embed _ _ _ _ WF0 H3); auto.
+      { transitivity (cardinal B); auto.
+        { eapply H0. }
+        transitivity (from_wf_set WF); auto.
+        eapply from_wf_set_le; auto.
+      }
+      i. des. exfalso.
+      eapply _cardinal_lt_iff in CARD. des.
+      eapply CARD0. split; auto.
+      eapply _cardinal_le_intro with (f:=f). i.
+      destruct (H1 a0 a1) as [|[]]; auto.
+      - eapply H6 in H7. rewrite EQ in *.
+        exfalso. eapply (well_founded_irreflexive H3); eauto.
+      - eapply H6 in H7. rewrite EQ in *.
+        exfalso. eapply (well_founded_irreflexive H3); eauto.
+    Qed.
+
+    Lemma next_cardinal_is_cardinal:
+      is_cardinal (to_total_set next_cardinal) next_cardinal.
     Proof.
       split.
-      - eapply next_cardinal_le. eapply CARDINAL.
-      - eapply next_cardinal_le. eapply CARDINAL.
-    Qed.
-
-    Lemma next_cardinal_lt A B
-          (CARDINAL: lt (cardinal A) (cardinal B)):
-      lt (next_cardinal A) (next_cardinal B).
-    Proof.
-      eapply next_cardinal_supremum in CARDINAL.
-      eapply le_lt_lt.
-      { eapply CARDINAL. }
-      { eapply next_cardinal_incr. }
-    Qed.
-
-    Lemma next_cardinal_le_iff A B:
-      le (cardinal A) (cardinal B) <-> le (next_cardinal A) (next_cardinal B).
-    Proof.
-      split; i.
-      { eapply next_cardinal_le; auto. }
-      { destruct (total (cardinal A) (cardinal B)); auto.
-        eapply next_cardinal_lt in H0. exfalso. eapply lt_not_le; eauto. }
-    Qed.
-
-    Lemma next_cardinal_eq_iff A B:
-      eq (cardinal A) (cardinal B) <-> eq (next_cardinal A) (next_cardinal B).
-    Proof.
-      split; i.
-      { split.
-        { eapply next_cardinal_le_iff. eapply H. }
-        { eapply next_cardinal_le_iff. eapply H. }
+      { exists (to_total_rel next_cardinal), (to_total_well_founded next_cardinal).
+        splits; auto.
+        - eapply to_total_total.
+        - symmetry. apply to_total_eq.
       }
-      { split.
-        { eapply next_cardinal_le_iff. eapply H. }
-        { eapply next_cardinal_le_iff. eapply H. }
+      i. des. eapply build_spec. i. destruct a as [R0 WF0]. unfold Y. ss.
+      destruct (total o1 (from_wf_set WF0)); auto.
+      assert (LE: le (from_wf_set WF) (from_wf_set WF0)).
+      { transitivity o1; auto. eapply IN0. }
+      eapply le_cardinal_le in LE; auto. exfalso.
+      eapply (next_cardinal_upperbound (to_total_well_founded next_cardinal)) in LE.
+      eapply lt_not_le.
+      { eapply LE. }
+      { eapply to_total_eq. }
+    Qed.
+
+    Lemma next_cardinal_le_power_set:
+      le next_cardinal (cardinal (A -> Prop)).
+    Proof.
+      eapply next_cardinal_supremum.
+      eapply _cardinal_lt_iff.
+      assert (LE: _cardinal_le A (A -> Prop)).
+      { eapply _cardinal_le_intro with (fun a0 a1 => a0 = a1).
+        i. eapply equal_f with (x:=a1) in EQ.
+        rewrite EQ. auto.
+      }
+      { split; auto. ii. des. inv H0.
+        hexploit (choice (fun (a: A) (P1: A -> Prop) =>
+                            forall P0, f P0 = a -> P0 = P1)).
+        { i. destruct (classic (exists P0, f P0 = x)).
+          { des. exists P0. i. rewrite <- H0 in *. eauto. }
+          { exists (fun _ => True). i. exfalso. eapply H0; eauto. }
+        }
+        i. des. hexploit (cantor_theorem f0). i. des.
+        eapply (H1 (f P)). exploit H0; eauto.
+      }
+    Qed.
+  End NEXT.
+
+  Lemma next_cardinal_le A B
+        (CARDINAL: le (cardinal A) (cardinal B)):
+    le (next_cardinal A) (next_cardinal B).
+  Proof.
+    assert (EQ: eq (next_cardinal B) (cardinal (to_total_set (next_cardinal B)))).
+    { eapply cardinal_unique.
+      { eapply next_cardinal_is_cardinal. }
+      { eapply cardinal_is_cardinal. }
+    }
+    transitivity (cardinal (to_total_set (next_cardinal B))).
+    2: { apply EQ. }
+    eapply next_cardinal_supremum.
+    eapply lt_le_lt.
+    2: { eapply EQ. }
+    eapply le_lt_lt.
+    { eapply CARDINAL. }
+    { eapply next_cardinal_incr. }
+  Qed.
+
+  Lemma next_cardinal_eq A B
+        (CARDINAL: eq (cardinal A) (cardinal B)):
+    eq (next_cardinal A) (next_cardinal B).
+  Proof.
+    split.
+    - eapply next_cardinal_le. eapply CARDINAL.
+    - eapply next_cardinal_le. eapply CARDINAL.
+  Qed.
+
+  Lemma next_cardinal_lt A B
+        (CARDINAL: lt (cardinal A) (cardinal B)):
+    lt (next_cardinal A) (next_cardinal B).
+  Proof.
+    eapply next_cardinal_supremum in CARDINAL.
+    eapply le_lt_lt.
+    { eapply CARDINAL. }
+    { eapply next_cardinal_incr. }
+  Qed.
+
+  Lemma next_cardinal_le_iff A B:
+    le (cardinal A) (cardinal B) <-> le (next_cardinal A) (next_cardinal B).
+  Proof.
+    split; i.
+    { eapply next_cardinal_le; auto. }
+    { destruct (total (cardinal A) (cardinal B)); auto.
+      eapply next_cardinal_lt in H0. exfalso. eapply lt_not_le; eauto. }
+  Qed.
+
+  Lemma next_cardinal_eq_iff A B:
+    eq (cardinal A) (cardinal B) <-> eq (next_cardinal A) (next_cardinal B).
+  Proof.
+    split; i.
+    { split.
+      { eapply next_cardinal_le_iff. eapply H. }
+      { eapply next_cardinal_le_iff. eapply H. }
+    }
+    { split.
+      { eapply next_cardinal_le_iff. eapply H. }
+      { eapply next_cardinal_le_iff. eapply H. }
+    }
+  Qed.
+
+  Lemma next_cardinal_lt_iff A B:
+    lt (cardinal A) (cardinal B) <-> lt (next_cardinal A) (next_cardinal B).
+  Proof.
+    destruct (total (cardinal B) (cardinal A)).
+    { split.
+      { i. exfalso. eapply lt_not_le; eauto. }
+      { i. eapply next_cardinal_le_iff in H.
+        exfalso. eapply lt_not_le; eauto. }
+    }
+    { split; i; auto. eapply next_cardinal_lt; auto. }
+  Qed.
+
+  Lemma same_cardinal_is_cardinal A B (EQ: eq (cardinal A) (cardinal B))
+        c (CARDINAL: is_cardinal A c):
+    is_cardinal B c.
+  Proof.
+    eapply cardinal_unique in CARDINAL.
+    2: { eapply cardinal_is_cardinal. }
+    eapply eq_is_cardinal.
+    2: { eapply cardinal_is_cardinal. }
+    transitivity (cardinal A); auto. symmetry. auto.
+  Qed.
+
+  Lemma cardinal_join_upperbound X (TS: X -> MyT):
+    is_cardinal (to_total_set (join (fun x => cardinal (TS x)))) (join (fun x => cardinal (TS x))).
+  Proof.
+    split.
+    { exists _, (to_total_well_founded _). splits.
+      - eapply to_total_total.
+      - symmetry. eapply to_total_eq. }
+    { i. des. eapply join_supremum. i. etransitivity.
+      2: { eapply IN0. }
+      etransitivity.
+      2: { eapply cardinal_lowerbound; auto. }
+      transitivity (cardinal (to_total_set (cardinal (TS a)))).
+      { eapply cardinal_to_total_adjoint. }
+      { eapply to_total_le. eapply (join_upperbound (fun x : X => cardinal (TS x))). }
+    }
+  Qed.
+
+  Lemma is_cardinal_join_upperbound A (os: A -> t)
+        (CARD: forall a, is_cardinal (to_total_set (os a)) (os a)):
+    is_cardinal (to_total_set (join os)) (join os).
+  Proof.
+    assert (eq (join (fun x : A => cardinal (to_total_set (os x)))) (join os)).
+    { split.
+      { eapply join_supremum. i. transitivity (os a).
+        { eapply is_cardinal_to_total_adjoint; eauto. }
+        { eapply join_upperbound. }
+      }
+      { eapply join_supremum. i. transitivity (cardinal (to_total_set (os a))).
+        { eapply is_cardinal_to_total_adjoint; eauto. }
+        { eapply (join_upperbound (fun x : A => cardinal (to_total_set (os x)))). }
+      }
+    }
+    hexploit (cardinal_join_upperbound (fun a => to_total_set (os a))). i.
+    eapply same_cardinal_is_cardinal in H0.
+    { eapply eq_is_cardinal.
+      2: { eapply H0. }
+      { auto. }
+    }
+    { split.
+      - eapply to_total_le; apply H.
+      - eapply to_total_le; apply H.
+    }
+  Qed.
+
+  Lemma is_cardinal_size A c (CARDINAL: is_cardinal A c):
+    is_cardinal (to_total_set c) c.
+  Proof.
+    eapply same_cardinal_is_cardinal; eauto.
+    etransitivity.
+    { eapply cardinal_to_total_adjoint. }
+    eapply cardinal_unique in CARDINAL.
+    2: { eapply cardinal_is_cardinal. }
+    split.
+    { eapply to_total_le. eapply CARDINAL. }
+    { eapply to_total_le. eapply CARDINAL. }
+  Qed.
+
+  Section FINITE.
+    Fixpoint finite (n: nat): MyT :=
+      match n with
+      | 0 => False
+      | Datatypes.S n' => option (finite n')
+      end.
+
+    Fixpoint finite_lt (n: nat): finite n -> finite n -> Prop :=
+      match n with
+      | 0 => fun _ _ => False
+      | Datatypes.S n' =>
+        fun x y => match x, y with
+                   | Some x', Some y' => finite_lt n' x' y'
+                   | Some x', None => True
+                   | _, _ => False
+                   end
+      end.
+
+    Lemma finite_total: forall n x0 x1, finite_lt n x0 x1 \/ x0 = x1 \/ finite_lt n x1 x0.
+    Proof.
+      induction n.
+      { i. ss. }
+      { i. ss. destruct x0, x1; ss; eauto.
+        destruct (IHn f f0) as [|[]]; eauto. subst. auto.
       }
     Qed.
 
-    Lemma next_cardinal_lt_iff A B:
-      lt (cardinal A) (cardinal B) <-> lt (next_cardinal A) (next_cardinal B).
+    Lemma finite_lt_acc: forall n x (ACC: Acc (finite_lt n) x), Acc (finite_lt (Datatypes.S n)) (Some x).
     Proof.
-      destruct (total (cardinal B) (cardinal A)).
-      { split.
-        { i. exfalso. eapply lt_not_le; eauto. }
-        { i. eapply next_cardinal_le_iff in H.
-          exfalso. eapply lt_not_le; eauto. }
-      }
-      { split; i; auto. eapply next_cardinal_lt; auto. }
+      intros n x ACC. induction ACC. econs. i. destruct y; ss.
+      eapply H0. auto.
     Qed.
+
+    Lemma finite_well_founded: forall n, well_founded (finite_lt n).
+    Proof.
+      induction n.
+      - ii. econs. i. ss.
+      - ii. econs. i. destruct a, y; ss.
+        + eapply finite_lt_acc. eapply IHn.
+        + eapply finite_lt_acc. eapply IHn.
+    Qed.
+
+    Lemma finite_from_acc_eq:
+      forall n (x: finite n)
+             (ACC0: Acc (finite_lt n) x) (ACC1: Acc (finite_lt (Datatypes.S n)) (Some x)),
+        eq (from_acc x ACC0) (from_acc (Some x) ACC1).
+    Proof.
+      intros n x ACC. dup ACC.
+      induction ACC0. i. destruct ACC, ACC1. ss. split.
+      { econs. i. destruct a1. exists (exist _ (Some x0) (f)). ss. eapply H0. auto. }
+      { econs. i. destruct a1. destruct x0; ss. exists (exist _ f y). ss. eapply H0. auto. }
+    Qed.
+
+    Lemma finite_from_wf_eq:
+      forall n (x: finite n),
+        eq (from_wf (finite_well_founded n) x) (from_wf (finite_well_founded (Datatypes.S n)) (Some x)).
+    Proof.
+      i. eapply finite_from_acc_eq.
+    Qed.
+
+    Lemma finite_from_wf_set_eq:
+      forall n,
+        eq (from_wf_set (finite_well_founded n)) (from_wf (finite_well_founded (Datatypes.S n)) None).
+    Proof.
+      i. split.
+      { eapply build_spec. i. eapply le_lt_lt.
+        { eapply finite_from_wf_eq. }
+        { eapply from_wf_lt. ss. }
+      }
+      { unfold from_wf at 1. destruct (finite_well_founded (Datatypes.S n) None).
+        ss. econs. i. destruct a0. ss. destruct x; ss.
+        exists f. eapply finite_from_acc_eq.
+      }
+    Qed.
+
+    Lemma finite_S:
+      forall n,
+        eq (S (from_wf_set (finite_well_founded n))) (from_wf_set (finite_well_founded (Datatypes.S n))).
+    Proof.
+      i. split.
+      - eapply S_spec. eapply le_lt_lt.
+        { eapply finite_from_wf_set_eq. }
+        { eapply from_wf_set_upperbound. }
+      - econs. i. exists tt. ss. etransitivity.
+        2: { eapply finite_from_wf_set_eq. }
+        destruct a0.
+        { eapply lt_le. eapply from_wf_lt. auto. }
+        { reflexivity. }
+    Qed.
+
+    Lemma finite_O:
+      eq (from_wf_set (finite_well_founded 0)) O.
+    Proof.
+      split.
+      { econs. i. ss. }
+      { eapply O_bot. }
+    Qed.
+
+    Lemma O_cardinal:
+      is_cardinal False O.
+    Proof.
+      split.
+      { exists (fun _ _ => False).
+        assert (WF: well_founded (fun _ _: False => False)).
+        { ii. ss. }
+        exists WF. splits; auto. split.
+        { econs. i. ss. }
+        { eapply O_bot. }
+      }
+      { i. eapply O_bot. }
+    Qed.
+
+    Lemma O_is_cardinal:
+      is_cardinal (to_total_set O) O.
+    Proof.
+      eapply is_cardinal_size. eapply O_cardinal.
+    Qed.
+
+    Lemma finite_cardinal_O:
+      is_cardinal (to_total_set (from_wf_set (finite_well_founded 0))) (from_wf_set (finite_well_founded 0)).
+    Proof.
+      eapply is_cardinal_size. eapply eq_is_cardinal.
+      2: { eapply O_cardinal. }
+      symmetry. eapply finite_O.
+    Qed.
+
+    (* Lemma finite_incr n: lt (cardinal (finite n)) (cardinal (finite (Datatypes.S n))). *)
+    (* Admitted. *)
+  End FINITE.
+
+
+  Section ALEPH.
 
     Lemma aleph_gen_eq o0 o1 (EQ: eq o0 o1):
       eq (next_cardinal (to_total_set o0)) (next_cardinal (to_total_set o1)).
@@ -3254,7 +3487,24 @@ Module Ordinal.
       { i. eapply join_upperbound. }
       { i. eapply join_supremum. auto. }
     Qed.
+
+    (* Lemma aleph_is_cardinal: *)
+    (*   forall o, is_cardinal (to_total_set (aleph o)) (aleph o). *)
+    (* Proof. *)
+    (*   eapply (rec_wf le join (fun o => is_cardinal (to_total_set o) o) aleph_gen omega); eauto. *)
+    (*   { i. reflexivity. } *)
+    (*   { i. transitivity d1; auto. } *)
+    (*   { i. eapply join_upperbound. } *)
+    (*   { i. eapply join_supremum. auto. } *)
+    (*   { i. eapply is_cardinal_join_upperbound. auto. } *)
+    (*   { admit. } *)
+    (*   { i. eapply next_cardinal_is_cardinal. } *)
+    (*   { i. eapply aleph_gen_le. } *)
+    (*   { i. eapply aleph_gen_eq; auto. } *)
+    (* Admitted. *)
+
   End ALEPH.
+
 
   Section INACCESSIBLE.
     Let SmallT: MyT := Type.
@@ -4258,7 +4508,6 @@ Module Cardinal.
     Proof.
       rewrite <- Ordinal._cardinal_lt_iff. auto.
     Qed.
-
   End CARDINAL.
 
   Lemma cardinal_to_total_adjoint A:
@@ -4282,6 +4531,43 @@ Module Cardinal.
     }
     ii. eapply (H (Ordinal.cardinal a)). reflexivity.
   Qed.
+
+  Lemma cantor A: lt A (A -> Prop).
+  Proof.
+    eapply cardinal_lt_iff.
+    eapply (@Ordinal.lt_le_lt (Ordinal.next_cardinal A)).
+    { eapply Ordinal.next_cardinal_incr. }
+    { eapply Ordinal.next_cardinal_le_power_set. }
+  Qed.
+
+  Definition O := False.
+  Lemma O_bot A: le O A.
+  Proof.
+    eapply le_intro with (f:=False_rect _).
+    i. ss.
+  Qed.
+
+  Definition S A:= Ordinal.to_total_set (Ordinal.next_cardinal A).
+  Lemma S_lt A: lt A (S A).
+  Proof.
+    eapply cardinal_lt_iff. unfold S.
+    eapply Ordinal.lt_eq_lt.
+    { symmetry. eapply Ordinal.is_cardinal_to_total_adjoint.
+      eapply Ordinal.next_cardinal_is_cardinal. }
+    { eapply Ordinal.next_cardinal_incr. }
+  Qed.
+  Lemma S_supremum A B (LT: lt A B): le (S A) B.
+  Proof.
+    eapply cardinal_lt_iff in LT.
+    eapply Ordinal.next_cardinal_supremum in LT.
+    eapply cardinal_le_iff. transitivity (Ordinal.next_cardinal A); auto.
+    unfold S. eapply Ordinal.to_total_cardinal_le.
+  Qed.
+
+  Definition join X (TS: X -> Type):=
+    Ordinal.to_total_set (@Ordinal.join X (fun x => Ordinal.cardinal (TS x))).
+
+  Definition continnum_hypothesis_on A: Prop := eq (S A) (A -> Prop).
 End Cardinal.
 
 
@@ -4432,611 +4718,3 @@ Section KLEENE.
     { i. des. splits; auto. }
   Qed.
 End KLEENE.
-
-Module iProp.
-  Definition t := Ordinal.t -> Prop.
-  Definition le (P0 P1: t): Prop := forall i (IN: P0 i), P1 i.
-
-  Global Program Instance le_PreOrder: PreOrder le.
-  Next Obligation.
-  Proof.
-    ii. eauto.
-  Qed.
-  Next Obligation.
-  Proof.
-    ii. eauto.
-  Qed.
-
-  Global Program Instance le_Antisymmetric: Antisymmetric _ eq le.
-  Next Obligation.
-  Proof.
-    extensionality i. eapply propositional_extensionality. eauto.
-  Qed.
-
-  Definition ge := flip le.
-
-  Definition closed (P: t): Prop :=
-    forall i0 i1 (IN: P i0) (LE: Ordinal.le i0 i1), P i1.
-
-  Definition next (P: t): t :=
-    fun i1 => exists i0, P i0 /\ Ordinal.lt i0 i1.
-
-  Lemma next_incl P (CLOSED: closed P): le (next P) P.
-  Proof.
-    unfold next in *. ii. des. eapply CLOSED; eauto. eapply Ordinal.lt_le; eauto.
-  Qed.
-
-  Lemma next_mon P0 P1 (LE: le P0 P1): le (next P0) (next P1).
-  Proof.
-    unfold next in *. ii. des. exists i0; eauto.
-  Qed.
-
-  Definition meet A (Ps: A -> t): t :=
-    fun i => forall a, Ps a i.
-
-  Lemma meet_lowerbound A (Ps: A -> t) a:
-      le (meet Ps) (Ps a).
-  Proof.
-    ii. eauto.
-  Qed.
-
-  Lemma meet_infimum A (Ps: A -> t) P
-        (LE: forall a, le P (Ps a))
-    :
-      le P (meet Ps).
-  Proof.
-    ii. eapply LE in IN; eauto.
-  Qed.
-
-  Lemma meet_closed A (Ps: A -> t) (CLOSED: forall a, closed (Ps a)): closed (meet Ps).
-  Proof.
-    unfold meet. ii. eapply CLOSED; eauto.
-  Qed.
-
-  Definition top: t := meet (False_rect _).
-
-  Lemma top_spec P: le P top.
-  Proof.
-    eapply meet_infimum. i. ss.
-  Qed.
-
-  Definition next_o (P: t) (o: Ordinal.t): t := Ordinal.rec meet next P o.
-
-  (* Lemma next_o_le (P: t) (o0 o1: Ordinal.t) (LE: Ordinal.le o0 o1): *)
-  (*   le (next_o P o1) (next_o P o0). *)
-  (* Proof. *)
-  (*   eapply (@Ordinal.rec_le t ge meet P next); auto. *)
-  (*   - eapply flip_PreOrder. eapply le_PreOrder. *)
-  (*   - i. eapply meet_lowerbound. *)
-  (*   - i. eapply meet_infimum. auto. *)
-  (*   - i. eapply next_mon; auto. *)
-  (* Qed. *)
-
-  (* Lemma next_o_eq (P: t) (o0 o1: Ordinal.t) (EQ: Ordinal.eq o0 o1): *)
-  (*   next_o P o1 = next_o P o0. *)
-  (* Proof. *)
-  (*   eapply le_Antisymmetric. *)
-  (*   - eapply next_o_le. eapply EQ. *)
-  (*   - eapply next_o_le. eapply EQ. *)
-  (* Qed. *)
-
-  (* Lemma next_o_mon P0 P1 (LE: le P0 P1) o: le (next_o P0 o) (next_o P1 o). *)
-  (* Proof. *)
-  (*   revert o P0 P1 LE. induction o. i. ss. *)
-  (*   eapply meet_infimum. i. etransitivity; [eapply (meet_lowerbound a)|]. *)
-  (*   destruct a; auto. *)
-  (*   eapply meet_infimum. i. etransitivity; [eapply (meet_lowerbound a)|]. *)
-  (*   eapply next_mon. eauto. *)
-  (* Qed. *)
-End iProp.
-
-  (* Definition bot: t := join (False_rect _). *)
-
-  (* Lemma bot_spec P: le bot P. *)
-  (* Proof. *)
-  (*   eapply join_supremum. i. ss. *)
-  (* Qed. *)
-
-  (* Definition future (P: t): t := *)
-  (*   fun i1 => exists i0, P i0. *)
-
-  (* Lemma future_mon P0 P1 (LE: le P0 P1): le (future P0) (future P1). *)
-  (* Proof. *)
-  (*   unfold future in *. ii. des. eauto. *)
-  (* Qed. *)
-
-  (* Lemma future_incl P: le P (future P). *)
-  (* Proof. *)
-  (*   unfold future. ii. eauto. *)
-  (* Qed. *)
-
-  (* Lemma meet_mon A Ps0 Ps1 (LE: forall (a: A), le (Ps0 a) (Ps1 a)): le (meet Ps0) (meet Ps1). *)
-  (* Proof. *)
-  (*   unfold meet in *. ii. eapply LE; eauto. *)
-  (* Qed. *)
-
-  (* Definition join A (Ps: A -> t): t := *)
-  (*   fun i => exists a, Ps a i. *)
-
-  (* Lemma join_mon A Ps0 Ps1 (LE: forall (a: A), le (Ps0 a) (Ps1 a)): le (join Ps0) (join Ps1). *)
-  (* Proof. *)
-  (*   unfold join in *. ii. des. eapply LE in IN. eauto. *)
-  (* Qed. *)
-
-  (* Lemma join_upperbound A (Ps: A -> t) a *)
-  (*   : *)
-  (*     le (Ps a) (join Ps). *)
-  (* Proof. *)
-  (*   unfold join. ii. eauto. *)
-  (* Qed. *)
-
-  (* Lemma join_supremum A (Ps: A -> t) P *)
-  (*       (LE: forall a, le (Ps a) P) *)
-  (*   : *)
-  (*     le (join Ps) P. *)
-  (* Proof. *)
-  (*   unfold join. ii. des. eapply LE; eauto. *)
-  (* Qed. *)
-
-  (* Lemma meet_meet A (B: A -> Type) (k: forall a (b: B a), t) *)
-  (*   : *)
-  (*     meet (fun a => meet (k a)) = *)
-  (*     meet (fun (ab: sigT B) => let (a, b) := ab in k a b). *)
-  (* Proof. *)
-  (*   eapply le_Antisymmetric. *)
-  (*   - ii. destruct a as [a b]. eapply IN; eauto. *)
-  (*   - ii. specialize (IN (existT _ a a0)). eauto. *)
-  (* Qed. *)
-
-(*   Lemma meet_join A (B: A -> Type) (k: forall a (b: B a), t) *)
-(*     : *)
-(*       meet (fun a => join (k a)) = *)
-(*       join (fun (f: forall a, B a) => meet (fun a => k a (f a))). *)
-(*   Proof. *)
-(*     eapply le_Antisymmetric. *)
-(*     - unfold join, meet. ii. eapply forall_exists_commute in IN; eauto. *)
-(*     - unfold join, meet. ii. revert a. eapply forall_exists_commute_rev; eauto. *)
-(*   Qed. *)
-
-(*   Lemma join_meet A (B: A -> Type) (k: forall a (b: B a), t) *)
-(*     : *)
-(*       join (fun a => meet (k a)) = *)
-(*       meet (fun (f: forall a, B a) => join (fun a => k a (f a))). *)
-(*   Proof. *)
-(*     eapply le_Antisymmetric. *)
-(*     - unfold join, meet. ii. eapply exists_forall_commute in IN; eauto. *)
-(*     - unfold join, meet. ii. eapply exists_forall_commute_rev; eauto. *)
-(*   Qed. *)
-
-(*   Lemma join_join A (B: A -> Type) (k: forall a (b: B a), t) *)
-(*     : *)
-(*       join (fun a => join (k a)) = *)
-(*       join (fun (ab: sigT B) => let (a, b) := ab in k a b). *)
-(*   Proof. *)
-(*     unfold join. eapply le_Antisymmetric. *)
-(*     - ii. des. exists (existT _ a a0). eauto. *)
-(*     - ii. des. destruct a as [a b]. eauto. *)
-(*   Qed. *)
-
-(*   Lemma join_next A k *)
-(*         (INHABITED: inhabited A) *)
-(*     : *)
-(*       join (fun a: A => next (k a)) = next (join k). *)
-(*   Proof. *)
-(*     destruct INHABITED. unfold next, join. *)
-(*     eapply le_Antisymmetric. *)
-(*     - ii. des. exists i0. esplits; eauto. *)
-(*     - ii. des. esplits; eauto. *)
-(*   Qed. *)
-
-(*   Definition upper (o0: Index.t): t := *)
-(*     fun o1 => Index.le o0 o1. *)
-
-(*   Lemma next_upper o: upper (Index.S o) = next (upper o). *)
-(*   Proof. *)
-(*     unfold next, upper. eapply le_Antisymmetric. *)
-(*     - ii. exists o. splits. *)
-(*       + reflexivity. *)
-(*       + eapply Index.lt_le_lt. *)
-(*         * eapply Index.S_lt. *)
-(*         * eauto. *)
-(*     - ii. des. eapply Index.S_spec in IN0. *)
-(*       etransitivity; eauto. eapply Index.S_spec. *)
-(*       eapply Index.le_lt_lt; eauto. eapply Index.S_lt. *)
-(*   Qed. *)
-
-(*   Lemma meet_upper A (k: A -> Index.t): meet (fun a => upper (k a)) = upper (Index.join k). *)
-(*   Proof. *)
-(*     unfold meet, upper. eapply le_Antisymmetric. *)
-(*     - ii. eapply Index.join_supremum; eauto. *)
-(*     - ii. etransitivity. *)
-(*       + eapply Index.join_upperbound; eauto. *)
-(*       + auto. *)
-(*   Qed. *)
-
-(*   Lemma future_upper o: future (upper o) = upper Index.O. *)
-(*   Proof. *)
-(*     unfold future, upper. eapply le_Antisymmetric. *)
-(*     - ii. eapply Index.O_bot. *)
-(*     - ii. exists o. reflexivity. *)
-(*   Qed. *)
-
-(*   Lemma join_upper A (k: A -> Index.t) (INHABITED: inhabited A): *)
-(*     exists o, join (fun a => upper (k a)) = upper o /\ Index.set_meet k o. *)
-(*   Proof. *)
-(*     unfold join, upper. *)
-(*     exploit Index.set_meet_exists; eauto. i. des. esplits; eauto. clear INHABITED. *)
-(*     eapply le_Antisymmetric. *)
-(*     - ii. des. destruct x0. des. clarify. *)
-(*       hexploit (H0 (k a)); eauto. i. etransitivity; eauto. *)
-(*     - ii. destruct x0. des. clarify. eauto. *)
-(*   Qed. *)
-
-(*   Lemma closed_upper P (CLOSED: closed P) *)
-
-
-(*     - ii. eapply *)
-
-
-(*         in IN. eauto. *)
-(*       { *)
-
-(*       eapply Index.join_upperbound. *)
-
-(*       des. etransitivity; eauto. eapply Index.join_upperbound. *)
-
-(*       esplits; eauto. *)
-
-(*       exists o. splits. *)
-(*       + reflexivity. *)
-(*       + eapply Index.lt_le_lt. *)
-(*         * eapply Index.S_lt. *)
-(*         * eauto. *)
-(*     - ii. des. eapply Index.S_spec in IN0. *)
-(*       etransitivity; eauto. eapply Index.S_spec. *)
-(*       eapply Index.le_lt_lt; eauto. eapply Index.S_lt. *)
-
-(*                                            next (join k)) = *)
-
-(*                                    next (join k) = upper (Index.S o). *)
-(*   Proof. *)
-(*     unfold next, upper. eapply le_Antisymmetric. *)
-(*     - ii. des. eapply Index.S_spec in IN0. *)
-(*       etransitivity; eauto. eapply Index.S_spec. *)
-(*       eapply Index.le_lt_lt; eauto. eapply Index.S_lt. *)
-(*     - ii. exists o. splits. *)
-(*       + reflexivity. *)
-(*       + eapply Index.lt_le_lt. *)
-(*         * eapply Index.S_lt. *)
-(*         * eauto. *)
-(*   Qed. *)
-
-(*   Lemma upper_closed o: closed (upper o). *)
-(*   Proof. *)
-(*     ii. eapply LE. *)
-
-(*   Definition closure (P: t): t := *)
-(*     fun i1 => exists i0, P i0 /\ Index.le i0 i1. *)
-
-(*   Lemma next_closed P: closed (next P). *)
-(*   Proof. *)
-(*     unfold closed, next in *. ii. des. esplits; eauto. eapply Index.lt_le_lt; eauto. *)
-(*   Qed. *)
-
-(*   Lemma future_closed P: closed (future P). *)
-(*     unfold closed, future in *. ii. des. esplits; eauto. *)
-(*   Qed. *)
-
-(*   Lemma closure_closed P: closed (closure P). *)
-(*   Proof. *)
-(*     unfold closure, closed. i. des. esplits; eauto. etransitivity; eauto. *)
-(*   Qed. *)
-
-(*   Lemma closure_mon P0 P1 (LE: le P0 P1): *)
-(*     le (closure P0) (closure P1). *)
-(*   Proof. *)
-(*     unfold closure. ii. des. esplits; eauto. *)
-(*   Qed. *)
-
-(*   Lemma closure_incl P: le P (closure P). *)
-(*   Proof. *)
-(*     unfold closure. ii. esplits; eauto. reflexivity. *)
-(*   Qed. *)
-
-(*   Lemma closed_closure P (CLOSED: closed P): closure P = P. *)
-(*   Proof. *)
-(*     eapply le_Antisymmetric. *)
-(*     - ii. unfold closure in *. des. eapply CLOSED; eauto. *)
-(*     - eapply closure_incl. *)
-(*   Qed. *)
-
-(*   Lemma join_closed A (Ps: A -> t) (CLOSED: forall a, closed (Ps a)): closed (join Ps). *)
-(*   Proof. *)
-(*     unfold join. ii. des. esplits; eauto. eapply CLOSED; eauto. *)
-(*   Qed. *)
-
-(*   Lemma top_closed: closed top. *)
-(*   Proof. *)
-(*     eapply meet_closed; eauto. i. ss. *)
-(*   Qed. *)
-
-(*   Lemma bot_closed: closed bot. *)
-(*   Proof. *)
-(*     eapply join_closed; eauto. i. ss. *)
-(*   Qed. *)
-
-(*   Lemma join_empty A k *)
-(*         (INHABITED: ~ inhabited A) *)
-(*     : *)
-(*       @join A k = bot. *)
-(*   Proof. *)
-(*     eapply le_Antisymmetric. *)
-(*     - eapply join_supremum. i. exfalso. eapply INHABITED. econs; eauto. *)
-(*     - eapply bot_spec. *)
-(*   Qed. *)
-
-(*   Lemma meet_empty A k *)
-(*         (INHABITED: ~ inhabited A) *)
-(*     : *)
-(*       @meet A k = top. *)
-(*   Proof. *)
-(*     eapply le_Antisymmetric. *)
-(*     - eapply top_spec. *)
-(*     - eapply meet_infimum. i. exfalso. eapply INHABITED. econs; eauto. *)
-(*   Qed. *)
-
-(*   Lemma next_meet A k *)
-(*     : *)
-(*       le (next (meet k)) (meet (fun a: A => next (k a))). *)
-(*   Proof. *)
-(*     unfold next. ii. des. exists i0. splits; auto. *)
-(*   Qed. *)
-
-(*   Lemma meet_next A k (CLOSED: forall a, closed (k a)) *)
-(*     : *)
-(*       le (meet (fun a: A => next (k a))) (next (meet k)) . *)
-(*   Proof. *)
-(*     unfold next. ii. des. exists i0. splits; auto. *)
-(*   Qed. *)
-
-(*   Lemma next_future P: future (next P) = future P. *)
-(*   Proof. *)
-(*     unfold next, future. eapply le_Antisymmetric. *)
-(*     - ii. des. esplits; eauto. *)
-(*     - ii. des. esplits; eauto. eapply (Index.S_lt). *)
-(*   Qed. *)
-
-(*   Lemma future_future P: future (future P) = future P. *)
-(*   Proof. *)
-(*     eapply le_Antisymmetric. *)
-(*     - unfold future. ii. des. esplits; eauto. *)
-(*     - eapply future_incl; eauto. *)
-(*   Qed. *)
-
-(*   Lemma join_future A k *)
-(*     : *)
-(*       join (fun a: A => future (k a)) = future (join k). *)
-(*   Proof. *)
-(*     unfold join, future. eapply le_Antisymmetric. *)
-(*     - ii. des. esplits; eauto. *)
-(*     - ii. des. esplits; eauto. *)
-(*   Qed. *)
-
-(*   Lemma future_meet A k *)
-(*     : *)
-(*       le (future (meet k)) (meet (fun a: A => future (k a))). *)
-(*   Proof. *)
-(*     unfold future. ii. des. esplits; eauto. *)
-(*   Qed. *)
-
-(*   Lemma meet_future A k (CLOSED: forall a, closed (k a)) *)
-(*     : *)
-(*       meet (fun a: A => future (k a)) = future (meet k). *)
-(*   Proof. *)
-(*     unfold meet, future. eapply le_Antisymmetric. *)
-(*     - ii. eapply choice in IN. des. *)
-(*       exists (Index.join f). i. eapply CLOSED; eauto. eapply Index.join_upperbound. *)
-(*     - eapply future_meet. *)
-(*   Qed. *)
-
-(*   Fixpoint next_n (P: t) (n: nat): t := *)
-(*     match n with *)
-(*     | S n' => next (next_n P n') *)
-(*     | 0 => P *)
-(*     end. *)
-
-(*   Lemma next_n_mon P0 P1 (LE: le P0 P1) n: le (next_n P0 n) (next_n P1 n). *)
-(*   Proof. *)
-(*     induction n; ss. eapply next_mon; eauto. *)
-(*   Qed. *)
-
-(*   Lemma next_n_closed P (CLOSED: closed P) n: closed (next_n P n). *)
-(*   Proof. *)
-(*     destruct n; ss. eapply next_closed. *)
-(*   Qed. *)
-
-(*   Lemma next_n_incl P (CLOSED: closed P) n: le (next_n P n) P. *)
-(*   Proof. *)
-(*     induction n; ss. etransitivity; eauto. *)
-(*     eapply next_incl; eauto. eapply next_n_closed; eauto. *)
-(*   Qed. *)
-
-(*   Lemma join_next_n A k n *)
-(*         (INHABITED: inhabited A) *)
-(*     : *)
-(*       join (fun a: A => next_n (k a) n) = next_n (join k) n. *)
-(*   Proof. *)
-(*     induction n; ss. *)
-(*     erewrite join_next; eauto. *)
-(*     erewrite IHn. auto. *)
-(*   Qed. *)
-
-(*   Lemma next_n_meet A k n *)
-(*     : *)
-(*       le (next_n (meet k) n) (meet (fun a: A => next_n (k a) n)). *)
-(*   Proof. *)
-(*     induction n; ss. etransitivity. *)
-(*     - eapply next_mon; eauto. *)
-(*     - eapply next_meet; eauto. *)
-(*   Qed. *)
-
-(*   Lemma next_n_future P n: future (next_n P n) = future P. *)
-(*   Proof. *)
-(*     induction n; ss. erewrite next_future; eauto. *)
-(*   Qed. *)
-
-(*   Lemma next_n_next P n: next_n (next P) n = next (next_n P n). *)
-(*   Proof. *)
-(*     induction n; ss. erewrite IHn. ss. *)
-(*   Qed. *)
-
-(*   Definition next_omega P: t := meet (next_n P). *)
-
-(*   Lemma next_omega_mon P0 P1 (LE: le P0 P1): le (next_omega P0) (next_omega P1). *)
-(*   Proof. *)
-(*     eapply meet_mon; eauto. i. eapply next_n_mon; eauto. *)
-(*   Qed. *)
-
-(*   Lemma next_omega_closed P (CLOSED: closed P): closed (next_omega P). *)
-(*   Proof. *)
-(*     eapply meet_closed. i. eapply next_n_closed; eauto. *)
-(*   Qed. *)
-
-(*   Lemma next_omega_incl P (CLOSED: closed P): le (next_omega P) P. *)
-(*   Proof. *)
-(*     eapply (@meet_lowerbound nat (next_n P) 0). *)
-(*   Qed. *)
-
-(*   Lemma next_omega_next P (CLOSED: closed P): next_omega (next P) = next_omega P. *)
-(*   Proof. *)
-(*     eapply le_Antisymmetric. *)
-(*     - eapply meet_infimum. i. etransitivity. *)
-(*       + eapply (@meet_lowerbound nat (next_n (next P)) a). *)
-(*       + ss. erewrite next_n_next. eapply next_incl. *)
-(*         eapply next_n_closed; auto. *)
-(*     - eapply meet_infimum. i. etransitivity. *)
-(*       + eapply (@meet_lowerbound nat (next_n P) (S a)). *)
-(*       + erewrite next_n_next. reflexivity. *)
-(*   Qed. *)
-
-(*   Lemma next_omega_future P (CLOSED: closed P): future (next_omega P) = future P. *)
-(*   Proof. *)
-(*     eapply le_Antisymmetric. *)
-(*     - unfold next_omega. erewrite future_meet. etransitivity. *)
-(*       + eapply meet_lowerbound. *)
-(*       + instantiate (1:=0). ss. *)
-(*     - unfold next_omega. erewrite <- meet_future. *)
-(*       + eapply meet_infimum. i. rewrite next_n_future. reflexivity. *)
-(*       + i. eapply next_n_closed; eauto. *)
-(*   Qed. *)
-
-(*   Lemma next_omega_meet A k *)
-(*     : *)
-(*       le (next_omega (meet k)) (meet (fun a: A => next_omega (k a))). *)
-(*   Proof. *)
-(*     eapply meet_infimum. i. eapply meet_infimum. i. etransitivity. *)
-(*     - eapply meet_lowerbound. *)
-(*     - etransitivity. *)
-(*       + eapply next_n_meet. *)
-(*       +  ss. *)
-(*   Qed. *)
-
-(*   Lemma join_next_omega A k *)
-(*     : *)
-(*       le (join (fun a: A => next_omega (k a))) (next_omega (join k)). *)
-(*   Proof. *)
-(*     destruct (classic (inhabited A)). *)
-(*     - unfold next_omega. ii. erewrite <- join_next_n; eauto. *)
-(*       unfold join in *. des. exists a0. eauto. *)
-(*     - ii. destruct IN. exfalso. eauto. *)
-(*   Qed. *)
-
-(*   Lemma next_omega_join A k *)
-(*     : *)
-(*       join (fun a: A => next_omega (k a)) = next_omega (join k). *)
-(*   Proof. *)
-(*     unfold next_omega. eapply le_Antisymmetric. *)
-(*     - eapply join_next_omega; auto. *)
-(*     - destruct (classic (inhabited A)). *)
-(*       2: { ii. specialize (IN 0). ss. destruct IN. exfalso. eapply H; eauto. } *)
-(*       ii. *)
-
-(*       replace (next_n (join k)) with (fun n => join (fun a => next_n (k a) n)) in IN. *)
-(*       2: { extensionality n. erewrite join_next_n; eauto. } *)
-(*       eapply join_mon. *)
-(*       + *)
-
-
-(*         next_n_meet *)
-(*         eapply next_omega_meet. *)
-
-(*       erewrite join_meet. ii. erewrite <- join_next_n. *)
-
-(* join_next_n *)
-(*      : forall (A : Type) (k : A -> t) (n : nat), *)
-(*        inhabited A -> join (fun a : A => next_n (k a) n) = next_n (join k) n *)
-
-
-(*       destruct H. *)
-(*       unfold join. eapply NNPP. ii. *)
-
-(*       specialize ( *)
-
-(*       exp *)
-
-(*       auto. *)
-
-
-(*       { admit. } *)
-(*       { exten *)
-
-
-
-(*       eapply meet_mon in IN. *)
-(*       2: { instantiate (1:=fun n => next_n (join k) n). i. ss. } *)
-(*       setoid_rewrite <- join_next_n in IN. *)
-
-(*       r *)
-
-(*             join_next_n *)
-(*      : forall (A : Type) (k : A -> t) (n : nat), *)
-(*        inhabited A -> join (fun a : A => next_n (k a) n) = next_n (join k) n *)
-
-
-(*       un *)
-
-(*       erewrite join_meet in IN. specialie ( *)
-
-(*       ). *)
-
-
-(*       erewrite join_meet. *)
-
-
-
-(*     erewrite <- (join_next_n k). *)
-
-(*     unfold meet. *)
-
-(*   Lemma meet_next_n A k n *)
-(*         (INHABITED: inhabited A) *)
-(*         (CLOSED: forall a, closed (k a)) *)
-(*     : *)
-(*       le (next_n (meet k) n) (meet (fun a: A => next_n (k a) n)). *)
-(*   Proof. *)
-(*     induction n; ss. etransitivity. *)
-(*     - eapply next_mon; eauto. *)
-(*     - eapply meet_next; eauto. *)
-(*   Qed. *)
-
-
-(*     f_equal. *)
-
-(*     induction n; ss. *)
-(*     erewrite join_next; eauto. *)
-(*     erewrite IHn. auto. *)
-(*   Qed. *)
-
-(* next_omega next *)
-
-(*   L *)
