@@ -1,6 +1,6 @@
 COQMODULE    := Ordinal
 COQTHEORIES  := \
-	*.v \
+	src/*.v \
 
 .PHONY: all theories clean
 
@@ -13,7 +13,7 @@ quick: Makefile.coq
 	$(MAKE) -f Makefile.coq quick
 
 Makefile.coq: Makefile $(COQTHEORIES)
-	(echo "-R . $(COQMODULE)"; \
+	(echo "-R src $(COQMODULE)"; \
    \
    echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
