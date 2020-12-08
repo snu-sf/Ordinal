@@ -503,16 +503,6 @@ Module Ordinal.
   Qed.
 
   Section JOIN.
-    Let le_lemma o0 B1 (os1: B1 -> t)
-          (LE: forall B0 os0 (b0: B0)
-                      (EQ: o0 = @build B0 os0),
-              exists b1, le (os0 b0) (os1 b1))
-    :
-      le o0 (build os1).
-    Proof.
-      destruct o0. econs. i. exploit LE; eauto.
-    Defined.
-
     Variable A: MyT.
     Variable os: A -> t.
     Let Y: (A -> MyT) :=
@@ -533,38 +523,23 @@ Module Ordinal.
 
     Lemma join_upperbound: forall a, le (os a) join.
     Proof.
-      ii. unfold join. unfold X. unfold Y. eapply le_lemma. i.
+      ii. unfold join. subst X Y.
+      destruct (os a) eqn:EQ. econs. i.
       set (s:= @eq_rect_r t (build os0) (fun x => match x with
                                                | @build B _ => B
-                                               end) b0 (os a) EQ).
+                                               end) a0 (os a) EQ).
       exists (existT _ a s).
-      replace (os0 b0) with (match os a as t0 return (match t0 with
-                                                      | @build B _ => B
-                                                      end -> t) with
-                             | @build A0 os1 => fun y : A0 => os1 y
-                             end s); auto.
-      { reflexivity. }
-      unfold s. rewrite EQ. ss.
+      ss. unfold s. rewrite EQ. reflexivity.
     Qed.
-
-    Let build_fst_eq A0 A1 os0 os1 (EQ: @build A0 os0 = @build A1 os1):
-      A0 = A1.
-    Proof.
-      inversion EQ. auto.
-    Defined.
 
     Lemma join_supremum o (LE: forall a, le (os a) o):
       le join o.
     Proof.
       destruct o. econs. i. destruct a0; ss.
-      specialize (LE x). remember (build os0). inv LE.
-      specialize (LE0 (@eq_rect _ (os x) (fun t0 => match t0 return MyT with
-                                                    | @build B _ => B
-                                                    end) y _ (eq_sym H0))). des.
-      exists (@eq_rect _ A2 id a1 A0 (build_fst_eq H1)).
-
-      subst X Y. ss. destruct (os x).
-    Admitted.
+      specialize (LE x).
+      subst X Y. ss. destruct (os x) eqn:EQ.
+      eapply (le_inv y) in LE. eauto.
+    Qed.
   End JOIN.
 
   Lemma join_le A0 A1 (os0: A0 -> t) (os1: A1 -> t)
