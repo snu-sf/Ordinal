@@ -502,6 +502,20 @@ Module Ordinal.
       transitivity s; auto. symmetry. auto.
   Qed.
 
+  Lemma S_eq o0 o1 (EQ: eq o0 o1):
+    eq (S o0) (S o1).
+  Proof.
+    inv EQ. split.
+    - rewrite <- S_le_mon. auto.
+    - rewrite <- S_le_mon. auto.
+  Qed.
+
+  Lemma S_le o:
+    le o (S o).
+  Proof.
+    eapply lt_le. eapply S_lt.
+  Qed.
+
   Section JOIN.
     Variable A: MyT.
     Variable os: A -> t.
@@ -565,6 +579,88 @@ Module Ordinal.
     - i. eapply lt_le. eapply build_upperbound.
     - i. eapply build_spec. i. specialize (OPEN a). des.
       eapply lt_le_lt; eauto.
+  Qed.
+
+  Definition union (o0 o1: t): t := @join bool (fun b: bool => if b then o0 else o1).
+
+  Lemma union_l o0 o1: le o0 (union o0 o1).
+  Proof.
+    eapply (@join_upperbound _ (fun b: bool => if b then o0 else o1) true).
+  Qed.
+
+  Lemma union_r o0 o1: le o1 (union o0 o1).
+  Proof.
+    eapply (@join_upperbound _ (fun b: bool => if b then o0 else o1) false).
+  Qed.
+
+  Lemma union_spec o0 o1 o (LE0: le o0 o) (LE1: le o1 o):
+    le (union o0 o1) o.
+  Proof.
+    eapply join_supremum. i. destruct a; ss.
+  Qed.
+
+  Lemma union_comm o0 o1: eq (union o0 o1) (union o1 o0).
+  Proof.
+    split.
+    - eapply union_spec.
+      + eapply union_r.
+      + eapply union_l.
+    - eapply union_spec.
+      + eapply union_r.
+      + eapply union_l.
+  Qed.
+
+  Lemma union_le o0 o1 (LE: le o0 o1): eq (union o0 o1) o1.
+  Proof.
+    split.
+    - eapply union_spec.
+      + auto.
+      + reflexivity.
+    - eapply union_r.
+  Qed.
+
+  Lemma union_le_mon o0 o1 o2 o3 (LE0: le o0 o1) (LE1: le o2 o3):
+    le (union o0 o2) (union o1 o3).
+  Proof.
+    eapply union_spec.
+    - transitivity o1; auto. eapply union_l.
+    - transitivity o3; auto. eapply union_r.
+  Qed.
+
+  Lemma union_eq_mon o0 o1 o2 o3 (EQ0: eq o0 o1) (EQ1: eq o2 o3):
+    eq (union o0 o2) (union o1 o3).
+  Proof.
+    split.
+    - eapply union_le_mon.
+      + eapply EQ0.
+      + eapply EQ1.
+    - eapply union_le_mon.
+      + eapply EQ0.
+      + eapply EQ1.
+  Qed.
+
+  Lemma union_assoc o0 o1 o2:
+    eq (union o0 (union o1 o2)) (union (union o0 o1) o2).
+  Proof.
+    split.
+    - eapply union_spec.
+      + transitivity (union o0 o1).
+        * eapply union_l.
+        * eapply union_l.
+      + eapply union_spec.
+        * transitivity (union o0 o1).
+          { eapply union_r. }
+          { eapply union_l. }
+        * eapply union_r.
+    - eapply union_spec.
+      + eapply union_spec.
+        * eapply union_l.
+        * transitivity (union o1 o2).
+          { eapply union_l. }
+          { eapply union_r. }
+      + transitivity (union o1 o2).
+        { eapply union_r. }
+        { eapply union_r. }
   Qed.
 
   Section REC.
@@ -787,24 +883,133 @@ Module Ordinal.
         + eapply (@djoin_upperbound _ (fun b: bool => if b then base else (djoin (fun a : A => next (rec (os a))))) false); auto.
     Qed.
 
-    Lemma rec_is_join A (os: A -> t) o
-          (INHABITED: inhabited A) (OPEN: open os) (JOIN: is_join os o)
-      : deq (rec o) (djoin (fun a => rec (os a))).
+    Lemma rec_join A (os: A -> t)
+      : deq (rec (join os)) (dunion base (djoin (fun a => rec (os a)))).
     Proof.
-      hexploit (@rec_eq (build os) o).
-      { eapply is_join_eq; eauto. eapply build_is_join; auto. }
-      i. inv H. split.
-      - eapply (@dle_transitive (rec (build os))); auto.
-        eapply rec_build; auto.
-      - eapply (@dle_transitive (rec (build os))); auto.
-        eapply rec_build; auto.
+      split.
+      - ss. eapply djoin_supremum.
+        { i. destruct a; auto. }
+        { eapply djoin_wf; auto. destruct a; auto. }
+        { i. destruct a; auto.
+          { eapply (@djoin_upperbound _ (fun b: bool => if b then base else (djoin (fun a : A => rec (os a)))) true).
+            i. destruct a; auto. }
+          { eapply (@dle_transitive (djoin (fun a : A => rec (os a)))); auto.
+            { eapply djoin_wf; auto. i. destruct a; auto. }
+            { eapply djoin_supremum; auto. i.
+              destruct a. destruct (os x) eqn:EQ; auto.
+              eapply (@dle_transitive (rec (build os0))); auto.
+              { eapply (@dle_transitive (rec (S (os0 y)))); auto.
+                { eapply rec_S. }
+                { eapply rec_le. eapply S_spec. eapply build_upperbound. }
+              }
+              { rewrite <- EQ.
+                eapply (@djoin_upperbound _ (fun a => rec (os a))); auto. }
+            }
+            { eapply (@djoin_upperbound _ (fun b: bool => if b then base else (djoin (fun a : A => rec (os a)))) false).
+              i. destruct a; auto. }
+          }
+        }
+      - eapply djoin_supremum; auto.
+        { i. destruct a; auto. }
+        { i. destruct a; auto.
+          { eapply rec_le_base. }
+          { eapply djoin_supremum; auto.
+            i. eapply rec_le. eapply join_upperbound. }
+        }
     Qed.
 
-    Lemma rec_join A (os: A -> t)
-          (INHABITED: inhabited A) (OPEN: open os)
+    Lemma rec_join_inhabited A (os: A -> t) (INHABITED: inhabited A)
       : deq (rec (join os)) (djoin (fun a => rec (os a))).
     Proof.
-      eapply rec_is_join; auto. eapply join_is_join.
+      split.
+      { eapply (@dle_transitive (dunion base (djoin (fun a => rec (os a))))); auto.
+        { eapply djoin_wf; auto. i. destruct a; auto. }
+        { eapply rec_join. }
+        { eapply djoin_supremum; auto.
+          { i. destruct a; auto. }
+          { i. destruct a; auto. inv INHABITED.
+            eapply (@dle_transitive (rec (os X))); auto.
+            { eapply rec_le_base. }
+            { eapply (@djoin_upperbound _ (fun a : A => rec (os a)) X); auto. }
+          }
+        }
+      }
+      { eapply (@dle_transitive (dunion base (djoin (fun a => rec (os a))))); auto.
+        { eapply djoin_wf; auto. i. destruct a; auto. }
+        { eapply djoin_supremum; auto.
+          { eapply djoin_wf; auto. i. destruct a; auto. }
+          { i. eapply (@dle_transitive (djoin (fun a0 : A => rec (os a0)))); auto.
+            { eapply djoin_wf; auto. i. destruct a0; auto. }
+            { eapply (@djoin_upperbound _ (fun a0 : A => rec (os a0)) a); auto. }
+            { eapply (@djoin_upperbound _ (fun b: bool => if b then base else (djoin (fun a0 : A => rec (os a0)))) false).
+              i. destruct a0; auto. }
+          }
+        }
+        { eapply rec_join. }
+      }
+    Qed.
+
+    Lemma rec_is_join A (os: A -> t) o (JOIN: is_join os o)
+      : deq (rec o) (dunion base (djoin (fun a => rec (os a)))).
+    Proof.
+      hexploit (@rec_eq (join os) o).
+      { eapply is_join_eq; eauto. eapply join_is_join; auto. }
+      i. inv H. split.
+      - eapply (@dle_transitive (rec (join os))); auto.
+        { eapply djoin_wf. i. destruct a; auto. }
+        { eapply rec_join; auto. }
+      - eapply (@dle_transitive (rec (join os))); auto.
+        { eapply djoin_wf. i. destruct a; auto. }
+        { eapply rec_join; auto. }
+    Qed.
+
+    Lemma rec_is_join_inhabited A (os: A -> t) o
+          (INHABITED: inhabited A) (JOIN: is_join os o)
+      : deq (rec o) (djoin (fun a => rec (os a))).
+    Proof.
+      hexploit (@rec_eq (join os) o).
+      { eapply is_join_eq; eauto. eapply join_is_join; auto. }
+      i. inv H. split.
+      - eapply (@dle_transitive (rec (join os))); auto.
+        { eapply rec_join_inhabited; auto. }
+      - eapply (@dle_transitive (rec (join os))); auto.
+        { eapply rec_join_inhabited; auto. }
+    Qed.
+
+    Lemma rec_union o0 o1
+      : deq (rec (union o0 o1)) (dunion (rec o0) (rec o1)).
+    Proof.
+      assert (INHABITED: inhabited bool).
+      { constructor. exact true. }
+      split.
+      { eapply (@dle_transitive (djoin (fun a : bool => rec ((fun b : bool => if b then o0 else o1) a)))); auto.
+        { eapply djoin_wf; auto. i. destruct a; auto. }
+        { eapply rec_join_inhabited; auto. }
+        { eapply djoin_supremum.
+          { i. destruct a; auto. }
+          { eapply djoin_wf; auto. i. destruct a; auto. }
+          { i. destruct a; auto.
+            { eapply (@djoin_upperbound _ (fun b: bool => if b then (rec o0) else (rec o1)) true).
+              i. destruct a; auto. }
+            { eapply (@djoin_upperbound _ (fun b: bool => if b then (rec o0) else (rec o1)) false).
+              i. destruct a; auto. }
+          }
+        }
+      }
+      { eapply (@dle_transitive (djoin (fun a : bool => rec ((fun b : bool => if b then o0 else o1) a)))); auto.
+        { eapply djoin_wf; auto. i. destruct a; auto. }
+        { eapply djoin_supremum.
+          { i. destruct a; auto. }
+          { eapply djoin_wf; auto. }
+          { i. destruct a; auto.
+            { eapply (@djoin_upperbound _ (fun b: bool => rec (if b then o0 else o1)) true).
+              i. destruct a; auto. }
+            { eapply (@djoin_upperbound _ (fun b: bool => rec (if b then o0 else o1)) false).
+              i. destruct a; auto. }
+          }
+        }
+        { eapply rec_join_inhabited; auto. }
+      }
     Qed.
   End REC.
 
@@ -891,11 +1096,54 @@ Module Ordinal.
       unfold orec. eapply rec_is_S with (wf:=wf); auto.
     Qed.
 
-    Lemma orec_is_join A (os: A -> t) o
-          (INHABITED: inhabited A) (OPEN: open os) (JOIN: is_join os o)
+    Lemma orec_is_join_inhabited A (os: A -> t) o
+          (INHABITED: inhabited A) (JOIN: is_join os o)
       : eq (orec o) (join (fun a => orec (os a))).
     Proof.
+      unfold orec. eapply rec_is_join_inhabited with (wf:=wf); auto.
+    Qed.
+
+    Lemma orec_is_join A (os: A -> t) o
+          (JOIN: is_join os o)
+      : eq (orec o) (union base (join (fun a => orec (os a)))).
+    Proof.
       unfold orec. eapply rec_is_join with (wf:=wf); auto.
+    Qed.
+
+    Lemma orec_O: eq (orec O) base.
+    Proof.
+      eapply orec_is_O. eapply O_is_O.
+    Qed.
+
+    Lemma orec_S o: eq (orec (S o)) (next (orec o)).
+    Proof.
+      eapply orec_is_S. eapply S_is_S.
+    Qed.
+
+    Lemma orec_join A (os: A -> t)
+      : eq (orec (join os)) (union base (join (fun a => orec (os a)))).
+    Proof.
+      eapply orec_is_join; eauto. eapply join_is_join.
+    Qed.
+
+    Lemma orec_join_inhabited A (os: A -> t)
+          (INHABITED: inhabited A)
+      : eq (orec (join os)) (join (fun a => orec (os a))).
+    Proof.
+      eapply orec_is_join_inhabited; eauto. eapply join_is_join.
+    Qed.
+
+    Lemma orec_build A (os: A -> t)
+      :
+        eq (orec (build os)) (union base (join (fun a => next (orec (os a))))).
+    Proof.
+      reflexivity.
+    Qed.
+
+    Lemma orec_union o0 o1:
+      eq (orec (union o0 o1)) (union (orec o0) (orec o1)).
+    Proof.
+      eapply rec_union with (wf:=wf); auto.
     Qed.
 
     Lemma orec_le_base o: le base (orec o).
@@ -915,19 +1163,24 @@ Module Ordinal.
     Qed.
   End OREC.
 
-  Lemma S_eq o0 o1 (EQ: eq o0 o1):
-    eq (S o0) (S o1).
-  Proof.
-    inv EQ. split.
-    - rewrite <- S_le_mon. auto.
-    - rewrite <- S_le_mon. auto.
-  Qed.
+  Section OREC2.
+    Variable base0: t.
+    Variable next0: t -> t.
 
-  Lemma S_le o:
-    le o (S o).
-  Proof.
-    eapply lt_le. eapply S_lt.
-  Qed.
+    Variable base1: t.
+    Variable next1: t -> t.
+
+    Hypothesis BASELE: le base0 base1.
+    Hypothesis NEXTLE: forall o0 o1 (LE: le o0 o1), le (next0 o0) (next1 o1).
+
+    Lemma orec_mon o: le (orec next0 base0 o) (orec next1 base1 o).
+    Proof.
+      eapply (@rec_mon t le join base0 next0 base1 next1); auto.
+      { eapply le_PreOrder. }
+      { i. eapply join_upperbound. }
+      { i. eapply join_supremum. auto. }
+    Qed.
+  End OREC2.
 
   Lemma orec_of_S: forall o, eq o (orec S O o).
   Proof.
@@ -948,11 +1201,6 @@ Module Ordinal.
     }
   Qed.
 
-  Let flip A B C (f: A -> B -> C): B -> A -> C := fun b a => f a b.
-  Definition add (o0: t): forall (o1: t), t := orec S o0.
-  Definition mult (o0: t): forall (o1: t), t := orec (flip add o0) O.
-  Definition expn (o0: t): forall (o1: t), t := orec (flip mult o0) (S O).
-
   Fixpoint from_nat (n: nat): t :=
     match n with
     | 0 => O
@@ -960,6 +1208,389 @@ Module Ordinal.
     end.
 
   Definition omega: t := join from_nat.
+
+  Let flip A B C (f: A -> B -> C): B -> A -> C := fun b a => f a b.
+
+  Section ADD.
+    Definition add (o0: t): forall (o1: t), t := orec S o0.
+
+    Let _S_le o: le o (S o).
+    Proof.
+      eapply S_le.
+    Qed.
+
+    Let _S_le_mon o0 o1 (LE: le o0 o1): le (S o0) (S o1).
+    Proof.
+      rewrite <- S_le_mon. auto.
+    Qed.
+
+    Lemma add_base_l o0 o1: le o0 (add o0 o1).
+    Proof.
+      eapply orec_le_base; auto.
+    Qed.
+
+    Lemma add_base_r o0 o1: le o1 (add o0 o1).
+    Proof.
+      transitivity (orec S O o1).
+      { eapply orec_of_S. }
+      { eapply orec_mon; auto. eapply O_bot. }
+    Qed.
+
+    Lemma add_O_r o: eq (add o O) o.
+    Proof.
+      eapply (@orec_O S o); auto.
+    Qed.
+
+    Lemma add_S o0 o1: eq (add o0 (S o1)) (S (add o0 o1)).
+    Proof.
+      eapply (@orec_S S o0); auto.
+    Qed.
+
+    Lemma add_join o A (os: A -> t):
+      eq (add o (join os)) (union o (join (fun a => add o (os a)))).
+    Proof.
+      eapply (@orec_join S o); eauto.
+    Qed.
+
+    Lemma add_join_inhabited o A (os: A -> t)
+          (INHABITED: inhabited A):
+      eq (add o (join os)) (join (fun a => add o (os a))).
+    Proof.
+      eapply (@orec_join_inhabited S o); eauto.
+    Qed.
+
+    Lemma add_build o A (os: A -> t)
+      :
+        eq (add o (build os)) (union o (join (fun a => S (add o (os a))))).
+    Proof.
+      eapply orec_build.
+    Qed.
+
+    Lemma add_union o0 o1 o2
+      :
+        eq (add o0 (union o1 o2)) (union (add o0 o1) (add o0 o2)).
+    Proof.
+      eapply orec_union; auto.
+    Qed.
+
+    Lemma add_le_r o0 o1 o2 (LE: le o1 o2)
+      :
+        le (add o0 o1) (add o0 o2).
+    Proof.
+      eapply orec_le; auto.
+    Qed.
+
+    Lemma add_lt_r o0 o1 o2 (LT: lt o1 o2)
+      :
+        lt (add o0 o1) (add o0 o2).
+    Proof.
+      eapply S_spec in LT.
+      eapply lt_le_lt.
+      2: { eapply add_le_r. eapply LT. }
+      eapply lt_eq_lt.
+      { eapply add_S. }
+      eapply S_lt.
+    Qed.
+
+    Lemma add_eq_r o0 o1 o2 (EQ: eq o1 o2)
+      :
+        eq (add o0 o1) (add o0 o2).
+    Proof.
+      split.
+      - eapply add_le_r; eauto. eapply EQ.
+      - eapply add_le_r; eauto. eapply EQ.
+    Qed.
+
+    Lemma add_le_l o0 o1 o2 (LE: le o0 o1)
+      :
+        le (add o0 o2) (add o1 o2).
+    Proof.
+      eapply (@orec_mon o0 S o1 S); auto.
+    Qed.
+
+    Lemma add_eq_l o0 o1 o2 (EQ: eq o0 o1)
+      :
+        eq (add o0 o2) (add o1 o2).
+    Proof.
+      split.
+      - eapply add_le_l; eauto. eapply EQ.
+      - eapply add_le_l; eauto. eapply EQ.
+    Qed.
+
+    Lemma add_O_l o: eq (add O o) o.
+    Proof.
+      induction o. etransitivity.
+      { eapply add_build. }
+      { split.
+        - eapply union_spec.
+          + eapply O_bot.
+          + eapply join_supremum. i. eapply S_spec.
+            eapply eq_lt_lt.
+            * eapply H.
+            * eapply build_upperbound.
+        - eapply build_spec. i.
+          eapply (@lt_le_lt (join (fun a0 => S (orec S O (os a0))))).
+          2: { eapply union_r. }
+          eapply eq_lt_lt.
+          { symmetry. eapply H. }
+          eapply lt_le_lt.
+          { eapply S_lt. }
+          { eapply (@join_upperbound _ (fun a0 => S (orec S O (os a0)))). }
+      }
+    Qed.
+
+    Lemma add_assoc o0 o1 o2: eq (add (add o0 o1) o2) (add o0 (add o1 o2)).
+    Proof.
+      revert o0 o1. induction o2. i. etransitivity.
+      { eapply add_build. } etransitivity.
+      2: {
+        eapply add_eq_r; auto.
+        { symmetry. eapply add_build. }
+      }
+      etransitivity.
+      2: { symmetry. eapply add_union; auto. }
+      split.
+      { eapply union_spec.
+        { eapply union_l. }
+        { eapply join_supremum. i. etransitivity.
+          { erewrite <- S_le_mon. eapply H. }
+          etransitivity.
+          2: { eapply union_r. }
+          etransitivity.
+          2: {
+            eapply add_le_r.
+            eapply (@join_upperbound _ (fun a0 : A => S (add o1 (os a0))) a).
+          }
+          eapply add_S.
+        }
+      }
+      { eapply union_spec.
+        { eapply union_l. }
+        etransitivity.
+        { eapply add_join. }
+        eapply union_spec.
+        { etransitivity.
+          { eapply add_base_l. }
+          { eapply union_l. }
+        }
+        etransitivity.
+        2: { eapply union_r. }
+        eapply join_le. i. exists a0.
+        etransitivity.
+        { eapply add_S. }
+        { erewrite <- S_le_mon. eapply H. }
+      }
+    Qed.
+  End ADD.
+
+
+  Section MULT.
+    Definition mult (o0: t): forall (o1: t), t := orec (flip add o0) O.
+
+    Let mult_gen_le o0 o1: le o1 (flip add o0 o1).
+    Proof.
+      eapply add_base_l.
+    Qed.
+
+    Let mult_gen_mon o o0 o1 (LE: le o0 o1): le (flip add o o0) (flip add o o1).
+    Proof.
+      eapply add_le_l. auto.
+    Qed.
+
+    Lemma mult_O_r o: eq (mult o O) O.
+    Proof.
+      eapply (@orec_O (flip add o) O); auto.
+    Qed.
+
+    Lemma mult_S o0 o1: eq (mult o0 (S o1)) (add (mult o0 o1) o0).
+    Proof.
+      eapply (@orec_S (flip add o0) O); auto.
+    Qed.
+
+    Lemma mult_join o A (os: A -> t):
+      eq (mult o (join os)) (join (fun a => mult o (os a))).
+    Proof.
+      transitivity (union O (join (fun a => mult o (os a)))).
+      { eapply (@orec_join (flip add _) O); eauto. }
+      { eapply union_le. eapply O_bot. }
+    Qed.
+
+    Lemma mult_build o A (os: A -> t)
+      :
+        eq (mult o (build os)) (join (fun a => add (mult o (os a)) o)).
+    Proof.
+      transitivity (union O (join (fun a => add (mult o (os a)) o))).
+      { eapply (@orec_build (flip add _) O); eauto. }
+      { eapply union_le. eapply O_bot. }
+    Qed.
+
+    Lemma mult_union o0 o1 o2
+      :
+        eq (mult o0 (union o1 o2)) (union (mult o0 o1) (mult o0 o2)).
+    Proof.
+      eapply orec_union; auto.
+    Qed.
+
+    Lemma mult_le_r o0 o1 o2 (LE: le o1 o2)
+      :
+        le (mult o0 o1) (mult o0 o2).
+    Proof.
+      eapply orec_le; auto.
+    Qed.
+
+    Lemma mult_eq_r o0 o1 o2 (EQ: eq o1 o2)
+      :
+        eq (mult o0 o1) (mult o0 o2).
+    Proof.
+      split.
+      - eapply mult_le_r; eauto. eapply EQ.
+      - eapply mult_le_r; eauto. eapply EQ.
+    Qed.
+
+    Lemma mult_le_l o0 o1 o2 (LE: le o0 o1)
+      :
+        le (mult o0 o2) (mult o1 o2).
+    Proof.
+      eapply (@orec_mon O (flip add o0) O (flip add o1)); auto.
+      { reflexivity. }
+      { i. unfold flip. transitivity (add o4 o0).
+        { eapply add_le_l; auto. }
+        { eapply add_le_r; auto. }
+      }
+    Qed.
+
+    Lemma mult_eq_l o0 o1 o2 (EQ: eq o0 o1)
+      :
+        eq (mult o0 o2) (mult o1 o2).
+    Proof.
+      split.
+      - eapply mult_le_l; eauto. eapply EQ.
+      - eapply mult_le_l; eauto. eapply EQ.
+    Qed.
+
+    Lemma mult_lt_r o0 o1 o2 (LT: lt o1 o2) (NZERO: lt O o0)
+      :
+        lt (mult o0 o1) (mult o0 o2).
+    Proof.
+      eapply S_spec in LT.
+      eapply lt_le_lt.
+      2: { eapply mult_le_r. eapply LT. }
+      eapply lt_eq_lt.
+      { eapply mult_S. }
+      eapply S_spec in NZERO.
+      eapply lt_le_lt.
+      2: { eapply add_le_r. eapply NZERO. }
+      eapply lt_eq_lt.
+      { eapply add_S. }
+      eapply lt_eq_lt.
+      { erewrite <- S_eq_mon. eapply add_O_r. }
+      eapply S_lt.
+    Qed.
+
+    Lemma mult_O_l o: eq (mult O o) O.
+    Proof.
+      induction o. etransitivity.
+      { eapply mult_build. }
+      { split.
+        - eapply join_supremum. i.
+          transitivity (mult O (os a)); auto.
+          { eapply add_O_r. }
+          { eapply H. }
+        - eapply O_bot. }
+    Qed.
+
+    Lemma mult_1_r o: eq (mult o (from_nat 1)) o.
+    Proof.
+      unfold from_nat. etransitivity.
+      { eapply mult_S. }
+      etransitivity.
+      { eapply add_eq_l. eapply mult_O_r. }
+      eapply add_O_l.
+    Qed.
+
+    Lemma mult_1_l o: eq (mult (from_nat 1) o) o.
+    Proof.
+      unfold from_nat. transitivity (orec S O o).
+      2: { symmetry. eapply orec_of_S. }
+      split.
+      { eapply orec_mon.
+        { reflexivity. }
+        { i. unfold flip. etransitivity.
+          { eapply add_S. }
+          { rewrite <- S_le_mon. transitivity o0; auto.
+            eapply add_O_r.
+          }
+        }
+      }
+      { eapply orec_mon.
+        { reflexivity. }
+        { i. unfold flip. etransitivity.
+          { rewrite <- S_le_mon. eapply LE. }
+          transitivity (S (add o1 O)); auto.
+          { rewrite <- S_le_mon. eapply add_O_r. }
+          { eapply add_S. }
+        }
+      }
+    Qed.
+
+    Lemma mult_dist o0 o1 o2: eq (mult o0 (add o1 o2)) (add (mult o0 o1) (mult o0 o2)).
+    Proof.
+      revert o0 o1. induction o2. i. etransitivity.
+      { eapply mult_eq_r. eapply add_build. }
+      etransitivity.
+      2: { eapply add_eq_r. symmetry. eapply mult_build. }
+      etransitivity.
+      { eapply mult_union. }
+      etransitivity.
+      { eapply union_eq_mon.
+        { reflexivity. }
+        { eapply mult_join. }
+      }
+      etransitivity.
+      2: { symmetry. eapply add_join. }
+      eapply union_eq_mon.
+      { reflexivity. } split.
+      { eapply join_le. i. exists a0.
+        etransitivity.
+        { eapply mult_S. }
+        etransitivity.
+        { eapply add_eq_l. symmetry. eapply H. }
+        eapply add_assoc.
+      }
+      { eapply join_le. i. exists a0.
+        etransitivity.
+        { eapply add_assoc. }
+        etransitivity.
+        { eapply add_eq_l. eapply H. }
+        eapply mult_S.
+      }
+    Qed.
+
+    Lemma mult_assoc o0 o1 o2: eq (mult (mult o0 o1) o2) (mult o0 (mult o1 o2)).
+    Proof.
+      revert o0 o1. induction o2. i. etransitivity.
+      { eapply mult_build. } etransitivity.
+      2: {
+        eapply mult_eq_r; auto.
+        { symmetry. eapply mult_build. }
+      }
+      etransitivity.
+      2: { symmetry. eapply mult_join. }
+      split.
+      { eapply join_le. i. exists a0.
+        etransitivity.
+        { eapply add_le_l. eapply H. }
+        { eapply mult_dist. }
+      }
+      { eapply join_le. i. exists a0.
+        etransitivity.
+        { eapply mult_dist. }
+        { eapply add_le_l. eapply H. }
+      }
+    Qed.
+  End MULT.
+
+  Definition expn (o0: t): forall (o1: t), t := orec (flip mult o0) (S O).
 
   Lemma from_wf_inj A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
         (WFA: well_founded RA) (WFB: well_founded RB)
