@@ -13,7 +13,7 @@ We define ordinal numbers as follows.
     :
       le (build os0) (build os1)
   .
-  
+
   Variant lt: t -> t -> Prop :=
   | lt_intro
       o A os (a: A)
@@ -27,7 +27,7 @@ This definition enjoys a lot of properties of ordinal numbers in set theory.
 
 There are two versions of developments, one with classical axioms and one without.
 ## [With classical axioms](https://github.com/minkiminki/Ordinal/blob/main/src/Classical.v)
-Many classical axioms are used here. (excluded middle, axiom of choice, axiom K, proof irrelevance, propositional extensionality and functional extensionality)  
+Many classical axioms are used here. (excluded middle, axiom of choice, axiom K, proof irrelevance, propositional extensionality and functional extensionality)
 [Totalness of `<`](https://github.com/minkiminki/Ordinal/blob/main/src/Classical.v#L228), the existence of an [inaccessible cardinal](https://github.com/minkiminki/Ordinal/blob/main/src/Classical.v#L3509) and a lot of interesting things can be proved in this version.
 
 Furthermore, many useful theorems *not about ordinals* can be proved.
@@ -37,8 +37,6 @@ Furthermore, many useful theorems *not about ordinals* can be proved.
 - and its application for an [initial algebra](https://github.com/minkiminki/Ordinal/blob/main/src/Classical.v#L4635-L4636) / [final coalgebra](https://github.com/minkiminki/Ordinal/blob/main/src/Classical.v#L4635-L4636)
 
 ## [Without classical axioms](https://github.com/minkiminki/Ordinal/blob/main/src/Constructive.v)
-No axiom is used here. We can not prove totalness of `<` without AOC or LEM. (Actually, totalness of `<` may imply LEM and a weaker from of AOC)  
+No axiom is used here. We can not prove totalness of `<` without AOC or LEM. (Actually, totalness of `<` may imply LEM and a weaker form of AOC)
 However, we can still do many things. We can define
 [embedding from any well-ordered type](https://github.com/minkiminki/Ordinal/blob/main/src/Constructive.v#L273-L274), [ordinal arithmetic](https://github.com/minkiminki/Ordinal/blob/main/src/Constructive.v#L1187) and [recursive functions](https://github.com/minkiminki/Ordinal/blob/main/src/Constructive.v#L666) whose domains are ordinal numbers.
-
-
