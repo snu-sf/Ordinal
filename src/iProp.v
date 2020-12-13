@@ -62,10 +62,33 @@ Module iProp.
     ii. eauto.
   Qed.
 
-  Global Program Instance le_Antisymmetric: Antisymmetric _ eq le.
+  Definition eq (P0 P1: t): Prop := forall i, P0 i <-> P1 i.
+
+  Global Program Instance le_Equivalence: Equivalence eq.
   Next Obligation.
   Proof.
-    extensionality i. eapply propositional_extensionality. eauto.
+    ii. reflexivity.
+  Qed.
+  Next Obligation.
+  Proof.
+    ii. symmetry. auto.
+  Qed.
+  Next Obligation.
+  Proof.
+    ii. etransitivity; eauto.
+  Qed.
+
+
+  Global Program Instance le_Antisymmetric: @Antisymmetric _ eq _ le.
+  Next Obligation.
+  Proof.
+    ii. split; auto.
+  Qed.
+
+  (* axioms needed *)
+  Lemma eq_eq P0 P1 (EQ: eq P0 P1): P0 = P1.
+  Proof.
+    extensionality i. eapply propositional_extensionality. auto.
   Qed.
 
   Definition ge := flip le.
@@ -73,11 +96,10 @@ Module iProp.
   Definition closed (P: t): Prop :=
     forall i0 i1 (IN: P i0) (LE: Ordinal.le i0 i1), P i1.
 
-
   Definition next (P: t): t :=
     fun i1 => exists i0, P i0 /\ Ordinal.lt i0 i1.
 
-  Lemma next_incl P (CLOSED: closed P): le (next P) P.
+  Lemma next_le P (CLOSED: closed P): le (next P) P.
   Proof.
     unfold next in *. ii. des. eapply CLOSED; eauto. eapply Ordinal.lt_le; eauto.
   Qed.
@@ -92,6 +114,72 @@ Module iProp.
     ii. unfold next in *. des. esplits; eauto.
     eapply Ordinal.lt_le_lt; eauto.
   Qed.
+
+
+  Definition top: t := fun _ => True.
+
+  Lemma top_spec P: le P top.
+  Proof.
+    ss.
+  Qed.
+
+  Lemma top_closed: closed top.
+  Proof.
+    ss.
+  Qed.
+
+
+  Definition bot: t := fun _ => False.
+
+  Lemma bot_spec P: le bot P.
+  Proof.
+    ss.
+  Qed.
+
+  Lemma bot_closed: closed bot.
+  Proof.
+    ss.
+  Qed.
+
+
+  Definition lt (P0 P1: t): Prop := le P0 (next P1).
+
+  Lemma lt_le P0 P1 (LT: lt P0 P1) (CLOSED: closed P1): le P0 P1.
+  Proof.
+    ii. eapply next_le.
+    { eapply CLOSED. }
+    eapply LT. auto.
+  Qed.
+
+  Lemma lt_le_lt P0 P1 P2 (LT: lt P0 P1) (LE: le P1 P2): lt P0 P2.
+  Proof.
+    ii. eapply LT in IN. eapply next_mon; eauto.
+  Qed.
+
+  Lemma le_lt_lt P0 P1 P2 (LE: le P0 P1) (LT: lt P1 P2): lt P0 P2.
+  Proof.
+    ii. eapply LE in IN. eapply LT; eauto.
+  Qed.
+
+  Lemma lob_next P0 (LE: le P0 (next P0)): forall P1, le P0 P1.
+  Proof.
+    ii. exfalso.
+    eapply (well_founded_induction Ordinal.lt_well_founded (fun i => ~ P0 i)); eauto.
+    ii. eapply LE in H0. destruct H0. des. eapply H; eauto.
+  Qed.
+
+  Lemma lob_lt P0 (LT: lt P0 P0): forall P1, le P0 P1.
+  Proof.
+    eapply lob_next. eauto.
+  Qed.
+
+  Lemma lt_lt_lt P0 P1 P2 (LT0: lt P0 P1) (LT1: lt P1 P2): lt P0 P2.
+  Proof.
+    ii. eapply LT0 in IN. destruct IN. des.
+    eapply LT1 in H. destruct H. des. exists x0.
+    split; auto. eapply Ordinal.lt_StrictOrder; eauto.
+  Qed.
+
 
   Definition meet A (Ps: A -> t): t :=
     fun i => forall a, Ps a i.
@@ -150,32 +238,6 @@ Module iProp.
   Qed.
 
 
-  Definition top: t := meet (False_rect _).
-
-  Lemma top_spec P: le P top.
-  Proof.
-    eapply meet_infimum. i. ss.
-  Qed.
-
-  Lemma top_closed: closed top.
-  Proof.
-    eapply meet_closed. ss.
-  Qed.
-
-
-  Definition bot: t := join (False_rect _).
-
-  Lemma bot_spec P: le bot P.
-  Proof.
-    eapply join_supremum. i. ss.
-  Qed.
-
-  Lemma bot_closed: closed bot.
-  Proof.
-    eapply join_closed. ss.
-  Qed.
-
-
   Definition future (P: t): t :=
     fun i1 => exists i0, P i0.
 
@@ -197,8 +259,8 @@ Module iProp.
 
   Lemma meet_meet A (B: A -> Type) (k: forall a (b: B a), t)
     :
-      meet (fun a => meet (k a)) =
-      meet (fun (ab: sigT B) => let (a, b) := ab in k a b).
+      eq (meet (fun a => meet (k a)))
+         (meet (fun (ab: sigT B) => let (a, b) := ab in k a b)).
   Proof.
     eapply le_Antisymmetric.
     - ii. destruct a as [a b]. eapply IN; eauto.
@@ -207,8 +269,8 @@ Module iProp.
 
   Lemma meet_join A (B: A -> Type) (k: forall a (b: B a), t)
     :
-      meet (fun a => join (k a)) =
-      join (fun (f: forall a, B a) => meet (fun a => k a (f a))).
+      eq (meet (fun a => join (k a)))
+         (join (fun (f: forall a, B a) => meet (fun a => k a (f a)))).
   Proof.
     eapply le_Antisymmetric.
     - unfold join, meet. ii. eapply forall_exists_commute in IN; eauto.
@@ -217,8 +279,8 @@ Module iProp.
 
   Lemma join_meet A (B: A -> Type) (k: forall a (b: B a), t)
     :
-      join (fun a => meet (k a)) =
-      meet (fun (f: forall a, B a) => join (fun a => k a (f a))).
+      eq (join (fun a => meet (k a)))
+         (meet (fun (f: forall a, B a) => join (fun a => k a (f a)))).
   Proof.
     eapply le_Antisymmetric.
     - unfold join, meet. ii. eapply exists_forall_commute in IN; eauto.
@@ -227,8 +289,8 @@ Module iProp.
 
   Lemma join_join A (B: A -> Type) (k: forall a (b: B a), t)
     :
-      join (fun a => join (k a)) =
-      join (fun (ab: sigT B) => let (a, b) := ab in k a b).
+      eq (join (fun a => join (k a)))
+         (join (fun (ab: sigT B) => let (a, b) := ab in k a b)).
   Proof.
     unfold join. eapply le_Antisymmetric.
     - ii. des. exists (existT _ a a0). eauto.
@@ -238,7 +300,7 @@ Module iProp.
   Lemma join_next A k
         (INHABITED: inhabited A)
     :
-      join (fun a: A => next (k a)) = next (join k).
+      eq (join (fun a: A => next (k a))) (next (join k)).
   Proof.
     destruct INHABITED. unfold next, join.
     eapply le_Antisymmetric.
@@ -249,7 +311,7 @@ Module iProp.
   Lemma join_empty A k
         (INHABITED: ~ inhabited A)
     :
-      @join A k = bot.
+      eq (@join A k) bot.
   Proof.
     eapply le_Antisymmetric.
     - eapply join_supremum. i. exfalso. eapply INHABITED. econs; eauto.
@@ -259,7 +321,7 @@ Module iProp.
   Lemma meet_empty A k
         (INHABITED: ~ inhabited A)
     :
-      @meet A k = top.
+      eq (@meet A k) top.
   Proof.
     eapply le_Antisymmetric.
     - eapply top_spec.
@@ -280,7 +342,7 @@ Module iProp.
     set (nextn := @nat_rect (fun _ => t) top (fun n s => next s)).
     assert (CLOSED: forall n, closed (nextn n)).
     { induction n.
-      { ss. apply top_closed. }
+      { ss. }
       { ss. apply next_closed; auto. }
     }
     assert (NAT: forall n, nextn n (Ordinal.from_nat n)).
@@ -311,14 +373,14 @@ Module iProp.
   Qed.
 
 
-  Lemma next_future P: future (next P) = future P.
+  Lemma next_future P: eq (future (next P)) (future P).
   Proof.
     unfold next, future. eapply le_Antisymmetric.
     - ii. des. esplits; eauto.
     - ii. des. esplits; eauto. eapply (Ordinal.S_lt).
   Qed.
 
-  Lemma future_future P: future (future P) = future P.
+  Lemma future_future P: eq (future (future P)) (future P).
   Proof.
     eapply le_Antisymmetric.
     - unfold future. ii. des. esplits; eauto.
@@ -327,7 +389,7 @@ Module iProp.
 
   Lemma join_future A k
     :
-      join (fun a: A => future (k a)) = future (join k).
+      eq (join (fun a: A => future (k a))) (future (join k)).
   Proof.
     unfold join, future. eapply le_Antisymmetric.
     - ii. des. esplits; eauto.
@@ -343,7 +405,7 @@ Module iProp.
 
   Lemma meet_future A k (CLOSED: forall a, closed (k a))
     :
-      meet (fun a: A => future (k a)) = future (meet k).
+      eq (meet (fun a: A => future (k a))) (future (meet k)).
   Proof.
     unfold meet, future. eapply le_Antisymmetric.
     - ii. eapply choice in IN. des.
