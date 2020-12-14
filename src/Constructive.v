@@ -1,6 +1,6 @@
 Require Import sflib.
 
-Require Import Coq.Classes.RelationClasses Coq.Relations.Relation_Operators Coq.Classes.Morphisms. (* TODO: Use Morphisms *)
+Require Import Coq.Classes.RelationClasses Coq.Relations.Relation_Operators Coq.Classes.Morphisms ChoiceFacts. (* TODO: Use Morphisms *)
 
 Set Implicit Arguments.
 Set Primitive Projections.
@@ -139,7 +139,7 @@ Module Ordinal.
     eapply H; eauto. etransitivity; eauto.
   Qed.
 
-  Program Instance lt_StrictOrder: StrictOrder lt.
+  Global Program Instance lt_StrictOrder: StrictOrder lt.
   Next Obligation.
   Proof.
     ii. eapply (well_founded_induction lt_well_founded (fun o => ~ lt o o)); eauto.
@@ -1618,5 +1618,59 @@ Module Ordinal.
     { eapply from_wf_inj; eauto. }
     eapply from_wf_set_upperbound.
   Qed.
+
+  Section KAPPA.
+    Variable X: MyT.
+
+    Inductive tree: MyT :=
+    | tree_O
+    | tree_S (tl: tree)
+    | tree_join (tls: X -> tree)
+    .
+
+    Definition tree_lt (tr0 tr1: tree): Prop :=
+      match tr1 with
+      | tree_O => False
+      | tree_S tl => tr0 = tl
+      | tree_join tls => exists x, tr0 = tls x
+      end.
+
+    Lemma tree_lt_well_founded: well_founded tree_lt.
+    Proof.
+      ii. induction a.
+      { econs. ii. ss. }
+      { econs. i. ss. subst. auto. }
+      { econs. i. ss. des. subst. auto. }
+    Qed.
+
+    Definition kappa := from_wf_set tree_lt_well_founded.
+
+    Lemma kappa_O: lt O kappa.
+    Proof.
+      econs. instantiate (1:=tree_O). eapply O_bot.
+    Qed.
+
+    Lemma kappa_S o (LT: lt o kappa):
+      lt (S o) kappa.
+    Proof.
+      eapply lt_inv in LT. des.
+      econs. instantiate (1:=tree_S a).
+      eapply S_spec. eapply le_lt_lt; eauto.
+      eapply from_wf_lt. ss.
+    Qed.
+
+    Lemma kappa_join
+          (CHOICE: FunctionalChoice_on X tree)
+          (os: X -> t)
+          (LT: forall x, lt (os x) kappa):
+      lt (join os) kappa.
+    Proof.
+      hexploit (CHOICE (fun (x: X) (tr: tree) => le (os x) (from_wf tree_lt_well_founded tr))).
+      { i. specialize (LT x). eapply lt_inv in LT. eauto. } i. des.
+      econs. instantiate (1:=tree_join f).
+      eapply join_supremum. i. etransitivity; eauto.
+      eapply lt_le. eapply from_wf_lt. ss. eauto.
+    Qed.
+  End KAPPA.
 End TYPE.
 End Ordinal.

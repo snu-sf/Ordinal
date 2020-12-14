@@ -161,14 +161,14 @@ Module iProp.
     ii. eapply LE in IN. eapply LT; eauto.
   Qed.
 
-  Lemma lob_next P0 (LE: le P0 (next P0)): forall P1, le P0 P1.
+  Lemma lob_next P0 (LE: le P0 (next P0)): le P0 bot.
   Proof.
     ii. exfalso.
     eapply (well_founded_induction Ordinal.lt_well_founded (fun i => ~ P0 i)); eauto.
     ii. eapply LE in H0. destruct H0. des. eapply H; eauto.
   Qed.
 
-  Lemma lob_lt P0 (LT: lt P0 P0): forall P1, le P0 P1.
+  Lemma lob_lt P0 (LT: lt P0 P0): le P0 bot.
   Proof.
     eapply lob_next. eauto.
   Qed.
@@ -177,7 +177,7 @@ Module iProp.
   Proof.
     ii. eapply LT0 in IN. destruct IN. des.
     eapply LT1 in H. destruct H. des. exists x0.
-    split; auto. eapply Ordinal.lt_StrictOrder; eauto.
+    split; auto. etransitivity; eauto.
   Qed.
 
 
@@ -246,7 +246,7 @@ Module iProp.
     unfold future in *. ii. des. eauto.
   Qed.
 
-  Lemma future_incl P: le P (future P).
+  Lemma future_le P: le P (future P).
   Proof.
     unfold future. ii. eauto.
   Qed.
@@ -384,7 +384,7 @@ Module iProp.
   Proof.
     eapply le_Antisymmetric.
     - unfold future. ii. des. esplits; eauto.
-    - eapply future_incl; eauto.
+    - eapply future_le; eauto.
   Qed.
 
   Lemma join_future A k
@@ -412,4 +412,213 @@ Module iProp.
       exists (Ordinal.join f). i. eapply CLOSED; eauto. eapply Ordinal.join_upperbound.
     - eapply future_meet.
   Qed.
+
+  Lemma union_closed (P0 P1: t) (CLOSED0: closed P0) (CLOSED1: closed P1):
+    closed (fun i => P0 i \/ P1 i).
+  Proof.
+    ii. des.
+    - left. eapply CLOSED0; eauto.
+    - right. eapply CLOSED1; eauto.
+  Qed.
+
+  Lemma inter_closed (P0 P1: t) (CLOSED0: closed P0) (CLOSED1: closed P1):
+    closed (fun i => P0 i /\ P1 i).
+  Proof.
+    ii. des. split.
+    - eapply CLOSED0; eauto.
+    - eapply CLOSED1; eauto.
+  Qed.
+
+
+  Definition closure (P: t): t :=
+    fun i1 => exists i0, P i0 /\ Ordinal.le i0 i1.
+
+  Lemma closure_le P: le P (closure P).
+  Proof.
+    ii. exists i. split; auto. reflexivity.
+  Qed.
+
+  Lemma closure_mon P0 P1 (LE: le P0 P1): le (closure P0) (closure P1).
+  Proof.
+    ii. destruct IN. des. eapply LE in H. exists x; eauto.
+  Qed.
+
+  Lemma closure_closed P: closed (closure P).
+  Proof.
+    ii. destruct IN. des.
+    exists x. split; auto. transitivity i0; auto.
+  Qed.
+
+  Lemma closure_eq_closed P (CLOSED: le (closure P) P): closed P.
+  Proof.
+    ii. eapply CLOSED. exists i0; auto.
+  Qed.
+
+  Lemma closed_closure_eq P (CLOSED: closed P): le (closure P) P.
+  Proof.
+    ii. destruct IN. des. eapply CLOSED; eauto.
+  Qed.
+
+
+  Definition inhabited (P: t) := exists i, P i.
+
+  Lemma le_inhabited P0 P1 (LE: le P0 P1) (INHABITED: inhabited P0):
+    inhabited P1.
+  Proof.
+    destruct INHABITED. exists x. auto.
+  Qed.
+
+  Lemma inhabited_future_top P (INHABITED: inhabited P):
+    le top (future P).
+  Proof.
+    ii. eauto.
+  Qed.
+
+  Lemma future_top_inhabited P (INHABITED: le top (future P)):
+    inhabited P.
+  Proof.
+    exploit (INHABITED (Ordinal.O)); ss.
+  Qed.
+
+  Lemma top_inhabited: inhabited top.
+  Proof.
+    exists Ordinal.O. ss.
+  Qed.
+
+  Lemma next_inhabited P (INHABITED: inhabited P): inhabited (next P).
+  Proof.
+    destruct INHABITED. exists (Ordinal.S x).
+    exists x. splits; auto. eapply Ordinal.S_lt.
+  Qed.
+
+  Lemma next_inhabited_rev P (INHABITED: inhabited (next P)): inhabited P.
+  Proof.
+    destruct INHABITED. destruct H. des. exists x0; eauto.
+  Qed.
+
+  Lemma future_inhabited P (INHABITED: inhabited P): inhabited (future P).
+  Proof.
+    eapply le_inhabited; eauto. eapply future_le.
+  Qed.
+
+  Lemma future_inhabited_rev P (INHABITED: inhabited (future P)):
+    inhabited P.
+  Proof.
+    destruct INHABITED. destruct H. exists x0; auto.
+  Qed.
+
+  Lemma meet_inhabited A (Ps: A -> t)
+        (INHABITED: forall a, inhabited (Ps a))
+        (CLOSED: forall a, closed (Ps a)):
+    inhabited (meet Ps).
+  Proof.
+    hexploit (choice (fun a i => Ps a i) INHABITED). i. des.
+    exists (Ordinal.join f). ii.
+    eapply CLOSED; eauto. eapply Ordinal.join_upperbound.
+  Qed.
+
+  Lemma meet_inhabited_rev A (Ps: A -> t)
+        (INHABITED: inhabited (meet Ps)):
+    forall a, inhabited (Ps a).
+  Proof.
+    destruct INHABITED. ii. exists x. eauto.
+  Qed.
+
+  Lemma join_inhabited A (Ps: A -> t)
+        a
+        (INHABITED: inhabited (Ps a)):
+    inhabited (join Ps).
+  Proof.
+    eapply le_inhabited; eauto. eapply join_upperbound.
+  Qed.
+
+  Lemma join_inhabited_rev A (Ps: A -> t)
+        (INHABITED: inhabited (join Ps)):
+    exists a, inhabited (Ps a).
+  Proof.
+    destruct INHABITED. destruct H. exists x0, x. auto.
+  Qed.
+
+  Definition upper (i0: Ordinal.t): t := fun i1 => Ordinal.le i0 i1.
+
+  Lemma upper_inhabited i0: inhabited (upper i0).
+  Proof.
+    exists i0. reflexivity.
+  Qed.
+
+  Lemma upper_closed i0: closed (upper i0).
+  Proof.
+    ii. transitivity i1; auto.
+  Qed.
+
+  Lemma le_upper i (P: t) (IN: P i) (CLOSED: closed P): le (upper i) P.
+  Proof.
+    ii. eapply CLOSED; eauto.
+  Qed.
+
+  Section KAPPA.
+    Variable X: Type.
+
+    Definition kappa := upper (Ordinal.kappa X).
+
+    Lemma kappa_closed: closed kappa.
+    Proof.
+      eapply upper_closed.
+    Qed.
+
+    Lemma kappa_inhabited: inhabited kappa.
+    Proof.
+      eapply upper_inhabited.
+    Qed.
+
+    Lemma kappa_top: lt kappa top.
+    Proof.
+      ii. exists Ordinal.O. split; ss.
+      eapply Ordinal.lt_le_lt.
+      { eapply Ordinal.kappa_O. }
+      { eapply IN. }
+    Qed.
+
+    Lemma kappa_next P (LT: lt kappa P): lt kappa (next P).
+    Proof.
+      eapply le_upper.
+      2: { eapply next_closed. }
+      destruct (LT (Ordinal.kappa X)).
+      { unfold kappa. reflexivity. }
+      des. eapply Ordinal.kappa_S in H0.
+      exists (Ordinal.S x). splits; auto.
+      exists x. splits; auto. eapply Ordinal.S_lt.
+    Qed.
+
+    Lemma kappa_meet (Ps: X -> t) (LT: forall x, lt kappa (Ps x))
+          (CLOSED: forall x, closed (Ps x)):
+      lt kappa (meet Ps).
+    Proof.
+      eapply le_upper.
+      2: { eapply next_closed. }
+      hexploit (choice (fun (x: X) (i: Ordinal.t) =>
+                          Ps x i /\ Ordinal.lt i (Ordinal.kappa X))).
+      { i. destruct (LT x (Ordinal.kappa X)).
+        { unfold kappa. reflexivity. }
+        des. eauto. }
+      i. des. exists (Ordinal.join f). split.
+      { ii. destruct (H a). des. eapply CLOSED; eauto.
+        eapply Ordinal.join_upperbound. }
+      { eapply Ordinal.kappa_join.
+        { ii. eapply choice; eauto. }
+        { i. eapply H. }
+      }
+    Qed.
+
+    Lemma kappa_join A (Ps: A -> t) (LT: forall a, lt kappa (Ps a))
+          (INHABITED: Coq.Init.Logic.inhabited A):
+      lt kappa (join Ps).
+    Proof.
+      eapply le_upper.
+      2: { eapply next_closed. }
+      destruct INHABITED. destruct (LT X0 (Ordinal.kappa X)).
+      { unfold kappa. reflexivity. }
+      des. exists x. splits; eauto. ii. exists X0; auto.
+    Qed.
+  End KAPPA.
 End iProp.
