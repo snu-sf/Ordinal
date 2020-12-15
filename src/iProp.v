@@ -4,7 +4,7 @@ Require Import Coq.Classes.RelationClasses Coq.Relations.Relation_Operators Coq.
 Require Import ClassicalChoice PropExtensionality FunctionalExtensionality.
 Require Import Program.
 
-Require Import Constructive.
+Require Import Ordinal.
 
 Set Implicit Arguments.
 Set Primitive Projections.

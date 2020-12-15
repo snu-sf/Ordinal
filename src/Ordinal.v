@@ -218,149 +218,6 @@ Module Ordinal.
     specialize (UB a0). eapply lt_inv in UB. des. eauto.
   Qed.
 
-  Lemma acc_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
-        a (ACC: Acc R1 a)
-    :
-      Acc R0 a.
-  Proof.
-    induction ACC. econs. i. eapply H0; eauto.
-  Qed.
-
-  Lemma wf_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
-        (WF: well_founded R1)
-    :
-      well_founded R0.
-  Proof.
-    econs. i. eapply acc_mon; eauto.
-  Qed.
-
-  Program Fixpoint from_acc A (R: A -> A -> Prop) (a1: A) (ACC: Acc R a1): t :=
-    @build (sig (fun a0 => R a0 a1)) (fun a0p =>
-                                        @from_acc _ R (proj1_sig a0p) _).
-  Next Obligation.
-    inv ACC. eapply H0; eauto.
-  Defined.
-  Arguments from_acc [A R] a1 ACC.
-
-  Lemma same_acc_le A (R: A -> A -> Prop) (a: A) (ACC0 ACC1: Acc R a):
-    le (from_acc a ACC0) (from_acc a ACC1).
-  Proof.
-    generalize ACC0. i. revert ACC1 ACC2. induction ACC0.
-    i. destruct ACC1, ACC2. ss. econs. i.
-    exists a1. eapply H0. eapply (proj2_sig a1).
-  Qed.
-
-  Lemma same_acc_eq A (R: A -> A -> Prop) (a: A) (ACC0 ACC1: Acc R a):
-    eq (from_acc a ACC0) (from_acc a ACC1).
-  Proof.
-    split.
-    - eapply same_acc_le.
-    - eapply same_acc_le.
-  Qed.
-
-  Lemma from_acc_lt A (R: A -> A -> Prop) (a0 a1: A) (LT: R a0 a1)
-        (ACC1: Acc R a1) (ACC0: Acc R a0)
-    :
-      lt (from_acc a0 ACC0) (from_acc a1 ACC1).
-  Proof.
-    destruct ACC1. ss.
-    set (exist (fun a0 => R a0 a1) a0 LT).
-    eapply le_lt_lt.
-    2: { eapply (build_upperbound (fun a0p => from_acc (proj1_sig a0p) (from_acc_obligation_1 (Acc_intro a1 a) a0p)) s). }
-    eapply same_acc_eq.
-  Qed.
-
-  Definition from_wf A (R: A -> A -> Prop) (WF: well_founded R) (a1: A): t :=
-    from_acc a1 (WF a1).
-
-  Lemma from_wf_lt A (R: A -> A -> Prop) (WF: well_founded R) (a0 a1: A) (LT: R a0 a1)
-    :
-      lt (from_wf WF a0) (from_wf WF a1).
-  Proof.
-    eapply from_acc_lt; eauto.
-  Qed.
-
-  Lemma same_wf_le A (R: A -> A -> Prop) (a: A) (WF0 WF1: well_founded R):
-    le (from_wf WF0 a) (from_wf WF1 a).
-  Proof.
-    eapply same_acc_le.
-  Qed.
-
-  Lemma same_wf_eq A (R: A -> A -> Prop) (a: A) (WF0 WF1: well_founded R):
-    eq (from_wf WF0 a) (from_wf WF1 a).
-  Proof.
-    eapply same_acc_eq.
-  Qed.
-
-  Lemma from_wf_supremum A (R: A -> A -> Prop) (WF: well_founded R) o a1
-        (LE: forall a0 (LT: R a0 a1), lt (from_wf WF a0) o)
-    :
-      le (from_wf WF a1) o.
-  Proof.
-    unfold from_wf. destruct (WF a1). ss.
-    eapply build_spec. i. destruct a0 as [a0 r]. ss.
-    specialize (LE a0 r). unfold from_wf in LE.
-    eapply le_lt_lt; [|eapply LE].
-    eapply same_acc_le.
-  Qed.
-
-  Definition from_wf_set A (R: A -> A -> Prop) (WF: well_founded R): t :=
-    @build A (from_wf WF).
-
-  Lemma from_wf_set_upperbound A (R: A -> A -> Prop) (WF: well_founded R) a:
-    lt (from_wf WF a) (from_wf_set WF).
-  Proof.
-    eapply build_upperbound.
-  Qed.
-
-  Lemma from_acc_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
-        a (ACC0: Acc R0 a) (ACC1: Acc R1 a)
-    :
-      le (from_acc a ACC0) (from_acc a ACC1).
-  Proof.
-    dup ACC1. rename ACC2 into ACC. revert ACC0 ACC1. induction ACC.
-    i. destruct ACC0, ACC1. ss. econs. i.
-    destruct a1 as [a1 p1]. ss. exists (exist _ a1 (INCL _ _ p1)). ss.
-    eapply H0; eauto.
-  Qed.
-
-  Lemma from_wf_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
-        (WF0: well_founded R0) (WF1: well_founded R1) a
-    :
-      le (from_wf WF0 a) (from_wf WF1 a).
-  Proof.
-    unfold from_wf. eapply from_acc_mon; eauto.
-  Qed.
-
-  Lemma from_wf_set_le A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
-        (WF0: well_founded R0) (WF1: well_founded R1)
-    :
-      le (from_wf_set WF0) (from_wf_set WF1).
-  Proof.
-    econs. i. exists a0. eapply from_wf_mon; auto.
-  Qed.
-
-  Lemma from_wf_preserve A B (f: A -> B)
-        (RA: A -> A -> Prop) (RB: B -> B -> Prop)
-        (WFA: well_founded RA)
-        (WFB: well_founded RB)
-        (LE: forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1))
-    :
-      forall a, le (from_wf WFA a) (from_wf WFB (f a)).
-  Proof.
-    eapply (well_founded_induction WFA); auto.
-    intros a IH. unfold from_wf.
-    destruct (WFA a) as [GA], (WFB (f a)) as [GB].
-    ss. econs; ss. i.
-    destruct a0 as [a0 r0]. ss. exists (exist _ (f a0) (LE _ _ r0)).
-    ss. specialize (IH a0 r0). unfold from_wf in IH.
-    transitivity (from_acc a0 (WFA a0)).
-    { eapply same_acc_le. }
-    transitivity (from_acc (f a0) (WFB (f a0))).
-    { auto. }
-    { eapply same_acc_le. }
-  Qed.
-
   Definition is_O (o0: t): Prop := forall o1, le o0 o1.
 
   Record is_S (o0 o1: t): Prop :=
@@ -565,6 +422,18 @@ Module Ordinal.
     etransitivity; eauto. eapply join_upperbound.
   Qed.
 
+  Lemma join_le_same A (os0 os1: A -> t) (LE: forall a, le (os0 a) (os1 a)):
+    le (join os0) (join os1).
+  Proof.
+    eapply join_le. i. exists a0. auto.
+  Qed.
+
+  Lemma join_eq A (os0 os1: A -> t) (LE: forall a, eq (os0 a) (os1 a)):
+    eq (join os0) (join os1).
+  Proof.
+    split; apply join_le_same; i; eapply LE.
+  Qed.
+
   Lemma join_is_join A (os: A -> t):
     is_join os (join os).
   Proof.
@@ -661,6 +530,164 @@ Module Ordinal.
       + transitivity (union o1 o2).
         { eapply union_r. }
         { eapply union_r. }
+  Qed.
+
+  Lemma acc_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        a (ACC: Acc R1 a)
+    :
+      Acc R0 a.
+  Proof.
+    induction ACC. econs. i. eapply H0; eauto.
+  Qed.
+
+  Lemma wf_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        (WF: well_founded R1)
+    :
+      well_founded R0.
+  Proof.
+    econs. i. eapply acc_mon; eauto.
+  Qed.
+
+  Program Fixpoint from_acc A (R: A -> A -> Prop) (a1: A) (ACC: Acc R a1): t :=
+    @build (sig (fun a0 => R a0 a1)) (fun a0p =>
+                                        @from_acc _ R (proj1_sig a0p) _).
+  Next Obligation.
+    inv ACC. eapply H0; eauto.
+  Defined.
+  Arguments from_acc [A R] a1 ACC.
+
+  Lemma same_acc_le A (R: A -> A -> Prop) (a: A) (ACC0 ACC1: Acc R a):
+    le (from_acc a ACC0) (from_acc a ACC1).
+  Proof.
+    generalize ACC0. i. revert ACC1 ACC2. induction ACC0.
+    i. destruct ACC1, ACC2. ss. econs. i.
+    exists a1. eapply H0. eapply (proj2_sig a1).
+  Qed.
+
+  Lemma same_acc_eq A (R: A -> A -> Prop) (a: A) (ACC0 ACC1: Acc R a):
+    eq (from_acc a ACC0) (from_acc a ACC1).
+  Proof.
+    split.
+    - eapply same_acc_le.
+    - eapply same_acc_le.
+  Qed.
+
+  Lemma from_acc_lt A (R: A -> A -> Prop) (a0 a1: A) (LT: R a0 a1)
+        (ACC1: Acc R a1) (ACC0: Acc R a0)
+    :
+      lt (from_acc a0 ACC0) (from_acc a1 ACC1).
+  Proof.
+    destruct ACC1. ss.
+    set (exist (fun a0 => R a0 a1) a0 LT).
+    eapply le_lt_lt.
+    2: { eapply (build_upperbound (fun a0p => from_acc (proj1_sig a0p) (from_acc_obligation_1 (Acc_intro a1 a) a0p)) s). }
+    eapply same_acc_eq.
+  Qed.
+
+  Definition from_wf A (R: A -> A -> Prop) (WF: well_founded R) (a1: A): t :=
+    from_acc a1 (WF a1).
+
+  Lemma from_wf_lt A (R: A -> A -> Prop) (WF: well_founded R) (a0 a1: A) (LT: R a0 a1)
+    :
+      lt (from_wf WF a0) (from_wf WF a1).
+  Proof.
+    eapply from_acc_lt; eauto.
+  Qed.
+
+  Lemma same_wf_le A (R: A -> A -> Prop) (a: A) (WF0 WF1: well_founded R):
+    le (from_wf WF0 a) (from_wf WF1 a).
+  Proof.
+    eapply same_acc_le.
+  Qed.
+
+  Lemma same_wf_eq A (R: A -> A -> Prop) (a: A) (WF0 WF1: well_founded R):
+    eq (from_wf WF0 a) (from_wf WF1 a).
+  Proof.
+    eapply same_acc_eq.
+  Qed.
+
+  Lemma from_wf_supremum A (R: A -> A -> Prop) (WF: well_founded R) o a1
+        (LE: forall a0 (LT: R a0 a1), lt (from_wf WF a0) o)
+    :
+      le (from_wf WF a1) o.
+  Proof.
+    unfold from_wf. destruct (WF a1). ss.
+    eapply build_spec. i. destruct a0 as [a0 r]. ss.
+    specialize (LE a0 r). unfold from_wf in LE.
+    eapply le_lt_lt; [|eapply LE].
+    eapply same_acc_le.
+  Qed.
+
+  Definition from_wf_set A (R: A -> A -> Prop) (WF: well_founded R): t :=
+    @build A (from_wf WF).
+
+  Lemma from_wf_set_upperbound A (R: A -> A -> Prop) (WF: well_founded R) a:
+    lt (from_wf WF a) (from_wf_set WF).
+  Proof.
+    eapply build_upperbound.
+  Qed.
+
+  Lemma from_acc_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        a (ACC0: Acc R0 a) (ACC1: Acc R1 a)
+    :
+      le (from_acc a ACC0) (from_acc a ACC1).
+  Proof.
+    dup ACC1. rename ACC2 into ACC. revert ACC0 ACC1. induction ACC.
+    i. destruct ACC0, ACC1. ss. econs. i.
+    destruct a1 as [a1 p1]. ss. exists (exist _ a1 (INCL _ _ p1)). ss.
+    eapply H0; eauto.
+  Qed.
+
+  Lemma from_wf_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        (WF0: well_founded R0) (WF1: well_founded R1) a
+    :
+      le (from_wf WF0 a) (from_wf WF1 a).
+  Proof.
+    unfold from_wf. eapply from_acc_mon; eauto.
+  Qed.
+
+  Lemma from_wf_set_le A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), R1 a0 a1)
+        (WF0: well_founded R0) (WF1: well_founded R1)
+    :
+      le (from_wf_set WF0) (from_wf_set WF1).
+  Proof.
+    econs. i. exists a0. eapply from_wf_mon; auto.
+  Qed.
+
+  Lemma from_wf_inj A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
+        (WFA: well_founded RA) (WFB: well_founded RB)
+        f
+        (INJ: forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1))
+    :
+      forall a, le (from_wf WFA a) (from_wf WFB (f a)).
+  Proof.
+    eapply (well_founded_induction WFA). i. eapply from_wf_supremum.
+    i. dup LT. eapply H in LT. eapply le_lt_lt; eauto.
+    eapply from_wf_lt; eauto.
+  Qed.
+
+  Lemma from_wf_set_inj A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
+        (WFA: well_founded RA) (WFB: well_founded RB)
+        f
+        (INJ: forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1))
+    :
+      le (from_wf_set WFA) (from_wf_set WFB).
+  Proof.
+    eapply build_spec. i. eapply le_lt_lt.
+    { eapply from_wf_inj; eauto. }
+    eapply from_wf_set_upperbound.
+  Qed.
+
+  Lemma same_wf_set_le A (R: A -> A -> Prop) (WF0 WF1: well_founded R):
+    le (from_wf_set WF0) (from_wf_set WF1).
+  Proof.
+    econs. i. exists a0. eapply same_wf_le.
+  Qed.
+
+  Lemma same_wf_set_eq A (R: A -> A -> Prop) (WF0 WF1: well_founded R):
+    eq (from_wf_set WF0) (from_wf_set WF1).
+  Proof.
+    split; eapply same_wf_set_le.
   Qed.
 
   Section REC.
@@ -1594,30 +1621,6 @@ Module Ordinal.
 
     Definition expn (o0: t): forall (o1: t), t := orec (flip mult o0) (S O).
   End ARITHMETIC.
-
-  Lemma from_wf_inj A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
-        (WFA: well_founded RA) (WFB: well_founded RB)
-        f
-        (INJ: forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1))
-    :
-      forall a, le (from_wf WFA a) (from_wf WFB (f a)).
-  Proof.
-    eapply (well_founded_induction WFA). i. eapply from_wf_supremum.
-    i. dup LT. eapply H in LT. eapply le_lt_lt; eauto.
-    eapply from_wf_lt; eauto.
-  Qed.
-
-  Lemma from_wf_set_inj A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
-        (WFA: well_founded RA) (WFB: well_founded RB)
-        f
-        (INJ: forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1))
-    :
-      le (from_wf_set WFA) (from_wf_set WFB).
-  Proof.
-    eapply build_spec. i. eapply le_lt_lt.
-    { eapply from_wf_inj; eauto. }
-    eapply from_wf_set_upperbound.
-  Qed.
 
   Section KAPPA.
     Variable X: MyT.
