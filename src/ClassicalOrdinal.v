@@ -223,17 +223,32 @@ Module ClassicalOrdinal.
         i. exfalso. eapply H2. eauto.
   Qed.
 
+  Definition next_cardinal (A: Type) := @Ordinal.build (@sig (A -> A -> Prop) (@well_founded _)) (fun RWF => Ordinal.from_wf_set (proj2_sig RWF)).
+
+  Definition is_hartogs A (h: Ordinal.t): Prop :=
+    is_meet (fun o => forall (R: A -> A -> Prop) (WF: well_founded R),
+                 ~ Ordinal.le o (Ordinal.from_wf_set WF)) h.
+
+  Lemma hartogs_exists A:
+    exists h, is_hartogs A h.
+  Proof.
+    eapply meet_exists.
+    exists (next_cardinal A).
+    ii. eapply Ordinal.lt_StrictOrder. eapply Ordinal.lt_le_lt; [|eauto].
+    eapply (@Ordinal.build_upperbound _ (fun rwf => Ordinal.from_wf_set (proj2_sig rwf)) (@exist _ _ R WF)).
+  Qed.
+
   Section REC.
     Variable D: Type.
-    Variable dle: D -> D -> Prop.
+    Variable base: D.
+    Variable next: D -> D.
     Variable djoin: forall (A: Type) (ds: A -> D), D.
+
+    Variable dle: D -> D -> Prop.
     Variable wf: D -> Prop.
 
     Let deq: D -> D -> Prop :=
       fun d0 d1 => dle d0 d1 /\ dle d1 d0.
-
-    Variable next: D -> D.
-    Variable base: D.
 
     Hypothesis dle_reflexive: forall d (WF: wf d), dle d d.
     Hypothesis dle_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (LE0: dle d0 d1) (LE1: dle d1 d2),
@@ -251,7 +266,7 @@ Module ClassicalOrdinal.
 
     Let dunion (d0 d1: D): D := djoin (fun b: bool => if b then d0 else d1).
 
-    Let rec := Ordinal.rec djoin next base.
+    Let rec := Ordinal.rec base next djoin.
 
     Let rec_all (o1: Ordinal.t):
       (forall o0 (LE: Ordinal.le o0 o1), dle (rec o0) (rec o1)) /\
@@ -575,48 +590,6 @@ Module ClassicalOrdinal.
     Proof.
       eapply rec_is_join; auto. eapply Ordinal.join_is_join.
     Qed.
-  End REC.
-
-  Definition next_cardinal (A: Type) := @Ordinal.build (@sig (A -> A -> Prop) (@well_founded _)) (fun RWF => Ordinal.from_wf_set (proj2_sig RWF)).
-
-  Definition is_hartogs A (h: Ordinal.t): Prop :=
-    is_meet (fun o => forall (R: A -> A -> Prop) (WF: well_founded R),
-                 ~ Ordinal.le o (Ordinal.from_wf_set WF)) h.
-
-  Lemma hartogs_exists A:
-    exists h, is_hartogs A h.
-  Proof.
-    eapply meet_exists.
-    exists (next_cardinal A).
-    ii. eapply Ordinal.lt_StrictOrder. eapply Ordinal.lt_le_lt; [|eauto].
-    eapply (@Ordinal.build_upperbound _ (fun rwf => Ordinal.from_wf_set (proj2_sig rwf)) (@exist _ _ R WF)).
-  Qed.
-
-  Section FIXPOINT.
-    Variable D: Type.
-    Variable dle: D -> D -> Prop.
-    Variable djoin: forall (A: Type) (ds: A -> D), D.
-    Variable wf: D -> Prop.
-
-    Let deq: D -> D -> Prop :=
-      fun d0 d1 => dle d0 d1 /\ dle d1 d0.
-
-    Variable next: D -> D.
-    Variable base: D.
-
-    Hypothesis dle_reflexive: forall d (WF: wf d), dle d d.
-    Hypothesis dle_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (LE0: dle d0 d1) (LE1: dle d1 d2),
-        dle d0 d2.
-
-    Hypothesis djoin_upperbound: forall A (ds: A -> D) (a: A) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)), dle (ds a) (djoin ds).
-    Hypothesis djoin_supremum: forall A (ds: A -> D) (d: D) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)) (WFD: wf d) (LE: forall a, dle (ds a) d), dle (djoin ds) d.
-    Hypothesis djoin_wf: forall A (ds: A -> D) (CHAIN: forall a0 a1, dle (ds a0) (ds a1) \/ dle (ds a1) (ds a0)) (WF: forall a, wf (ds a)), wf (djoin ds).
-
-    Hypothesis base_wf: wf base.
-    Hypothesis next_wf: forall d (WF: wf d), wf (next d).
-
-    Hypothesis next_le: forall d (WF: wf d), dle d (next d).
-    Hypothesis next_eq: forall d0 d1 (WF0: wf d0) (WF1: wf d1) (EQ: deq d0 d1), deq (next d0) (next d1).
 
     Let deq_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (EQ0: deq d0 d1) (EQ1: deq d1 d2),
         deq d0 d2.
@@ -631,12 +604,12 @@ Module ClassicalOrdinal.
       i. inv EQ. split; auto.
     Qed.
 
-    Let _rec_wf: forall o, wf (Ordinal.rec djoin next base o).
+    Let _rec_wf: forall o, wf (rec o).
     Proof.
       eapply rec_wf; eauto.
     Qed.
 
-    Let _rec_next_wf: forall o, wf (next (Ordinal.rec djoin next base o)).
+    Let _rec_next_wf: forall o, wf (next (rec o)).
     Proof.
       i. eapply next_wf. eapply rec_wf; eauto.
     Qed.
@@ -645,14 +618,14 @@ Module ClassicalOrdinal.
     | strictly_increasing_intro
         o0 o1
         (LT: Ordinal.lt o0 o1)
-        (INCR: ~ dle (Ordinal.rec djoin next base o1) (Ordinal.rec djoin next base o0))
+        (INCR: ~ dle (rec o1) (rec o0))
       :
-        strictly_increasing (Ordinal.rec djoin next base o0) (Ordinal.rec djoin next base o1)
+        strictly_increasing (rec o0) (rec o1)
     .
 
     Lemma strictly_increasing_well_founded: well_founded strictly_increasing.
     Proof.
-      assert (forall o, Acc strictly_increasing (Ordinal.rec djoin next base o)).
+      assert (forall o, Acc strictly_increasing (rec o)).
       { eapply (well_founded_induction Ordinal.lt_well_founded).
         i. econs. i. inv H0. eapply H.
         destruct (total x o0); auto. exfalso.
@@ -662,42 +635,43 @@ Module ClassicalOrdinal.
     Qed.
 
     Definition not_fixed (o1: Ordinal.t): Prop :=
-      forall o0 (LT: Ordinal.lt o0 o1), ~ dle (Ordinal.rec djoin next base o1) (Ordinal.rec djoin next base o0).
+      forall o0 (LT: Ordinal.lt o0 o1), ~ dle (rec o1) (rec o0).
 
-    Lemma fixed_point_after o0 (FIX: dle (next (Ordinal.rec djoin next base o0)) (Ordinal.rec djoin next base o0)):
+    Lemma fixed_point_after o0 (FIX: dle (next (rec o0)) (rec o0)):
       forall o1 (LE: Ordinal.le o0 o1),
-        dle (Ordinal.rec djoin next base o1) (Ordinal.rec djoin next base o0).
+        dle (rec o1) (rec o0).
     Proof.
       eapply (@ind (fun o1 => forall (LE: Ordinal.le o0 o1),
-                        dle (Ordinal.rec djoin next base o1) (Ordinal.rec djoin next base o0))).
+                        dle (rec o1) (rec o0))).
       { i. eapply rec_le; eauto. }
       { i. eapply le_eq_or_lt in LE. des.
         2: { eapply rec_le; eauto. eapply LE. }
-        hexploit (rec_is_S dle djoin wf next base); auto.
+        hexploit rec_is_S; auto.
         { eauto. } i.
-        assert (deq (Ordinal.rec djoin next base s) (next (Ordinal.rec djoin next base o))).
-        { des. split; auto. } clear H.
         assert (LE0: Ordinal.le o0 o).
-        { destruct (total o0 o); auto. exfalso. eapply SUCC in H.
+        { destruct (total o0 o); auto. exfalso. eapply SUCC in H0.
           eapply (@Ordinal.lt_not_le o0 s); eauto. }
         hexploit IH; auto. i.
-        assert (deq (next (Ordinal.rec djoin next base o0)) (Ordinal.rec djoin next base o0)).
+        assert (deq (next (rec o0)) (rec o0)).
         { split; auto. } clear FIX.
-        assert (deq (Ordinal.rec djoin next base o) (Ordinal.rec djoin next base o0)).
+        assert (deq (rec o) (rec o0)).
         { split; auto. eapply rec_le; eauto. }
-        eapply (@deq_transitive (Ordinal.rec djoin next base o)); auto.
-        eapply (@deq_transitive (next (Ordinal.rec djoin next base o))); auto.
-        dup H2. eapply next_eq in H2; eauto.
+        eapply (@dle_transitive (next (rec o))); auto.
+        { eapply H. }
+        eapply (@dle_transitive (next (rec o0))); auto.
+        2: { eapply H1. }
+        eapply next_eq; auto.
       }
-      { i. hexploit (rec_is_join dle djoin wf next base); eauto. i. des.
+      { i. hexploit rec_is_join; try eassumption. i.
         assert (forall a0 a1 : A,
-                   dle (Ordinal.rec djoin next base (os a0)) (Ordinal.rec djoin next base (os a1)) \/ dle (Ordinal.rec djoin next base (os a1)) (Ordinal.rec djoin next base (os a0))).
+                   dle (rec (os a0)) (rec (os a1)) \/ dle (rec (os a1)) (rec (os a0))).
         { i. destruct (total_le (os a0) (os a1)).
           { left. eapply rec_le; eauto. }
           { right. eapply rec_le; eauto. }
         }
-        assert (wf (djoin (fun a : A => Ordinal.rec djoin next base (os a)))); auto.
-        eapply (@dle_transitive (djoin (fun a : A => Ordinal.rec djoin next base (os a)))); auto.
+        assert (wf (djoin (fun a : A => rec (os a)))); auto.
+        eapply (@dle_transitive (djoin (fun a : A => rec (os a)))); auto.
+        { eapply H. }
         eapply djoin_supremum; auto. i.
         destruct (total (os a) o0).
         { eapply rec_le; eauto. }
@@ -711,11 +685,11 @@ Module ClassicalOrdinal.
       ii. eapply NEND.
       { eapply (@Ordinal.lt_le_lt o0); eauto. }
       dup LT. eapply Ordinal.S_spec in LT0.
-      hexploit (rec_S dle djoin wf next base); auto. i. des.
+      hexploit rec_S; auto. i. inv H0.
       hexploit (@fixed_point_after o2).
-      { eapply (@dle_transitive (Ordinal.rec djoin next base (Ordinal.S o2))); auto.
-        { eapply H1. }
-        eapply (@dle_transitive (Ordinal.rec djoin next base o0)); auto.
+      { eapply (@dle_transitive (rec (Ordinal.S o2))); auto.
+        { eapply H2. }
+        eapply (@dle_transitive (rec o0)); auto.
         eapply rec_le; eauto. }
       { instantiate (1:=o1). transitivity o0; auto.
         eapply Ordinal.lt_le. apply LT. }
@@ -723,13 +697,13 @@ Module ClassicalOrdinal.
     Qed.
 
     Let least_lt_incr_acc o1 (INCR: not_fixed o1):
-      Ordinal.le o1 (Ordinal.from_wf strictly_increasing_well_founded (Ordinal.rec djoin next base o1)).
+      Ordinal.le o1 (Ordinal.from_wf strictly_increasing_well_founded (rec o1)).
     Proof.
       revert o1 INCR.
       eapply (well_founded_induction Ordinal.lt_well_founded
                                      (fun o1 => forall (INCR: not_fixed o1),
-                                          Ordinal.le o1 (Ordinal.from_wf strictly_increasing_well_founded (Ordinal.rec djoin next base o1)))).
-      i. destruct (total x (Ordinal.from_wf strictly_increasing_well_founded (Ordinal.rec djoin next base x))); auto.
+                                          Ordinal.le o1 (Ordinal.from_wf strictly_increasing_well_founded (rec o1)))).
+      i. destruct (total x (Ordinal.from_wf strictly_increasing_well_founded (rec x))); auto.
       destruct x. eapply Ordinal.build_spec. i.
       hexploit (Ordinal.build_upperbound os a). i.
       hexploit (H (os a)); eauto.
@@ -750,24 +724,23 @@ Module ClassicalOrdinal.
     Qed.
 
     Lemma _fixpoint_theorem:
-      dle (next (Ordinal.rec djoin next base (next_cardinal D))) (Ordinal.rec djoin next base (next_cardinal D)).
+      dle (next (rec (next_cardinal D))) (rec (next_cardinal D)).
     Proof.
       eapply NNPP. ii. eapply next_cardinal_fixed. eapply end_le_end.
       { eapply Ordinal.lt_le. eapply Ordinal.S_lt. }
       ii. eapply H.
-      hexploit (rec_S dle djoin wf next base); auto.
-      i. des. eapply (@dle_transitive (Ordinal.rec djoin next base (Ordinal.S (next_cardinal D)))) ; auto.
-      { eapply H2. }
-      eapply (@dle_transitive (Ordinal.rec djoin next base o0)); auto.
-      eapply (rec_le dle djoin wf next base); eauto.
+      hexploit rec_S; auto.
+      i. des. eapply (@dle_transitive (rec (Ordinal.S (next_cardinal D)))); auto.
+      { eapply H1. }
+      eapply (@dle_transitive (rec o0)); auto.
+      eapply rec_le; eauto.
       destruct (total o0 (next_cardinal D)); auto.
-      eapply Ordinal.S_spec in H3.
+      eapply Ordinal.S_spec in H2.
       exfalso. eapply Ordinal.lt_not_le.
       { eapply LT. }
-      { eapply H3. }
+      { eapply H2. }
     Qed.
-  End FIXPOINT.
-
+  End REC.
 
   Section WO.
     Variable X: Type.
@@ -898,12 +871,12 @@ Module ClassicalOrdinal.
 
       Let eventually_exhausted
         :
-          exists o, forall x, (Ordinal.rec joinX next base o).(P) x.
+          exists o, forall x, (Ordinal.rec base next joinX o).(P) x.
       Proof.
-        hexploit (_fixpoint_theorem leX joinX wfX next base); auto. i.
+        hexploit (_fixpoint_theorem base next joinX leX wfX); auto. i.
         exists (next_cardinal subos).
         hexploit next_exhausted.
-        { eapply (rec_wf leX joinX wfX next base); eauto. }
+        { eapply (rec_wf base next joinX leX wfX); eauto. }
         i. des; eauto. exfalso. eapply H1. eapply H. auto.
       Qed.
 
@@ -914,9 +887,9 @@ Module ClassicalOrdinal.
             (forall x0 x1, R x0 x1 \/ x0 = x1 \/ R x1 x0).
       Proof.
         hexploit eventually_exhausted. i. des.
-        assert (WF: wfX (Ordinal.rec joinX next base o)).
-        { hexploit (@rec_wf _ leX joinX wfX next base); eauto. }
-        exists (Ordinal.rec joinX next base o).(R). splits; auto.
+        assert (WF: wfX (Ordinal.rec base next joinX o)).
+        { hexploit (@rec_wf _ base next joinX leX wfX); eauto. }
+        exists (Ordinal.rec base next joinX o).(R). splits; auto.
       Qed.
     End NEXT.
 
@@ -1121,15 +1094,15 @@ Module ClassicalOrdinal.
 
       Lemma eventually_maximal: False.
       Proof.
-        hexploit (_fixpoint_theorem chain_le chain_join wf next base); auto.
+        hexploit (_fixpoint_theorem base next chain_join chain_le wf); auto.
         i. inv H.
-        hexploit (H0 (f (Ordinal.rec chain_join next base (next_cardinal chain)))); auto.
+        hexploit (H0 (f (Ordinal.rec base next chain_join (next_cardinal chain)))); auto.
         { right. auto. }
-        i. eapply (@antisym (f (Ordinal.rec chain_join next base (next_cardinal chain))) (f (Ordinal.rec chain_join next base (next_cardinal chain)))).
+        i. eapply (@antisym (f (Ordinal.rec base next chain_join (next_cardinal chain))) (f (Ordinal.rec base next chain_join (next_cardinal chain)))).
         { eapply INCR; auto.
-          eapply (rec_wf chain_le chain_join wf next base); auto. }
+          eapply (rec_wf base next chain_join chain_le wf); auto. }
         { eapply INCR; auto.
-          eapply (rec_wf chain_le chain_join wf next base); auto. }
+          eapply (rec_wf base next chain_join chain_le wf); auto. }
       Qed.
     End INCR.
 
@@ -2287,7 +2260,7 @@ Module ClassicalOrdinal.
     Proof.
       transitivity (Ordinal.from_wf_set (to_total_well_founded o)).
       { eapply cardinal_is_cardinal.
-        exists _, (to_total_well_founded o). split; auto.
+        exists (to_total_rel o), (to_total_well_founded o). split; auto.
         - eapply to_total_total.
         - reflexivity.
       }
@@ -2603,7 +2576,7 @@ Module ClassicalOrdinal.
     is_cardinal (to_total_set (Ordinal.join (fun x => cardinal (TS x)))) (Ordinal.join (fun x => cardinal (TS x))).
   Proof.
     split.
-    { exists _, (to_total_well_founded _). splits.
+    { exists (to_total_rel (Ordinal.join (fun x : X => cardinal (TS x)))), (to_total_well_founded _). splits.
       - eapply to_total_total.
       - symmetry. eapply to_total_eq. }
     { i. des. eapply Ordinal.join_supremum. i. etransitivity.
@@ -2819,7 +2792,7 @@ Module ClassicalOrdinal.
     Qed.
 
     Definition aleph_gen (o: Ordinal.t) := next_cardinal (to_total_set o).
-    Definition aleph := Ordinal.orec aleph_gen Ordinal.omega.
+    Definition aleph := Ordinal.orec Ordinal.omega aleph_gen.
 
     Lemma aleph_mon o0 o1 (LE: Ordinal.le o0 o1):
       Ordinal.le (aleph o0) (aleph o1).
@@ -2838,7 +2811,7 @@ Module ClassicalOrdinal.
     Lemma aleph_expand:
       forall o, Ordinal.le o (aleph o).
     Proof.
-      i. transitivity (Ordinal.orec Ordinal.S Ordinal.O o).
+      i. transitivity (Ordinal.orec Ordinal.O Ordinal.S o).
       { eapply Ordinal.orec_of_S. }
       eapply (@Ordinal.rec_mon _ Ordinal.le Ordinal.join Ordinal.O Ordinal.S Ordinal.omega aleph_gen).
       { eapply Ordinal.O_bot. }
@@ -3753,15 +3726,15 @@ End Cardinal.
 
 Section FIXPOINT.
   Variable D: Type.
-  Variable dle: D -> D -> Prop.
+  Variable base: D.
+  Variable next: D -> D.
   Variable djoin: forall (A: Type) (ds: A -> D), D.
+
+  Variable dle: D -> D -> Prop.
   Variable wf: D -> Prop.
 
   Let deq: D -> D -> Prop :=
     fun d0 d1 => dle d0 d1 /\ dle d1 d0.
-
-  Variable next: D -> D.
-  Variable base: D.
 
   Hypothesis dle_reflexive: forall d (WF: wf d), dle d d.
   Hypothesis dle_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (LE0: dle d0 d1) (LE1: dle d1 d2),
@@ -3780,9 +3753,9 @@ Section FIXPOINT.
   Let k := ClassicalOrdinal.next_cardinal D.
 
   Theorem fixpoint_theorem:
-    dle (next (Ordinal.rec djoin next base k)) (Ordinal.rec djoin next base k).
+    dle (next (Ordinal.rec base next djoin k)) (Ordinal.rec base next djoin k).
   Proof.
-    eapply (ClassicalOrdinal._fixpoint_theorem dle djoin wf next base); eauto.
+    eapply (ClassicalOrdinal._fixpoint_theorem base next djoin dle wf); eauto.
   Qed.
 End FIXPOINT.
 
@@ -3809,14 +3782,14 @@ Section KLEENE.
     ii. eapply mon; eauto.
   Qed.
 
-  Definition mu := Ordinal.rec join f bot kappa.
-  Definition nu := Ordinal.rec meet f top kappa.
+  Definition mu := Ordinal.rec bot f join kappa.
+  Definition nu := Ordinal.rec top f meet kappa.
 
   Theorem mu_fixpoint:
     le mu (f mu) /\ le (f mu) mu.
   Proof.
     split.
-    { hexploit (ClassicalOrdinal.rec_wf le join (fun P => le P (f P))); eauto.
+    { hexploit (ClassicalOrdinal.rec_wf bot f join le (fun P => le P (f P))); eauto.
       { ii. ss. }
       { ii. eapply LE1; eauto. }
       { ii. exists a. auto. }
@@ -3826,7 +3799,7 @@ Section KLEENE.
       { ii. ss. }
       { ii. des. split; apply mon; auto. }
     }
-    { hexploit (fixpoint_theorem le join (fun P => le P (f P)) f bot); eauto.
+    { hexploit (fixpoint_theorem bot f join le (fun P => le P (f P))); eauto.
       { ii. ss. }
       { ii. eapply LE1; eauto. }
       { ii. exists a. auto. }
@@ -3840,7 +3813,7 @@ Section KLEENE.
 
   Theorem mu_least P (LE: le (f P) P): le mu P.
   Proof.
-    eapply (ClassicalOrdinal.rec_wf le join (fun P0 => le P0 (f P0) /\ le P0 P) f bot); eauto.
+    eapply (ClassicalOrdinal.rec_wf bot f join le (fun P0 => le P0 (f P0) /\ le P0 P)); eauto.
     { ii. ss. }
     { ii. eapply LE1; eauto. }
     { ii. exists a. auto. }
@@ -3859,7 +3832,7 @@ Section KLEENE.
     le nu (f nu) /\ le (f nu) nu.
   Proof.
     split.
-    { hexploit (fixpoint_theorem ge meet (fun P => le (f P) P) f top); eauto.
+    { hexploit (fixpoint_theorem top f meet ge (fun P => le (f P) P)); eauto.
       { ii. ss. }
       { ii. eapply LE0; eauto. }
       { ii. eapply IN0; eauto. }
@@ -3869,7 +3842,7 @@ Section KLEENE.
       { ii. ss. }
       { ii. des. split; apply mon_rev; auto. }
     }
-    { hexploit (ClassicalOrdinal.rec_wf ge meet (fun P => le (f P) P) f top); eauto.
+    { hexploit (ClassicalOrdinal.rec_wf top f meet ge (fun P => le (f P) P)); eauto.
       { ii. ss. }
       { ii. eapply LE0; eauto. }
       { ii. eapply IN0; eauto. }
@@ -3883,7 +3856,7 @@ Section KLEENE.
 
   Theorem nu_greatest P (LE: le P (f P)): le P nu.
   Proof.
-    eapply (ClassicalOrdinal.rec_wf ge meet (fun P0 => le (f P0) P0 /\ le P P0) f top); eauto.
+    eapply (ClassicalOrdinal.rec_wf top f meet ge (fun P0 => le (f P0) P0 /\ le P P0)); eauto.
     { ii. ss. }
     { ii. eapply LE0; eauto. }
     { ii. eapply IN0; eauto. }
