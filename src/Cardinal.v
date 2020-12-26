@@ -27,6 +27,20 @@ Module Cardinal.
       - right. econs; eauto.
     Qed.
 
+    Lemma _cardinal_le_power A B (LE: _cardinal_le A B):
+      _cardinal_le (A -> Prop) (B -> Prop).
+    Proof.
+      inv LE.
+      eapply _cardinal_le_intro with (f := fun s y => exists x, f x = y /\ s x).
+      i. extensionality x. eapply equal_f with (x0 :=f x) in EQ.
+      apply propositional_extensionality.
+      transitivity (exists x0, f x0 = f x /\ a0 x0).
+      { split; i; eauto.
+        des. apply INJ in H. subst. auto. }
+      { rewrite EQ. split; i; eauto.
+        des. apply INJ in H. subst. auto. }
+    Qed.
+
     Section CARDINAL.
       Variable A: Type.
 
@@ -704,18 +718,18 @@ Module Cardinal.
 
   Section ALEPH.
 
-    Lemma aleph_gen_le o0 o1 (LE: Ord.le o0 o1):
+    Lemma le_aleph_gen o0 o1 (LE: Ord.le o0 o1):
       Ord.le (next_cardinal (ToSet.to_total_set o0)) (next_cardinal (ToSet.to_total_set o1)).
     Proof.
       i. eapply next_cardinal_le. eapply to_total_le. apply LE.
     Qed.
 
-    Lemma aleph_gen_eq o0 o1 (EQ: Ord.eq o0 o1):
+    Lemma eq_aleph_gen o0 o1 (EQ: Ord.eq o0 o1):
       Ord.eq (next_cardinal (ToSet.to_total_set o0)) (next_cardinal (ToSet.to_total_set o1)).
     Proof.
       split.
-      - eapply aleph_gen_le. apply EQ.
-      - eapply aleph_gen_le. apply EQ.
+      - eapply le_aleph_gen. apply EQ.
+      - eapply le_aleph_gen. apply EQ.
     Qed.
 
     Lemma aleph_gen_lt o:
@@ -727,7 +741,7 @@ Module Cardinal.
       reflexivity.
     Qed.
 
-    Lemma aleph_gen_incr o:
+    Lemma aleph_gen_le o:
       Ord.le o (next_cardinal (ToSet.to_total_set o)).
     Proof.
       eapply Ord.lt_le. eapply aleph_gen_lt.
@@ -736,18 +750,32 @@ Module Cardinal.
     Definition aleph_gen (o: Ord.t) := next_cardinal (ToSet.to_total_set o).
     Definition aleph := Ord.orec Ord.omega aleph_gen.
 
-    Lemma aleph_mon o0 o1 (LE: Ord.le o0 o1):
+    Lemma le_aleph o0 o1 (LE: Ord.le o0 o1):
       Ord.le (aleph o0) (aleph o1).
     Proof.
       eapply Ord.le_orec; auto.
-      eapply aleph_gen_le.
+      eapply le_aleph_gen.
+    Qed.
+
+    Lemma lt_aleph o0 o1 (LE: Ord.lt o0 o1):
+      Ord.lt (aleph o0) (aleph o1).
+    Proof.
+      eapply Ord.S_spec in LE.
+      eapply Ord.lt_le_lt.
+      2: { eapply le_aleph; eauto. }
+      eapply Ord.lt_eq_lt.
+      { eapply Ord.orec_S.
+        { eapply aleph_gen_le. }
+        { eapply le_aleph_gen. }
+      }
+      eapply aleph_gen_lt.
     Qed.
 
     Lemma aleph_le_omega o:
       Ord.le Ord.omega (aleph o).
     Proof.
       eapply Ord.orec_le_base.
-      eapply aleph_gen_le.
+      eapply le_aleph_gen.
     Qed.
 
     Lemma aleph_expand:
@@ -780,6 +808,104 @@ Module Cardinal.
     (*   { i. eapply aleph_gen_eq; auto. } *)
     (* Admitted. *)
   End ALEPH.
+
+
+  Section BETH.
+    Definition beth_gen (o: Ord.t) := cardinal (ToSet.to_total_set o -> Prop).
+    Definition beth := Ord.orec Ord.omega beth_gen.
+
+    Lemma le_beth_gen o0 o1 (LE: Ord.le o0 o1):
+      Ord.le (beth_gen o0) (beth_gen o1).
+    Proof.
+      eapply to_total_le in LE.
+      eapply _cardinal_le_iff in LE. eapply _cardinal_le_iff.
+      eapply _cardinal_le_power. auto.
+    Qed.
+
+    Lemma eq_beth_gen o0 o1 (EQ: Ord.eq o0 o1):
+      Ord.eq (beth_gen o0) (beth_gen o1).
+    Proof.
+      split.
+      - eapply le_beth_gen. apply EQ.
+      - eapply le_beth_gen. apply EQ.
+    Qed.
+
+    Lemma beth_gen_lt o:
+      Ord.lt o (beth_gen o).
+    Proof.
+      eapply Ord.eq_lt_lt.
+      { eapply ToSet.to_total_eq. }
+      eapply Ord.lt_le_lt.
+      2: { eapply next_cardinal_le_power_set. }
+      eapply next_cardinal_upperbound. reflexivity.
+    Qed.
+
+    Lemma beth_gen_le o:
+      Ord.le o (beth_gen o).
+    Proof.
+      eapply Ord.lt_le. eapply beth_gen_lt.
+    Qed.
+
+    Lemma aleph_gen_le_beth_gen o:
+      Ord.le (aleph_gen o) (beth_gen o).
+    Proof.
+      eapply next_cardinal_le_power_set.
+    Qed.
+
+    Lemma le_beth o0 o1 (LE: Ord.le o0 o1):
+      Ord.le (beth o0) (beth o1).
+    Proof.
+      eapply Ord.le_orec; auto.
+      eapply le_beth_gen.
+    Qed.
+
+    Lemma lt_beth o0 o1 (LE: Ord.lt o0 o1):
+      Ord.lt (beth o0) (beth o1).
+    Proof.
+      eapply Ord.S_spec in LE.
+      eapply Ord.lt_le_lt.
+      2: { eapply le_beth; eauto. }
+      eapply Ord.lt_eq_lt.
+      { eapply Ord.orec_S.
+        { eapply beth_gen_le. }
+        { eapply le_beth_gen. }
+      }
+      eapply beth_gen_lt.
+    Qed.
+
+    Lemma beth_le_omega o:
+      Ord.le Ord.omega (beth o).
+    Proof.
+      eapply Ord.orec_le_base.
+      eapply le_beth_gen.
+    Qed.
+
+    Lemma beth_expand:
+      forall o, Ord.le o (beth o).
+    Proof.
+      i. transitivity (Ord.orec Ord.O Ord.S o).
+      { eapply Ord.orec_of_S. }
+      eapply (@Ord.rec_mon _ Ord.le Ord.join Ord.O Ord.S Ord.omega beth_gen).
+      { eapply Ord.O_bot. }
+      { i. eapply Ord.S_spec. eapply Ord.le_lt_lt; eauto.
+        eapply beth_gen_lt.
+      }
+      { eapply Ord.le_PreOrder. }
+      { i. eapply Ord.join_upperbound. }
+      { i. eapply Ord.join_supremum. auto. }
+    Qed.
+
+    Lemma aleph_le_beth o:
+      Ord.le (aleph o) (beth o).
+    Proof.
+      eapply Ord.orec_mon.
+      { reflexivity. }
+      { i. transitivity (aleph_gen o1).
+        { eapply le_aleph_gen. auto. }
+        { eapply aleph_gen_le_beth_gen. }
+      }
+    Qed.
+  End BETH.
 End Cardinal.
 
 
@@ -1241,12 +1367,27 @@ Module Cardinality.
     ii. eapply (H (Cardinal.cardinal a)). reflexivity.
   Qed.
 
-  Lemma cantor A: lt A (A -> Prop).
+  Definition power A := A -> Prop.
+  Lemma cantor A: lt A (power A).
   Proof.
     eapply cardinal_lt_iff.
     eapply (@Ord.lt_le_lt (Cardinal.next_cardinal A)).
     { eapply Cardinal.next_cardinal_incr. }
     { eapply Cardinal.next_cardinal_le_power_set. }
+  Qed.
+
+  Lemma le_power A0 A1 (LE: le A0 A1):
+    le (power A0) (power A1).
+  Proof.
+    inv LE.
+    eapply le_intro with (f := fun s y => exists x, f x = y /\ s x).
+    i. extensionality x. eapply equal_f with (x0 :=f x) in EQ.
+    apply propositional_extensionality.
+    transitivity (exists x0, f x0 = f x /\ a0 x0).
+    { split; i; eauto.
+      des. apply INJ in H. subst. auto. }
+    { rewrite EQ. split; i; eauto.
+      des. apply INJ in H. subst. auto. }
   Qed.
 
   Definition O := False.
@@ -1265,7 +1406,7 @@ Module Cardinality.
       eapply Cardinal.next_cardinal_of_cardinal. }
     { eapply Cardinal.next_cardinal_incr. }
   Qed.
-  Lemma S_supremum A B (LT: lt A B): le (S A) B.
+  Lemma S_spec A B (LT: lt A B): le (S A) B.
   Proof.
     eapply cardinal_lt_iff in LT.
     eapply Cardinal.next_cardinal_supremum in LT.
@@ -1273,8 +1414,13 @@ Module Cardinality.
     unfold S. eapply Cardinal.to_total_cardinal_le.
   Qed.
 
+  Lemma S_le_power A: le (S A) (power A).
+  Proof.
+    eapply S_spec. eapply cantor.
+  Qed.
+
   Definition join X (TS: X -> Type):=
     ToSet.to_total_set (@Ord.join X (fun x => Cardinal.cardinal (TS x))).
 
-  Definition continnum_hypothesis_on A: Prop := eq (S A) (A -> Prop).
+  Definition continnum_hypothesis_on A: Prop := eq (S A) (power A).
 End Cardinality.
