@@ -1,4 +1,4 @@
-From Ordinal Require Import sflib Basics WFRel Totalness.
+From Ordinal Require Import sflib Basics WfRel Totalness.
 From Ordinal Require Export Ordinal.
 
 Require Import ClassicalChoice.
@@ -165,6 +165,19 @@ Module ClassicOrd.
     Let dunion (d0 d1: D): D := djoin (fun b: bool => if b then d0 else d1).
 
     Let rec := Ord.rec base next djoin.
+
+    Let deq_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (EQ0: deq d0 d1) (EQ1: deq d1 d2),
+        deq d0 d2.
+    Proof.
+      i. inv EQ0. inv EQ1. split.
+      - eapply (@dle_transitive d1); auto.
+      - eapply (@dle_transitive d1); auto.
+    Qed.
+
+    Let deq_symmetric: forall d0 d1 (EQ: deq d0 d1), deq d1 d0.
+    Proof.
+      i. inv EQ. split; auto.
+    Qed.
 
     Let rec_all (o1: Ord.t):
       (forall o0 (LE: Ord.le o0 o1), dle (rec o0) (rec o1)) /\
@@ -355,12 +368,19 @@ Module ClassicOrd.
       - eapply eq_rec in LE. eapply next_eq in LE; eauto. eapply LE.
     Qed.
 
-    Let chain_helper X (xs: X -> Ord.t)
-      :
-        forall x0 x1, dle (next (rec (xs x0))) (next (rec (xs x1))) \/
-                      dle (next (rec (xs x1))) (next (rec (xs x0))).
+    Let chain_helper: forall o0 o1, dle (rec o0) (rec o1) \/ dle (rec o1) (rec o0).
     Proof.
-      i. destruct (total (xs x0) (xs x1)).
+      i. destruct (total_le o0 o1).
+      { left. apply le_rec. auto. }
+      { right. apply le_rec. auto. }
+    Qed.
+
+    Let chain_next_helper
+      :
+        forall o0 o1, dle (next (rec o0)) (next (rec o1)) \/
+                      dle (next (rec o1)) (next (rec o0)).
+    Proof.
+      i. destruct (total o0 o1).
       - left. eapply rec_next_le. auto.
       - right. eapply Ord.lt_le in H. eapply rec_next_le. auto.
     Qed.
@@ -443,11 +463,6 @@ Module ClassicOrd.
           (INHABITED: inhabited A) (OPEN: Ord.open os)
       : deq (rec (Ord.build os)) (djoin (fun a => rec (os a))).
     Proof.
-      assert (CHAINJOIN: forall a0 a1 : A, dle (rec (os a0)) (rec (os a1)) \/ dle (rec (os a1)) (rec (os a0))).
-      { i. destruct (total (os a0) (os a1)).
-        - left. eapply le_rec; auto.
-        - right. eapply Ord.lt_le in H. eapply le_rec; auto.
-      }
       destruct INHABITED as [a'].
       split; ss.
       - eapply djoin_supremum; auto. i. destruct a; auto.
@@ -466,43 +481,262 @@ Module ClassicOrd.
         + eapply (@djoin_upperbound _ (fun b: bool => if b then base else (djoin (fun a : A => next (rec (os a))))) false); auto.
     Qed.
 
-    Lemma rec_is_join A (os: A -> Ord.t) o
-          (INHABITED: inhabited A) (OPEN: Ord.open os) (JOIN: Ord.is_join os o)
-      : deq (rec o) (djoin (fun a => rec (os a))).
+    Let dunion_wf: forall (d0 d1: D) (CHAIN: dle d0 d1 \/ dle d1 d0) (WF0: wf d0) (WF1: wf d1),
+        wf (dunion d0 d1).
     Proof.
-      assert (CHAINJOIN: forall a0 a1 : A, dle (rec (os a0)) (rec (os a1)) \/ dle (rec (os a1)) (rec (os a0))).
-      { i. destruct (total (os a0) (os a1)).
-        - left. eapply le_rec; auto.
-        - right. eapply Ord.lt_le in H. eapply le_rec; auto.
+      i. eapply djoin_wf; auto.
+      { i. destruct a0, a1; auto. des; auto. }
+      { i. destruct a; auto. }
+    Qed.
+
+    Let dunion_supremum: forall (d0 d1: D) (d: D) (CHAIN: dle d0 d1 \/ dle d1 d0) (WF0: wf d0) (WF1: wf d1) (WFD: wf d) (LE0: dle d0 d) (LE1: dle d1 d), dle (dunion d0 d1) d.
+    Proof.
+      i. eapply djoin_supremum; auto.
+      { i. destruct a0, a1; auto. des; auto. }
+      { i. destruct a; auto. }
+      { i. destruct a; auto. }
+    Qed.
+
+    Let dunion_l: forall (d0 d1: D) (CHAIN: dle d0 d1 \/ dle d1 d0) (WF0: wf d0) (WF1: wf d1),
+        dle d0 (dunion d0 d1).
+    Proof.
+      i. eapply (djoin_upperbound (fun b: bool => if b then d0 else d1) true).
+      { i. destruct a0, a1; auto. des; auto. }
+      { i. destruct a; auto. }
+    Qed.
+
+    Let dunion_r: forall (d0 d1: D) (CHAIN: dle d0 d1 \/ dle d1 d0) (WF0: wf d0) (WF1: wf d1),
+        dle d1 (dunion d0 d1).
+    Proof.
+      i. eapply (djoin_upperbound (fun b: bool => if b then d0 else d1) false).
+      { i. destruct a0, a1; auto. des; auto. }
+      { i. destruct a; auto. }
+    Qed.
+
+    Let BASEJOIN: forall A (os: A -> Ord.t),
+        dle base (djoin (fun a : A => rec (os a))) \/
+        dle (djoin (fun a : A => rec (os a))) base.
+    Proof.
+      i. destruct (classic (inhabited A)).
+      { inv H. left.
+        eapply (@dle_transitive (rec (os X))); auto.
+        { eapply rec_le_base. }
+        { eapply (djoin_upperbound (fun a => rec (os a)) X); auto. }
       }
-      hexploit (@eq_rec (Ord.build os) o).
-      { eapply Ord.is_join_unique; eauto. eapply Ord.build_is_join; auto. }
-      i. inv H. split.
-      - eapply (@dle_transitive (rec (Ord.build os))); auto.
-        eapply rec_build; auto.
-      - eapply (@dle_transitive (rec (Ord.build os))); auto.
-        eapply rec_build; auto.
+      { right. eapply djoin_supremum; auto.
+        i. exfalso. eapply H. econs; eauto. }
+    Qed.
+
+    Let BASENEXTJOIN: forall A (os: A -> Ord.t),
+        dle base (djoin (fun a : A => next (rec (os a)))) \/
+        dle (djoin (fun a : A => next (rec (os a)))) base.
+    Proof.
+      i. destruct (classic (inhabited A)).
+      { inv H. left.
+        eapply (@dle_transitive (rec (os X))); auto.
+        { eapply rec_le_base. }
+        eapply (@dle_transitive (next (rec (os X)))); auto.
+        { eapply (djoin_upperbound (fun a => next (rec (os a))) X); auto. }
+      }
+      { right. eapply djoin_supremum; auto.
+        i. exfalso. eapply H. econs; eauto. }
     Qed.
 
     Lemma rec_join A (os: A -> Ord.t)
-          (INHABITED: inhabited A) (OPEN: Ord.open os)
+      : deq (rec (Ord.join os)) (dunion base (djoin (fun a => rec (os a)))).
+    Proof.
+      split.
+      - ss. eapply djoin_supremum; auto.
+        i. destruct a; auto. eapply djoin_supremum; auto.
+        i. eapply (@dle_transitive (rec (os (projT1 a)))); auto.
+        { apply lt_rec. eapply Ord.lt_proj_rev.
+          eexists. reflexivity. }
+        eapply (@dle_transitive (djoin (fun a0 => rec (os a0)))); auto.
+        eapply (djoin_upperbound (fun a0 => rec (os a0)) (projT1 a)); auto.
+      - eapply dunion_supremum; auto.
+        { eapply rec_le_base. }
+        eapply djoin_supremum; auto. i.
+        eapply le_rec; auto. eapply Ord.join_upperbound.
+    Qed.
+
+    Lemma rec_is_join A (os: A -> Ord.t) o
+          (JOIN: Ord.is_join os o)
+      : deq (rec o) (dunion base (djoin (fun a => rec (os a)))).
+    Proof.
+      eapply (@deq_transitive (rec (Ord.join os))); auto.
+      { eapply eq_rec; auto.
+        eapply Ord.is_join_unique; eauto. eapply Ord.join_is_join. }
+      { eapply rec_join. }
+    Qed.
+
+    Lemma rec_join_inhabited A (os: A -> Ord.t)
+          (INHABITED: inhabited A)
       : deq (rec (Ord.join os)) (djoin (fun a => rec (os a))).
     Proof.
-      eapply rec_is_join; auto. eapply Ord.join_is_join.
+      eapply (@deq_transitive (dunion base (djoin (fun a => rec (os a))))); auto.
+      { eapply rec_join. }
+      split.
+      { inv INHABITED. eapply dunion_supremum; auto.
+        eapply (@dle_transitive (rec (os X))); auto.
+        { eapply rec_le_base. }
+        { eapply (djoin_upperbound (fun a => rec (os a)) X); auto. }
+      }
+      { eapply dunion_r; auto. }
     Qed.
 
-    Let deq_transitive: forall d1 d0 d2 (WF0: wf d0) (WF1: wf d1) (WF2: wf d2) (EQ0: deq d0 d1) (EQ1: deq d1 d2),
-        deq d0 d2.
+    Lemma rec_is_join_inhabited A (os: A -> Ord.t) o
+          (INHABITED: inhabited A) (JOIN: Ord.is_join os o)
+      : deq (rec o) (djoin (fun a => rec (os a))).
     Proof.
-      i. inv EQ0. inv EQ1. split.
-      - eapply (@dle_transitive d1); auto.
-      - eapply (@dle_transitive d1); auto.
+      eapply (@deq_transitive (rec (Ord.join os))); auto.
+      { eapply eq_rec; auto.
+        eapply Ord.is_join_unique; eauto. eapply Ord.join_is_join. }
+      { eapply rec_join_inhabited. auto. }
     Qed.
 
-    Let deq_symmetric: forall d0 d1 (EQ: deq d0 d1), deq d1 d0.
+    Lemma rec_union o0 o1
+      : deq (rec (Ord.union o0 o1)) (dunion (rec o0) (rec o1)).
     Proof.
-      i. inv EQ. split; auto.
+      assert (INHABITED: inhabited bool).
+      { constructor. exact true. }
+      split.
+      { eapply (@dle_transitive (djoin (fun a : bool => rec ((fun b : bool => if b then o0 else o1) a)))); auto.
+        { eapply rec_join_inhabited; auto. }
+        { eapply djoin_supremum; auto. i. destruct a; auto. }
+      }
+      { eapply (@dle_transitive (djoin (fun a : bool => rec ((fun b : bool => if b then o0 else o1) a)))); auto.
+        { eapply djoin_supremum; auto.
+          { i. destruct a0, a1; auto. }
+          { i. destruct a; auto. }
+          { i. destruct a; auto.
+            { eapply (@djoin_upperbound _ (fun b: bool => rec (if b then o0 else o1)) true); auto. }
+            { eapply (@djoin_upperbound _ (fun b: bool => rec (if b then o0 else o1)) false); auto. }
+          }
+        }
+        { eapply rec_join_inhabited; auto. }
+      }
     Qed.
+
+    Lemma rec_unique (f: Ord.t -> D)
+          (ZERO: forall o (ZERO: Ord.is_O o), deq (f o) base)
+          (SUCC: forall o s (SUCC: Ord.is_S o s), deq (f s) (next (f o)))
+          (LIMIT: forall A (os: A -> Ord.t) o (JOIN: Ord.is_join os o)
+                         (INHABITED: inhabited A) (OPEN: Ord.open os),
+              deq (f o) (djoin (fun a => f (os a))))
+          (WF: forall o, wf (f o))
+      :
+        forall o, deq (f o) (rec o).
+    Proof.
+      eapply ind.
+      { i. eapply (@deq_transitive base); auto.
+        eapply deq_symmetric. eapply rec_is_O; auto. }
+      { i. eapply (@deq_transitive (next (f o))); auto.
+        eapply (@deq_transitive (next (rec o))); auto.
+        eapply deq_symmetric. eapply rec_is_S; auto. }
+      { i. assert (CHAIN: forall a0 a1, dle (f (os a0)) (f (os a1)) \/ dle (f (os a1)) (f (os a0))).
+        { i. destruct (chain_helper (os a0) (os a1)).
+          { left. eapply (@dle_transitive (rec (os a0))); auto.
+            { eapply IH. }
+            eapply (@dle_transitive (rec (os a1))); auto.
+            { eapply IH. }
+          }
+          { right. eapply (@dle_transitive (rec (os a1))); auto.
+            { eapply IH. }
+            eapply (@dle_transitive (rec (os a0))); auto.
+            { eapply IH. }
+          }
+        }
+        eapply (@deq_transitive (djoin (fun a => f (os a)))); auto.
+        eapply (@deq_transitive (djoin (fun a => rec (os a)))); auto.
+        { split.
+          { eapply djoin_supremum; auto. i.
+            eapply (@dle_transitive (rec (os a))); auto.
+            { eapply IH. }
+            { eapply (djoin_upperbound (fun a0 => rec (os a0)) a); auto. }
+          }
+          { eapply djoin_supremum; auto. i.
+            eapply (@dle_transitive (f (os a))); auto.
+            { eapply IH. }
+            { eapply (djoin_upperbound (fun a0 => f (os a0)) a); auto. }
+          }
+        }
+        { eapply deq_symmetric. eapply rec_is_join_inhabited; auto. }
+      }
+    Qed.
+
+    Lemma rec_unique2 (f: Ord.t -> D)
+          (RED: forall A (os: A -> Ord.t),
+              deq (f (Ord.build os)) (dunion base (djoin (fun a => next (f (os a))))))
+          (WF: forall o, wf (f o))
+      :
+        forall o, deq (f o) (rec o).
+    Proof.
+      induction o.
+      assert (NEXTLE: forall a0 a1 (LE: Ord.le (os a0) (os a1)),
+                 dle (next (f (os a0))) (next (f (os a1)))).
+      { i. eapply (@dle_transitive (next (rec (os a0)))); auto.
+        { eapply next_eq; auto. }
+        eapply (@dle_transitive (next (rec (os a1)))); auto.
+        { eapply rec_next_le. auto. }
+        { eapply next_eq; auto. }
+      }
+      assert (NEXTCHAIN:  forall a0 a1 : A,
+                 dle (next (f (os a0))) (next (f (os a1))) \/
+                 dle (next (f (os a1))) (next (f (os a0)))).
+      { i. destruct (total_le (os a0) (os a1)); auto. }
+      assert (BASE: dle base (djoin (fun a : A => next (f (os a)))) \/
+                    dle (djoin (fun a : A => next (f (os a)))) base).
+      { i. destruct (classic (inhabited A)).
+        { inv H0. left.
+          eapply (@dle_transitive (f (os X))); auto.
+          { eapply (@dle_transitive (rec (os X))); auto.
+            { eapply rec_le_base. }
+            { eapply H. }
+          }
+          { eapply (@dle_transitive (next (f (os X)))); auto.
+            eapply (djoin_upperbound (fun a => next (f (os a))) X); auto.
+          }
+        }
+        { right. eapply djoin_supremum; auto.
+          i. exfalso. eapply H0. econs; eauto. }
+      }
+      assert (WFU0: wf (dunion base (djoin (fun a : A => next (f (os a)))))).
+      { eapply dunion_wf; auto. }
+      assert (WFU1: wf (dunion base (djoin (fun a : A => next (rec (os a)))))).
+      { eapply djoin_wf; auto. }
+      split.
+      - apply (@dle_transitive (dunion base (djoin (fun a => next (f (os a)))))); auto; auto.
+        + apply RED.
+        + ss. apply djoin_supremum; auto.
+          { i. destruct a0, a1; auto. destruct BASE; auto. }
+          { i. destruct a; auto. }
+          i. destruct a; auto.
+          { eapply (@djoin_upperbound _ (fun b: bool => if b then base else (djoin (fun a : A => next (rec (os a))))) true).
+            { i. destruct a0, a1; auto. destruct (BASENEXTJOIN os); auto. }
+            { i. destruct a; auto. }
+          }
+          apply (@dle_transitive (djoin (fun a => next (rec (os a))))); auto.
+          { apply djoin_supremum; auto. i.
+            apply (@dle_transitive (next (rec (os a)))); auto.
+            { eapply next_eq; auto. }
+            { apply (djoin_upperbound (fun a0 => next (rec (os a0))) a); auto. }
+          }
+          { eapply (@djoin_upperbound _ (fun b: bool => if b then base else (djoin (fun a : A => next (rec (os a))))) false).
+            { i. destruct a0, a1; auto. destruct (BASENEXTJOIN os); auto. }
+            { i. destruct a; auto. }
+          }
+      - apply (@dle_transitive (dunion base (djoin (fun a => next (f (os a)))))); auto; auto.
+        + ss. apply djoin_supremum; auto.
+          i. destruct a; auto.
+          apply (@dle_transitive (djoin (fun a => next (f (os a))))); auto.
+          { apply djoin_supremum; auto. i.
+            apply (@dle_transitive (next (f (os a)))); auto.
+            { eapply next_eq; auto. }
+            { apply (djoin_upperbound (fun a0 => next (f (os a0))) a); auto. }
+          }
+        + apply RED.
+    Qed.
+
 
     Let _rec_wf: forall o, wf (rec o).
     Proof.
@@ -562,7 +796,7 @@ Module ClassicOrd.
         2: { eapply H1. }
         eapply next_eq; auto.
       }
-      { i. hexploit rec_is_join; try eassumption. i.
+      { i. hexploit rec_is_join_inhabited; try eassumption. i.
         assert (forall a0 a1 : A,
                    dle (rec (os a0)) (rec (os a1)) \/ dle (rec (os a1)) (rec (os a0))).
         { i. destruct (total_le (os a0) (os a1)).

@@ -1,5 +1,5 @@
 From Ordinal Require Import sflib Basics.
-From Ordinal Require Import ClassicalOrdinal WFRel WellOrdering.
+From Ordinal Require Import ClassicalOrdinal WfRel WellOrdering.
 From Ordinal Require Export Ordinal.
 
 Require Import Coq.Classes.RelationClasses.

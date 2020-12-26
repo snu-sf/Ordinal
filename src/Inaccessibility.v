@@ -1,5 +1,5 @@
 From Ordinal Require Import sflib Basics.
-From Ordinal Require Export Ordinal.
+From Ordinal Require Export Ordinal Arithmetic.
 
 Require Import ChoiceFacts.
 
@@ -250,7 +250,7 @@ Section INACCESSIBLE.
     Lemma tree_top_add_inaccessible
           o (LT: Ord.lt o tree_top)
       :
-        inaccessible X Ord.O (Ord.add o) tree_top.
+        inaccessible X Ord.O (OrdArith.add o) tree_top.
     Proof.
       eapply inaccessible_rec_inaccessible; eauto.
       { i. eapply Ord.S_le. }
@@ -260,7 +260,7 @@ Section INACCESSIBLE.
 
     Lemma tree_top_add o0 o1 (LT0: Ord.lt o0 tree_top) (LT1: Ord.lt o1 tree_top)
       :
-        Ord.lt (Ord.add o0 o1) tree_top.
+        Ord.lt (OrdArith.add o0 o1) tree_top.
     Proof.
       eapply tree_top_add_inaccessible; auto.
     Qed.
@@ -268,7 +268,7 @@ Section INACCESSIBLE.
     Lemma tree_top_flip_add_inaccessible
           o (LT: Ord.lt o tree_top)
       :
-        inaccessible X Ord.O (flip Ord.add o) tree_top.
+        inaccessible X Ord.O (flip OrdArith.add o) tree_top.
     Proof.
       hexploit tree_top_add_inaccessible; eauto. i.
       econs; auto.
@@ -281,18 +281,18 @@ Section INACCESSIBLE.
     Lemma tree_top_mult_inaccessible
           o (LT: Ord.lt o tree_top)
       :
-        inaccessible X Ord.O (Ord.mult o) tree_top.
+        inaccessible X Ord.O (OrdArith.mult o) tree_top.
     Proof.
       eapply inaccessible_rec_inaccessible; eauto.
-      { i. eapply Ord.add_base_l. }
-      { i. eapply Ord.le_add_l; auto. }
+      { i. eapply OrdArith.add_base_l. }
+      { i. eapply OrdArith.le_add_l; auto. }
       { eapply tree_top_flip_add_inaccessible. auto. }
       { eapply Ord.le_lt_lt; eauto. eapply Ord.O_bot. }
     Qed.
 
     Lemma tree_top_mult o0 o1 (LT0: Ord.lt o0 tree_top) (LT1: Ord.lt o1 tree_top)
       :
-        Ord.lt (Ord.mult o0 o1) tree_top.
+        Ord.lt (OrdArith.mult o0 o1) tree_top.
     Proof.
       eapply tree_top_mult_inaccessible; auto.
     Qed.
@@ -300,7 +300,7 @@ Section INACCESSIBLE.
     Lemma tree_top_flip_mult_inaccessible
           o (LT: Ord.lt o tree_top)
       :
-        inaccessible X Ord.O (flip Ord.mult o) tree_top.
+        inaccessible X Ord.O (flip OrdArith.mult o) tree_top.
     Proof.
       hexploit tree_top_mult_inaccessible; eauto. i.
       econs; auto.
@@ -313,21 +313,21 @@ Section INACCESSIBLE.
     Lemma tree_top_expn_inaccessible
           o (POS: Ord.lt Ord.O o) (LT: Ord.lt o tree_top)
       :
-        inaccessible X Ord.O (Ord.expn o) tree_top.
+        inaccessible X Ord.O (OrdArith.expn o) tree_top.
     Proof.
       eapply inaccessible_rec_inaccessible; eauto.
-      { i. unfold flip. eapply Ord.mult_le_l. auto. }
-      { i. eapply Ord.le_mult_l. auto. }
+      { i. unfold flip. eapply OrdArith.mult_le_l. auto. }
+      { i. eapply OrdArith.le_mult_l. auto. }
       { eapply tree_top_flip_mult_inaccessible. auto. }
       { eapply tree_top_S. eapply tree_top_O. }
     Qed.
 
     Lemma tree_top_expn o0 o1 (LT0: Ord.lt o0 tree_top) (LT1: Ord.lt o1 tree_top)
       :
-        Ord.lt (Ord.expn o0 o1) tree_top.
+        Ord.lt (OrdArith.expn o0 o1) tree_top.
     Proof.
-      eapply (@Ord.le_lt_lt (Ord.expn (Ord.S o0) o1)).
-      { eapply Ord.le_expn_l. eapply Ord.S_le. }
+      eapply (@Ord.le_lt_lt (OrdArith.expn (Ord.S o0) o1)).
+      { eapply OrdArith.le_expn_l. eapply Ord.S_le. }
       { eapply tree_top_expn_inaccessible; auto.
         { eapply Ord.S_pos. }
         { eapply tree_top_S. auto. }
@@ -337,7 +337,7 @@ Section INACCESSIBLE.
     Lemma tree_top_flip_expn_inaccessible
           o (LT: Ord.lt o tree_top)
       :
-        inaccessible X Ord.O (flip Ord.expn o) tree_top.
+        inaccessible X Ord.O (flip OrdArith.expn o) tree_top.
     Proof.
       econs.
       { eapply tree_top_O. }
@@ -537,7 +537,7 @@ Section INACCESSIBLE.
     Lemma gtree_top_add_ginaccessible
           o (LT: Ord.lt o gtree_top)
       :
-        ginaccessible X Ord.O (Ord.add o) gtree_top.
+        ginaccessible X Ord.O (OrdArith.add o) gtree_top.
     Proof.
       eapply ginaccessible_rec_ginaccessible; eauto.
       { i. eapply Ord.S_le. }
@@ -547,7 +547,7 @@ Section INACCESSIBLE.
 
     Lemma gtree_top_add o0 o1 (LT0: Ord.lt o0 gtree_top) (LT1: Ord.lt o1 gtree_top)
       :
-        Ord.lt (Ord.add o0 o1) gtree_top.
+        Ord.lt (OrdArith.add o0 o1) gtree_top.
     Proof.
       eapply gtree_top_add_ginaccessible; auto.
     Qed.
@@ -555,7 +555,7 @@ Section INACCESSIBLE.
     Lemma gtree_top_flip_add_ginaccessible
           o (LT: Ord.lt o gtree_top)
       :
-        ginaccessible X Ord.O (flip Ord.add o) gtree_top.
+        ginaccessible X Ord.O (flip OrdArith.add o) gtree_top.
     Proof.
       hexploit gtree_top_add_ginaccessible; eauto. i.
       econs; auto.
@@ -568,18 +568,18 @@ Section INACCESSIBLE.
     Lemma gtree_top_mult_ginaccessible
           o (LT: Ord.lt o gtree_top)
       :
-        ginaccessible X Ord.O (Ord.mult o) gtree_top.
+        ginaccessible X Ord.O (OrdArith.mult o) gtree_top.
     Proof.
       eapply ginaccessible_rec_ginaccessible; eauto.
-      { i. eapply Ord.add_base_l. }
-      { i. eapply Ord.le_add_l; auto. }
+      { i. eapply OrdArith.add_base_l. }
+      { i. eapply OrdArith.le_add_l; auto. }
       { eapply gtree_top_flip_add_ginaccessible. auto. }
       { eapply Ord.le_lt_lt; eauto. eapply Ord.O_bot. }
     Qed.
 
     Lemma gtree_top_mult o0 o1 (LT0: Ord.lt o0 gtree_top) (LT1: Ord.lt o1 gtree_top)
       :
-        Ord.lt (Ord.mult o0 o1) gtree_top.
+        Ord.lt (OrdArith.mult o0 o1) gtree_top.
     Proof.
       eapply gtree_top_mult_ginaccessible; auto.
     Qed.
@@ -587,7 +587,7 @@ Section INACCESSIBLE.
     Lemma gtree_top_flip_mult_ginaccessible
           o (LT: Ord.lt o gtree_top)
       :
-        ginaccessible X Ord.O (flip Ord.mult o) gtree_top.
+        ginaccessible X Ord.O (flip OrdArith.mult o) gtree_top.
     Proof.
       hexploit gtree_top_mult_ginaccessible; eauto. i.
       econs; auto.
@@ -600,21 +600,21 @@ Section INACCESSIBLE.
     Lemma gtree_top_expn_ginaccessible
           o (POS: Ord.lt Ord.O o) (LT: Ord.lt o gtree_top)
       :
-        ginaccessible X Ord.O (Ord.expn o) gtree_top.
+        ginaccessible X Ord.O (OrdArith.expn o) gtree_top.
     Proof.
       eapply ginaccessible_rec_ginaccessible; eauto.
-      { i. unfold flip. eapply Ord.mult_le_l. auto. }
-      { i. eapply Ord.le_mult_l. auto. }
+      { i. unfold flip. eapply OrdArith.mult_le_l. auto. }
+      { i. eapply OrdArith.le_mult_l. auto. }
       { eapply gtree_top_flip_mult_ginaccessible. auto. }
       { eapply gtree_top_S. eapply gtree_top_O. }
     Qed.
 
     Lemma gtree_top_expn o0 o1 (LT0: Ord.lt o0 gtree_top) (LT1: Ord.lt o1 gtree_top)
       :
-        Ord.lt (Ord.expn o0 o1) gtree_top.
+        Ord.lt (OrdArith.expn o0 o1) gtree_top.
     Proof.
-      eapply (@Ord.le_lt_lt (Ord.expn (Ord.S o0) o1)).
-      { eapply Ord.le_expn_l. eapply Ord.S_le. }
+      eapply (@Ord.le_lt_lt (OrdArith.expn (Ord.S o0) o1)).
+      { eapply OrdArith.le_expn_l. eapply Ord.S_le. }
       { eapply gtree_top_expn_ginaccessible; auto.
         { eapply Ord.S_pos. }
         { eapply gtree_top_S. auto. }
@@ -624,7 +624,7 @@ Section INACCESSIBLE.
     Lemma gtree_top_flip_expn_ginaccessible
           o (LT: Ord.lt o gtree_top)
       :
-        ginaccessible X Ord.O (flip Ord.expn o) gtree_top.
+        ginaccessible X Ord.O (flip OrdArith.expn o) gtree_top.
     Proof.
       econs.
       { eapply gtree_top_O. }
