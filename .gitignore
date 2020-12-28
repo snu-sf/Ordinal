@@ -9,6 +9,8 @@ Makefile.coq.conf
 *.v.d
 *.glob
 .*.aux
+.vok
+.vos
 
 .lia.cache
 .nia.cache
