@@ -1,0 +1,315 @@
+From Ordinal Require Import sflib Basics ClassicalOrdinal Cardinal.
+From Ordinal Require Export Ordinal.
+
+Require Import ClassicalChoice.
+Require Import Program.
+
+Set Implicit Arguments.
+Set Primitive Projections.
+
+Section STRONGLYINACCESSIBLE.
+  Let SmallT: Type := Type.
+  Let X := @sig (@sigT SmallT (fun X => X -> X -> Prop))
+                (fun PR => well_founded (projT2 PR)).
+  Let Y : X -> Ord.t := fun PRWF => Ord.from_wf_set (proj2_sig PRWF).
+
+  Definition kappa := @Ord.build X Y.
+
+  Section UNION.
+    Variable A: SmallT.
+    Variable Ts: A -> SmallT.
+    Variable R: forall a, Ts a -> Ts a -> Prop.
+    Arguments R: clear implicits.
+    Hypothesis WF: forall a, well_founded (R a).
+    Arguments WF: clear implicits.
+    Let _union_set: SmallT := @sigT A (fun a => option (Ts a)).
+
+    Inductive _union_rel:
+      _union_set -> _union_set -> Prop :=
+    | _union_rel_top
+        a x
+      :
+        _union_rel (existT _ a (Some x)) (existT _ a None)
+    | _union_rel_normal
+        a x0 x1
+        (LT: R a x0 x1)
+      :
+        _union_rel (existT _ a (Some x0)) (existT _ a (Some x1))
+    .
+
+    Let _union_rel_well_founded:
+      well_founded _union_rel.
+    Proof.
+      assert (forall a x, Acc _union_rel (existT _ a (Some x))).
+      { intros a. eapply (well_founded_induction (WF a)); auto.
+        i. econs. i. dependent destruction H0. eapply H; eauto. }
+      ii. destruct a as [a [x|]]; eauto.
+      econs. i. inv H0; eauto.
+    Qed.
+
+    Let _from_wf_union (a: A) (x: Ts a)
+      :
+        Ord.eq (Ord.from_wf (WF a) x)
+               (Ord.from_wf _union_rel_well_founded (existT _ a (Some x))).
+    Proof.
+      revert x. eapply (well_founded_induction (WF a)).
+      i. split.
+      { eapply Ord.from_wf_supremum. i. specialize (H _ LT). inv H.
+        eapply Ord.le_lt_lt; eauto. eapply Ord.from_wf_lt. econs; eauto. }
+      { eapply Ord.from_wf_supremum. i. dependent destruction LT.
+        specialize (H _ LT). inv H.
+        eapply Ord.le_lt_lt; eauto. eapply Ord.from_wf_lt. auto. }
+    Qed.
+
+    Let _from_wf_set_union:
+      Ord.eq (@Ord.build A (fun a => Ord.from_wf_set (WF a)))
+             (Ord.from_wf_set _union_rel_well_founded).
+    Proof.
+      split.
+      { econs. i. exists (existT _ a0 None). eapply Ord.build_spec. i.
+        eapply (@Ord.le_lt_lt (Ord.from_wf _union_rel_well_founded (existT _ a0 (Some a)))).
+        { eapply _from_wf_union. }
+        { eapply Ord.from_wf_lt. econs. }
+      }
+      { econs. i. destruct a0 as [a0 [x|]].
+        { exists a0. transitivity (Ord.from_wf (WF a0) x).
+          { eapply _from_wf_union. }
+          { eapply Ord.lt_le. eapply Ord.from_wf_set_upperbound. }
+        }
+        { exists a0. eapply Ord.from_wf_supremum. i.
+          dependent destruction LT.
+          eapply (@Ord.le_lt_lt (Ord.from_wf (WF a0) x)).
+          { eapply _from_wf_union. }
+          { eapply Ord.from_wf_set_upperbound. }
+        }
+      }
+    Qed.
+
+    Lemma small_join_small:
+      exists (U: SmallT) (RU: U -> U -> Prop) (WFU: well_founded RU),
+        forall a, Ord.lt (Ord.from_wf_set (WF a)) (Ord.from_wf_set WFU).
+    Proof.
+      exists _union_set, _union_rel, _union_rel_well_founded. i.
+      eapply Ord.lt_eq_lt.
+      { symmetry. eapply _from_wf_set_union. }
+      eapply (@Ord.build_upperbound _ (fun a0 => Ord.from_wf_set (WF a0)) a).
+    Qed.
+  End UNION.
+
+  Lemma kappa_inaccessible_build (A: SmallT) (os: A -> Ord.t) (LT: forall a, Ord.lt (os a) kappa)
+    :
+      Ord.lt (Ord.build os) kappa.
+  Proof.
+    hexploit (choice (fun (a: A) (XRWF: @sig (@sigT SmallT (fun X => X -> X -> Prop)) (fun XR => well_founded (projT2 XR))) =>
+                        Ord.le (os a) (Ord.from_wf_set (proj2_sig XRWF)))).
+    { i. eapply NNPP. ii. eapply Ord.lt_not_le.
+      { eapply (LT x). }
+      eapply Ord.build_spec. i. destruct (ClassicOrd.total (os x) (Y a)); auto.
+      exfalso. eapply H. exists a. auto.
+    }
+    i. des.
+    hexploit (@small_join_small A (fun a => projT1 (proj1_sig (f a))) (fun a => projT2 (proj1_sig (f a))) (fun a => proj2_sig (f a))).
+    i. des. eapply (@Ord.le_lt_lt (Ord.from_wf_set WFU)).
+    { eapply Ord.build_spec; eauto. i. eapply (@Ord.le_lt_lt (Ord.from_wf_set (proj2_sig (f a)))).
+      { eapply H. }
+      { eapply H0. }
+    }
+    eapply (@Ord.build_upperbound X Y (exist _ (existT _ U RU) WFU)).
+  Qed.
+
+  Lemma kappa_inaccessible_is_join (A: SmallT) (os: A -> Ord.t) (LT: forall a, Ord.lt (os a) kappa)
+        o (JOIN: Ord.is_join os o)
+    :
+      Ord.lt o kappa.
+  Proof.
+    eapply (@Ord.le_lt_lt (Ord.build os)).
+    2: { eapply kappa_inaccessible_build; auto. }
+    eapply Ord.is_join_supremum; eauto.
+    i. eapply Ord.lt_le. eapply Ord.build_upperbound.
+  Qed.
+
+  Lemma kappa_inaccessible_join (A: SmallT) (os: A -> Ord.t) (LT: forall a, Ord.lt (os a) kappa):
+    Ord.lt (Ord.join os) kappa.
+  Proof.
+    eapply kappa_inaccessible_is_join; eauto. eapply Ord.join_is_join.
+  Qed.
+
+  Let D: SmallT := unit.
+  Let D_well_founded: @well_founded D (fun _ _ => False).
+  Proof.
+    ii. econs; ss.
+  Qed.
+
+  Lemma kappa_inaccesible_from_acc (A: SmallT) (R: A -> A -> Prop) a (ACC: Acc R a):
+    Ord.lt (Ord.from_acc ACC) kappa.
+  Proof.
+    dup ACC. revert ACC. induction ACC0. i.
+    destruct ACC. ss.
+    hexploit (@kappa_inaccessible_build (sig (fun a0 => R a0 x)) (fun a0p : {a0 : A | R a0 x} => Ord.from_acc (Ordinal.Ord.from_acc_obligation_1 (Acc_intro x a) a0p))); eauto.
+    i. destruct a0. ss. eapply H0; eauto.
+  Qed.
+
+  Lemma kappa_inaccesible_from_wf (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R) a:
+    Ord.lt (Ord.from_wf WF a) kappa.
+  Proof.
+    eapply kappa_inaccesible_from_acc.
+  Qed.
+
+  Lemma kappa_inaccesible_from_wf_set (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R):
+    Ord.lt (Ord.from_wf_set WF) kappa.
+  Proof.
+    eapply kappa_inaccessible_build. i. eapply kappa_inaccesible_from_wf.
+  Qed.
+
+  Lemma kappa_inaccessible_is_O o (ZERO: Ord.is_O o):
+    Ord.lt o kappa.
+  Proof.
+    eapply Ord.le_lt_lt.
+    { eapply ZERO. }
+    eapply (@Ord.build_upperbound X Y (exist _ (existT _ D (fun _ _ => False)) D_well_founded)).
+  Qed.
+
+  Lemma kappa_inaccessible_O:
+    Ord.lt Ord.O kappa.
+  Proof.
+    eapply kappa_inaccessible_is_O. eapply Ord.O_is_O.
+  Qed.
+
+  Lemma kappa_inaccessible_is_S o s (SUCC: Ord.is_S o s) (LT: Ord.lt o kappa):
+    Ord.lt s kappa.
+  Proof.
+    eapply (@Ord.le_lt_lt (@Ord.build D (fun _ => o))).
+    { eapply SUCC. eapply (Ord.build_upperbound (fun _ : D => o) tt). }
+    { eapply kappa_inaccessible_build; eauto. }
+  Qed.
+
+  Lemma kappa_inaccessible_S o (LT: Ord.lt o kappa):
+    Ord.lt (Ord.S o) kappa.
+  Proof.
+    eapply kappa_inaccessible_is_S; eauto.
+    eapply Ord.S_is_S.
+  Qed.
+
+  Lemma kappa_complete o (LT: Ord.lt o kappa):
+    exists (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R),
+      Ord.le o (Ord.from_wf_set WF).
+  Proof.
+    eapply NNPP. ii. eapply Ord.lt_not_le.
+    { eapply LT. }
+    eapply Ord.build_spec. i. destruct a as [[A R] WF]. unfold Y. ss.
+    destruct (ClassicOrd.total o (Ord.from_wf_set WF)); auto.
+    exfalso. eapply H. esplits; eauto.
+  Qed.
+
+  Lemma kappa_incaccessible_nat n: Ord.lt (Ord.from_nat n) kappa.
+  Proof.
+    induction n; ss.
+    - eapply kappa_inaccessible_O.
+    - eapply kappa_inaccessible_S. auto.
+  Qed.
+
+  Lemma kappa_incaccessible_omega: Ord.lt Ord.omega kappa.
+  Proof.
+    eapply kappa_inaccessible_join.
+    eapply kappa_incaccessible_nat.
+  Qed.
+
+  Lemma kappa_inaccessible_next_cardinal o (LT: Ord.lt o kappa):
+    Ord.lt (Cardinal.next_cardinal (ToSet.to_total_set o)) kappa.
+  Proof.
+    hexploit (kappa_complete LT); eauto. i. des.
+    eapply (@Ord.le_lt_lt (Cardinal.next_cardinal A)).
+    { eapply Cardinal.next_cardinal_le.
+      etransitivity.
+      { eapply Cardinal.to_total_le. eapply H. }
+      eapply Cardinal.from_wf_set_to_total.
+    }
+    eapply (@Ord.le_lt_lt (Cardinal.cardinal (A -> Prop))).
+    { eapply Cardinal.next_cardinal_le_power_set. }
+    hexploit (Cardinal.cardinal_of_cardinal (A -> Prop)). i. inv H0.
+    des. eapply Ord.eq_lt_lt.
+    { symmetry. eapply H0. }
+    eapply (@Ord.build_upperbound X Y (exist _ (existT _ (A -> Prop) R0) WF0)).
+  Qed.
+
+  Lemma smaller_cardinal_small (A: Type) (B: SmallT)
+        (LE: Ord.le (Cardinal.cardinal A) (Cardinal.cardinal B))
+    :
+      exists (A': SmallT),
+        Ord.eq (Cardinal.cardinal A) (Cardinal.cardinal A').
+  Proof.
+    eapply Cardinal._cardinal_le_iff in LE. inv LE.
+    set (A' := @sig B (fun b => exists a, f a = b)). exists A'.
+    split.
+    { eapply Cardinal._cardinal_le_iff.
+      eapply Cardinal._cardinal_le_intro with (f:=fun a => exist _ (f a) (ex_intro _ a eq_refl)).
+      i. inv EQ. eapply INJ; eauto.
+    }
+    { hexploit (choice (fun (a': A') (a: A) =>
+                          f a = proj1_sig a')).
+      { i. destruct x. s. eauto. }
+      i. des. eapply Cardinal._cardinal_le_iff.
+      eapply Cardinal._cardinal_le_intro with (f:=f0).
+      i. destruct a0, a1. des. subst.
+      dup EQ. eapply f_equal with (f:=f) in EQ0.
+      rewrite H in EQ0. rewrite H in EQ0. ss.
+      eapply INJ in EQ0. subst. auto.
+    }
+  Qed.
+
+  Lemma small_odinal_small o (LT: Ord.lt o kappa):
+    exists (A: SmallT), Ord.eq (Cardinal.cardinal A) (Cardinal.cardinal (ToSet.to_total_set o)).
+  Proof.
+    eapply kappa_complete in LT. des.
+    hexploit (@smaller_cardinal_small (ToSet.to_total_set o) A).
+    { etransitivity.
+      2: { eapply Cardinal.from_wf_set_to_total. }
+      { eapply Cardinal.to_total_le. eauto. }
+    }
+    i. des. esplits. symmetry. eapply H.
+  Qed.
+
+  Lemma sum_of_small o (LT: Ord.lt o kappa):
+    exists (A: SmallT) (os: A -> Ord.t), Ord.eq o (Ord.build os).
+  Proof.
+    hexploit small_odinal_small; eauto. i. des.
+    hexploit Cardinal.sum_of_smaller_same_cardinal; eauto.
+  Qed.
+
+  Lemma kappa_inaccessible_aleph o (LT: Ord.lt o kappa):
+    Ord.lt (Cardinal.aleph o) kappa.
+  Proof.
+    revert o LT.
+    eapply (well_founded_induction
+              Ord.lt_well_founded
+              (fun o => forall (LT: Ord.lt o kappa), Ord.lt (Cardinal.aleph o) kappa)).
+    i. dup LT. eapply sum_of_small in LT. des.
+    eapply Ord.le_lt_lt.
+    { eapply Cardinal.aleph_mon. eapply LT. }
+    eapply kappa_inaccessible_join. i. destruct a.
+    { eapply kappa_incaccessible_omega. }
+    { eapply kappa_inaccessible_join. i.
+      eapply kappa_inaccessible_next_cardinal. eapply H; auto.
+      { eapply Ord.lt_eq_lt.
+        { eapply LT. }
+        { eapply Ord.build_upperbound. }
+      }
+      { etransitivity.
+        { eapply Ord.build_upperbound. }
+        { eapply Ord.eq_lt_lt; eauto. symmetry. eauto. }
+      }
+    }
+  Qed.
+
+  Lemma kappa_aleph_fixpoint:
+    Ord.eq kappa (Cardinal.aleph kappa).
+  Proof.
+    split.
+    - eapply Cardinal.aleph_expand.
+    - eapply Ord.orec_build_supremum.
+      { eapply Ord.lt_le. eapply kappa_incaccessible_omega. }
+      { i. eapply Ord.lt_le. unfold Cardinal.aleph_gen.
+        eapply kappa_inaccessible_next_cardinal.
+        eapply kappa_inaccessible_aleph. auto. }
+  Qed.
+End STRONGLYINACCESSIBLE.
