@@ -255,6 +255,27 @@ Module Ord.
       - destruct EQ. etransitivity; eauto.
       - destruct EQ. etransitivity; eauto.
     Qed.
+
+    Lemma le_ext o0 o1
+          (EXT: forall o (LT: lt o o0), lt o o1)
+      :
+        le o0 o1.
+    Proof.
+      eapply le_proj_rev. i.
+      hexploit (EXT (proj2 o0 a0)).
+      { eapply lt_proj_rev. eexists. reflexivity. }
+      i. eapply lt_proj in H. eauto.
+    Qed.
+
+    Lemma eq_ext o0 o1
+          (EXT: forall o, lt o o0 <-> lt o o1)
+      :
+        eq o0 o1.
+    Proof.
+      split.
+      { eapply le_ext. i. eapply EXT; auto. }
+      { eapply le_ext. i. eapply EXT; auto. }
+    Qed.
   End PLUMP.
 
 
