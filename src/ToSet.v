@@ -1,10 +1,9 @@
 From Ordinal Require Import sflib Basics.
-From Ordinal Require Import ClassicalOrdinal WfRel WellOrdering.
+From Ordinal Require Import ClassicalOrdinal WfRel.
 From Ordinal Require Export Ordinal.
 
-Require Import Coq.Classes.RelationClasses.
-Require Import ClassicalChoice FunctionalExtensionality PropExtensionality.
-Require Import Program.
+Require Import FunctionalExtensionality PropExtensionality.
+Require Import Program. (* Axiom K *)
 
 Set Implicit Arguments.
 Set Primitive Projections.
@@ -26,6 +25,7 @@ Module ToSet.
       union_rel R (existT _ a (Some x0)) (existT _ a (Some x1))
   .
 
+  (* TODO: axiom K necessary? *)
   Lemma union_rel_well_founded (A: Type) (Ts: A -> Type)
         (R: forall a, Ts a -> Ts a -> Prop)
         (WF: forall a, well_founded (R a))
@@ -56,7 +56,6 @@ Module ToSet.
       eapply Ord.le_lt_lt; eauto. eapply Ord.from_wf_lt. auto. }
   Qed.
 
-  (* TODO: axiom K necessary? *)
   Lemma from_wf_set_union (A: Type) (Ts: A -> Type)
         (R: forall a, Ts a -> Ts a -> Prop)
         (WF: forall a, well_founded (R a))
@@ -107,28 +106,6 @@ Module ToSet.
     { econs. i. exists a0. eapply H. }
   Qed.
 
-  Lemma to_total_exists (o: Ord.t):
-    exists (A: Type) (R: A -> A -> Prop) (WF: well_founded R),
-      Ord.eq o (Ord.from_wf_set WF) /\
-      (forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0).
-  Proof.
-    hexploit (to_set_eq o). intros EQ.
-    hexploit (well_founded_order_extendable (to_set_well_founded o)). i. des.
-    assert (Ord.le o (Ord.from_wf_set H)).
-    { transitivity (Ord.from_wf_set (to_set_well_founded o)); auto.
-      { eapply EQ. }
-      { eapply from_wf_set_le; auto. }
-    }
-    eapply ClassicOrd.le_eq_or_lt in H2. des.
-    { eapply ClassicOrd.from_wf_set_complete in H2. des.
-      hexploit (from_wf_set_cut H H1 a). i.
-      eexists _, _, (cut_rel_well_founded H a). splits.
-      { transitivity (Ord.from_wf H a); auto. }
-      { eapply cut_rel_total; eauto. }
-    }
-    { esplits; eauto. }
-  Qed.
-
   Section TOTALIFY.
     Variable A: Type.
     Variable R: A -> A -> Prop.
@@ -137,6 +114,14 @@ Module ToSet.
     Definition equiv_class: Type :=
       @sig (A -> Prop) (fun s => (exists a, s a) /\
                                  (forall a0 a1 (IN0: s a0), s a1 <-> Ord.eq (Ord.from_wf WF a0) (Ord.from_wf WF a1))).
+
+    Lemma equiv_class_same_ord (s: equiv_class) (a0 a1: A)
+          (IN0: proj1_sig s a0) (IN1: proj1_sig s a1)
+      :
+        Ord.eq (Ord.from_wf WF a0) (Ord.from_wf WF a1).
+    Proof.
+      destruct s. ss. des. eapply a2; auto.
+    Qed.
 
     Program Definition to_equiv_class (a0: A): equiv_class :=
       exist _ (fun a1 => Ord.eq (Ord.from_wf WF a0) (Ord.from_wf WF a1)) _.
@@ -173,22 +158,72 @@ Module ToSet.
       - eapply Ord.from_wf_lt; auto.
     Qed.
 
-    Lemma equiv_class_total:
-      forall s0 s1, equiv_class_rel s0 s1 \/ s0 = s1 \/ equiv_class_rel s1 s0.
+    Lemma equiv_class_rel_trans s0 s1 s2
+          (LT0: equiv_class_rel s0 s1) (LT1: equiv_class_rel s1 s2)
+      :
+        equiv_class_rel s0 s2.
     Proof.
-      i. hexploit (proj2_sig s0). i. des. hexploit (proj2_sig s1). i. des.
-      destruct (ClassicOrd.trichotomy (Ord.from_wf WF a) (Ord.from_wf WF a0)) as [|[]].
-      - left. unfold equiv_class_rel. esplits; eauto.
-      - right. left. assert (proj1_sig s0 = proj1_sig s1).
-        { extensionality x. eapply propositional_extensionality. split; i.
-          - eapply H2; eauto. transitivity (Ord.from_wf WF a); eauto.
-            + symmetry. auto.
-            + eapply (H0 a x); auto.
-          - eapply H0; eauto. transitivity (Ord.from_wf WF a0); eauto.
-            eapply (H2 a0 x); auto.
-        }
-        destruct s0, s1. ss. subst. f_equal. eapply proof_irrelevance.
-      - right. right. unfold equiv_class_rel. esplits; eauto.
+      unfold equiv_class_rel in *. des. esplits; eauto.
+      transitivity (Ord.from_wf WF a3); auto.
+      eapply Ord.eq_lt_lt; eauto.
+      eapply equiv_class_same_ord; eauto.
+    Qed.
+
+    Let _equiv_class_extensional s0 s1
+          (EXT: forall s, equiv_class_rel s s0 <-> equiv_class_rel s s1)
+          a
+          (IN: proj1_sig s0 a)
+      :
+        proj1_sig s1 a.
+    Proof.
+      assert (exists a', proj1_sig s1 a').
+      { eapply (proj2_sig s1). }
+      des. eapply (proj2_sig s1); eauto.
+      eapply Ord.eq_ext. i. split.
+      { i. unfold Ord.from_wf in H0. destruct (WF a').
+        eapply Ord.lt_proj in H0. des. ss. destruct a1; ss.
+        hexploit to_equiv_class_preserve; eauto. i.
+        assert (equiv_class_rel (to_equiv_class x) s0).
+        { eapply EXT. replace s1 with (to_equiv_class a'); auto.
+          apply to_equiv_class_equiv in H. auto. }
+        unfold equiv_class_rel in H2. des. ss.
+        eapply Ord.lt_eq_lt.
+        { eapply (proj2_sig s0); eauto. }
+        eapply Ord.le_lt_lt; eauto.
+        eapply Ord.le_lt_lt; eauto.
+        eapply Ord.le_eq_le.
+        { symmetry. eauto. }
+        eapply Ord.same_acc_le.
+      }
+      { i. unfold Ord.from_wf in H0. destruct (WF a).
+        eapply Ord.lt_proj in H0. des. ss. destruct a1; ss.
+        hexploit to_equiv_class_preserve; eauto. i.
+        assert (equiv_class_rel (to_equiv_class x) s1).
+        { eapply EXT. replace s0 with (to_equiv_class a); auto.
+          apply to_equiv_class_equiv in IN. auto. }
+        unfold equiv_class_rel in H2. des. ss.
+        eapply Ord.lt_eq_lt.
+        { eapply (proj2_sig s1); eauto. }
+        eapply Ord.le_lt_lt; eauto.
+        eapply Ord.le_lt_lt; eauto.
+        eapply Ord.le_eq_le.
+        { symmetry. eauto. }
+        eapply Ord.same_acc_le.
+      }
+    Qed.
+
+    Lemma equiv_class_extensional s0 s1
+          (EXT: forall s, equiv_class_rel s s0 <-> equiv_class_rel s s1)
+      :
+        s0 = s1.
+    Proof.
+      assert (proj1_sig s0 = proj1_sig s1).
+      { extensionality a. eapply propositional_extensionality. split; i.
+        - eapply _equiv_class_extensional; eauto.
+        - eapply _equiv_class_extensional; eauto.
+          i. symmetry. auto.
+      }
+      destruct s0, s1. ss. subst. f_equal. eapply proof_irrelevance.
     Qed.
 
     Lemma equiv_class_well_founded: well_founded equiv_class_rel.
@@ -240,6 +275,24 @@ Module ToSet.
         { eapply Ord.from_wf_set_upperbound. }
       }
     Qed.
+
+    Lemma equiv_class_total:
+      forall s0 s1, equiv_class_rel s0 s1 \/ s0 = s1 \/ equiv_class_rel s1 s0.
+    Proof.
+      i. hexploit (proj2_sig s0). i. des. hexploit (proj2_sig s1). i. des.
+      destruct (ClassicOrd.trichotomy (Ord.from_wf WF a) (Ord.from_wf WF a0)) as [|[]].
+      - left. unfold equiv_class_rel. esplits; eauto.
+      - right. left. assert (proj1_sig s0 = proj1_sig s1).
+        { extensionality x. eapply propositional_extensionality. split; i.
+          - eapply H2; eauto. transitivity (Ord.from_wf WF a); eauto.
+            + symmetry. auto.
+            + eapply (H0 a x); auto.
+          - eapply H0; eauto. transitivity (Ord.from_wf WF a0); eauto.
+            eapply (H2 a0 x); auto.
+        }
+        destruct s0, s1. ss. subst. f_equal. eapply proof_irrelevance.
+      - right. right. unfold equiv_class_rel. esplits; eauto.
+    Qed.
   End TOTALIFY.
 
   Definition to_total_set (o: Ord.t): Type := equiv_class (to_set_well_founded o).
@@ -265,5 +318,15 @@ Module ToSet.
     forall (x0 x1: to_total_set o), to_total_rel o x0 x1 \/ x0 = x1 \/ to_total_rel o x1 x0.
   Proof.
     eapply equiv_class_total.
+  Qed.
+
+  Lemma to_total_exists (o: Ord.t):
+    exists (A: Type) (R: A -> A -> Prop) (WF: well_founded R),
+      Ord.eq o (Ord.from_wf_set WF) /\
+      (forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0).
+  Proof.
+    eexists _, _, (to_total_well_founded o). splits.
+    { eapply to_total_eq. }
+    { eapply to_total_total. }
   Qed.
 End ToSet.
