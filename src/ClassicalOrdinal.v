@@ -102,12 +102,12 @@ Module ClassicOrd.
     destruct o. destruct (classic (forall a0, exists a1, Ord.lt (os a0) (os a1))).
     - right. exists A, os. split; auto. split.
       + i. eapply Ord.lt_le. eapply Ord.build_upperbound.
-      + i. eapply Ord.build_spec. i. specialize (H a). des.
+      + i. eapply Ord.build_supremum. i. specialize (H a). des.
         eapply Ord.lt_le_lt; eauto.
     - left. eapply not_all_ex_not in H. des.
       exists (os n). split.
       + eapply Ord.build_upperbound.
-      + i. eapply Ord.build_spec. i. destruct (total (os a) (os n)); auto.
+      + i. eapply Ord.build_supremum. i. destruct (total (os a) (os n)); auto.
         * eapply Ord.le_lt_lt; eauto.
         * exfalso. eapply H; eauto.
   Qed.
@@ -308,7 +308,7 @@ Module ClassicOrd.
       { assert (exists a, Ord.eq o0 (os a)).
         { eapply NNPP. ii. eapply Ord.lt_not_le.
           { eapply LT. }
-          eapply Ord.build_spec. i.
+          eapply Ord.build_supremum. i.
           destruct (trichotomy (os a) o0) as [|[|]]; auto.
           { exfalso. eapply H0. exists a. symmetry. auto. }
           { exfalso. eapply H. esplits; eauto. eapply Ord.build_upperbound. }
@@ -818,7 +818,7 @@ Module ClassicOrd.
     Proof.
       ii. eapply NEND.
       { eapply (@Ord.lt_le_lt o0); eauto. }
-      dup LT. eapply Ord.S_spec in LT0.
+      dup LT. eapply Ord.S_supremum in LT0.
       hexploit rec_S; auto. i. inv H0.
       hexploit (@fixed_point_after o2).
       { eapply (@dle_transitive (rec (Ord.S o2))); auto.
@@ -838,7 +838,7 @@ Module ClassicOrd.
                                      (fun o1 => forall (INCR: not_fixed o1),
                                           Ord.le o1 (Ord.from_wf strictly_increasing_well_founded (rec o1)))).
       i. destruct (total x (Ord.from_wf strictly_increasing_well_founded (rec x))); auto.
-      destruct x. eapply Ord.build_spec. i.
+      destruct x. eapply Ord.build_supremum. i.
       hexploit (Ord.build_upperbound os a). i.
       hexploit (H (os a)); eauto.
       { eapply end_le_end; eauto. eapply Ord.lt_le; auto. }
@@ -869,7 +869,7 @@ Module ClassicOrd.
       eapply (@dle_transitive (rec o0)); auto.
       eapply le_rec; eauto.
       destruct (total o0 (Ord.hartogs D)); auto.
-      eapply Ord.S_spec in H2.
+      eapply Ord.S_supremum in H2.
       exfalso. eapply Ord.lt_not_le.
       { eapply LT. }
       { eapply H2. }

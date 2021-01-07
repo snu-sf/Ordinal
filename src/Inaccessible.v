@@ -21,7 +21,7 @@ Section STRONGLYINACCESSIBLE.
   Proof.
     eapply NNPP. ii. eapply Ord.lt_not_le.
     { eapply LT. }
-    eapply Ord.build_spec. i. destruct a as [[A R] WF]. unfold Y. ss.
+    eapply Ord.build_supremum. i. destruct a as [[A R] WF]. unfold Y. ss.
     destruct (ClassicOrd.total o (Ord.from_wf_set WF)); auto.
     exfalso. eapply H. esplits; eauto.
   Qed.
@@ -77,7 +77,7 @@ Section STRONGLYINACCESSIBLE.
              (Ord.from_wf_set _union_rel_well_founded).
     Proof.
       split.
-      { econs. i. exists (existT _ a0 None). eapply Ord.build_spec. i.
+      { econs. i. exists (existT _ a0 None). eapply Ord.build_supremum. i.
         eapply (@Ord.le_lt_lt (Ord.from_wf _union_rel_well_founded (existT _ a0 (Some a)))).
         { eapply _from_wf_union. }
         { eapply Ord.from_wf_lt. econs. }
@@ -161,13 +161,13 @@ Section STRONGLYINACCESSIBLE.
                         Ord.le (os a) (Ord.from_wf_set (proj2_sig XRWF)))).
     { i. eapply NNPP. ii. eapply Ord.lt_not_le.
       { eapply (LT x). }
-      eapply Ord.build_spec. i. destruct (ClassicOrd.total (os x) (Y a)); auto.
+      eapply Ord.build_supremum. i. destruct (ClassicOrd.total (os x) (Y a)); auto.
       exfalso. eapply H. exists a. auto.
     }
     i. des.
     hexploit (@small_join_small A (fun a => projT1 (proj1_sig (f a))) (fun a => projT2 (proj1_sig (f a))) (fun a => proj2_sig (f a))).
     i. des. eapply (@Ord.le_lt_lt (Ord.from_wf_set WFU)).
-    { eapply Ord.build_spec; eauto. i. eapply (@Ord.le_lt_lt (Ord.from_wf_set (proj2_sig (f a)))).
+    { eapply Ord.build_supremum; eauto. i. eapply (@Ord.le_lt_lt (Ord.from_wf_set (proj2_sig (f a)))).
       { eapply H. }
       { eapply H0. }
     }
@@ -417,7 +417,7 @@ Section STRONGLYINACCESSIBLE.
     { eapply kappa_inaccessible_omega. }
     { i. eapply kappa_inaccessible_next_cardinal. auto. }
     { i. eapply Cardinal.le_aleph_gen. auto. }
-    { i. eapply Ord.S_spec. eapply Cardinal.aleph_gen_lt. }
+    { i. eapply Ord.S_supremum. eapply Cardinal.aleph_gen_lt. }
   Qed.
 
   Lemma kappa_beth_fixpoint:
@@ -427,6 +427,6 @@ Section STRONGLYINACCESSIBLE.
     { eapply kappa_inaccessible_omega. }
     { i. eapply kappa_inaccessible_power. auto. }
     { i. eapply Cardinal.le_beth_gen. auto. }
-    { i. eapply Ord.S_spec. eapply Cardinal.beth_gen_lt. }
+    { i. eapply Ord.S_supremum. eapply Cardinal.beth_gen_lt. }
   Qed.
 End STRONGLYINACCESSIBLE.

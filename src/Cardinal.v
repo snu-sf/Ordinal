@@ -91,7 +91,7 @@ Module Cardinal.
             (TOTAL: forall a0 a1, R a0 a1 \/ a0 = a1 \/ R a1 a0):
         Ord.le cardinal (Ord.from_wf_set WF).
       Proof.
-        eapply Ord.build_spec. i. unfold Y.
+        eapply Ord.build_supremum. i. unfold Y.
         destruct a as [[P0 R0] [WF0 [TOTAL0 SMALL]]]; ss.
         eapply (@Ord.le_lt_lt (Ord.from_wf_set WF0)).
         { eapply Ord.same_wf_set_le. }
@@ -158,7 +158,7 @@ Module Cardinal.
         :
           Ord.le cardinal c.
       Proof.
-        eapply Ord.build_spec. i.
+        eapply Ord.build_supremum. i.
         destruct a as [[P0 R0] [WF0 [TOTAL SMALL]]]; ss. unfold Y. ss.
         eapply (@Ord.le_lt_lt (Ord.from_wf_set WF0)).
         { eapply Ord.same_wf_set_le. }
@@ -199,7 +199,7 @@ Module Cardinal.
             { eapply H6. }
             { eapply H2. }
           }
-        - i. des. eapply Ord.build_spec. i. unfold Y.
+        - i. des. eapply Ord.build_supremum. i. unfold Y.
           destruct a as [[P0 R0] [WF0 [TOTAL SMALL]]]; ss.
         eapply (@Ord.le_lt_lt (Ord.from_wf_set WF0)).
         { eapply Ord.same_wf_set_le. }
@@ -457,9 +457,9 @@ Module Cardinal.
       exists (fun a => os (f a)). etransitivity.
       { eapply H. }
       split.
-      { eapply Ord.build_spec. i. hexploit (EQ0 a). i. des.
+      { eapply Ord.build_supremum. i. hexploit (EQ0 a). i. des.
         subst. eapply (Ord.build_upperbound (fun a => os (f a)) a0). }
-      { eapply Ord.build_spec. i.
+      { eapply Ord.build_supremum. i.
         eapply (Ord.build_upperbound os (f a)). }
     Qed.
   End CARDINALITY.
@@ -495,7 +495,7 @@ Module Cardinal.
     Lemma next_cardinal_supremum B (CARD: Ord.lt (cardinal A) (cardinal B)):
       Ord.le (next_cardinal A) (cardinal B).
     Proof.
-      eapply Ord.build_spec. i. destruct a as [R WF]. unfold Y. ss.
+      eapply Ord.build_supremum. i. destruct a as [R WF]. unfold Y. ss.
       destruct (ClassicOrd.total (cardinal B) (Ord.from_wf_set WF)); auto.
       hexploit (cardinal_of_cardinal B); eauto. i. inv H0. des.
       hexploit (well_founded_order_extendable WF); eauto. i. des.
@@ -525,7 +525,7 @@ Module Cardinal.
         - eapply ToSet.to_total_total.
         - symmetry. apply ToSet.to_total_eq.
       }
-      i. des. eapply Ord.build_spec. i. destruct a as [R0 WF0]. unfold Y. ss.
+      i. des. eapply Ord.build_supremum. i. destruct a as [R0 WF0]. unfold Y. ss.
       destruct (ClassicOrd.total o1 (Ord.from_wf_set WF0)); auto.
       assert (LE: Ord.le (Ord.from_wf_set WF) (Ord.from_wf_set WF0)).
       { transitivity o1; auto. eapply IN0. }
@@ -760,7 +760,7 @@ Module Cardinal.
     Lemma lt_aleph o0 o1 (LE: Ord.lt o0 o1):
       Ord.lt (aleph o0) (aleph o1).
     Proof.
-      eapply Ord.S_spec in LE.
+      eapply Ord.S_supremum in LE.
       eapply Ord.lt_le_lt.
       2: { eapply le_aleph; eauto. }
       eapply Ord.lt_eq_lt.
@@ -785,7 +785,7 @@ Module Cardinal.
       { eapply Ord.orec_of_S. }
       eapply (@Ord.rec_mon _ Ord.le Ord.join Ord.O Ord.S Ord.omega aleph_gen).
       { eapply Ord.O_bot. }
-      { i. eapply Ord.S_spec. eapply Ord.le_lt_lt; eauto.
+      { i. eapply Ord.S_supremum. eapply Ord.le_lt_lt; eauto.
         eapply aleph_gen_lt.
       }
       { eapply Ord.le_PreOrder. }
@@ -862,7 +862,7 @@ Module Cardinal.
     Lemma lt_beth o0 o1 (LE: Ord.lt o0 o1):
       Ord.lt (beth o0) (beth o1).
     Proof.
-      eapply Ord.S_spec in LE.
+      eapply Ord.S_supremum in LE.
       eapply Ord.lt_le_lt.
       2: { eapply le_beth; eauto. }
       eapply Ord.lt_eq_lt.
@@ -887,7 +887,7 @@ Module Cardinal.
       { eapply Ord.orec_of_S. }
       eapply (@Ord.rec_mon _ Ord.le Ord.join Ord.O Ord.S Ord.omega beth_gen).
       { eapply Ord.O_bot. }
-      { i. eapply Ord.S_spec. eapply Ord.le_lt_lt; eauto.
+      { i. eapply Ord.S_supremum. eapply Ord.le_lt_lt; eauto.
         eapply beth_gen_lt.
       }
       { eapply Ord.le_PreOrder. }
@@ -973,7 +973,7 @@ Module Cardinal.
         Ord.eq (Ord.from_wf_set (finite_well_founded n)) (Ord.from_wf (finite_well_founded (Datatypes.S n)) None).
     Proof.
       i. split.
-      { eapply Ord.build_spec. i. eapply Ord.le_lt_lt.
+      { eapply Ord.build_supremum. i. eapply Ord.le_lt_lt.
         { eapply finite_from_wf_eq. }
         { eapply Ord.from_wf_lt. ss. }
       }
@@ -988,7 +988,7 @@ Module Cardinal.
         Ord.eq (Ord.S (Ord.from_wf_set (finite_well_founded n))) (Ord.from_wf_set (finite_well_founded (Datatypes.S n))).
     Proof.
       i. split.
-      - eapply Ord.S_spec. eapply Ord.le_lt_lt.
+      - eapply Ord.S_supremum. eapply Ord.le_lt_lt.
         { eapply finite_from_wf_set_eq. }
         { eapply Ord.from_wf_set_upperbound. }
       - econs. i. exists tt. ss. etransitivity.
@@ -1536,7 +1536,7 @@ Module Cardinality.
       eapply Cardinal.next_cardinal_of_cardinal. }
     { eapply Cardinal.next_cardinal_incr. }
   Qed.
-  Lemma S_spec A B (LT: lt A B): le (S A) B.
+  Lemma S_supremum A B (LT: lt A B): le (S A) B.
   Proof.
     eapply cardinal_lt_iff in LT.
     eapply Cardinal.next_cardinal_supremum in LT.
@@ -1546,7 +1546,7 @@ Module Cardinality.
 
   Lemma S_le_power A: le (S A) (power A).
   Proof.
-    eapply S_spec. eapply cantor.
+    eapply S_supremum. eapply cantor.
   Qed.
 
   Definition join X (TS: X -> Type):=

@@ -52,7 +52,7 @@ Lemma from_wf_set_inj A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
   :
     Ord.le (Ord.from_wf_set WFA) (Ord.from_wf_set WFB).
 Proof.
-  eapply Ord.build_spec. i. eapply Ord.le_lt_lt.
+  eapply Ord.build_supremum. i. eapply Ord.le_lt_lt.
   { eapply from_wf_inj; eauto. }
   eapply Ord.from_wf_set_upperbound.
 Qed.
@@ -138,7 +138,7 @@ Lemma from_wf_set_projected_rel_le A B (RA: A -> A -> Prop)
   :
     Ord.le (Ord.from_wf_set WFA) (Ord.from_wf_set (embed_projected_rel_well_founded WFA f INJ)).
 Proof.
-  eapply Ord.build_spec. i. eapply Ord.eq_lt_lt.
+  eapply Ord.build_supremum. i. eapply Ord.eq_lt_lt.
   { eapply from_wf_projected_rel_eq. }
   eapply Ord.build_upperbound.
 Qed.
@@ -195,7 +195,7 @@ Lemma from_wf_set_projected_rel_sig_le A B (RA: A -> A -> Prop)
   :
     Ord.le (Ord.from_wf_set WFA) (Ord.from_wf_set (projected_rel_sig_well_founded WFA f INJ)).
 Proof.
-  eapply Ord.build_spec. i. eapply Ord.eq_lt_lt.
+  eapply Ord.build_supremum. i. eapply Ord.eq_lt_lt.
   { eapply from_wf_projected_rel_sig_eq. }
   eapply Ord.build_upperbound.
 Qed.
@@ -209,7 +209,7 @@ Lemma from_wf_set_projected_rel_sig_eq A B (RA: A -> A -> Prop)
 Proof.
   split.
   - eapply from_wf_set_projected_rel_sig_le.
-  - eapply Ord.build_spec. i. destruct a. des. subst. eapply Ord.eq_lt_lt.
+  - eapply Ord.build_supremum. i. destruct a. des. subst. eapply Ord.eq_lt_lt.
     { symmetry. eapply from_wf_projected_rel_sig_eq. }
     { eapply Ord.build_upperbound. }
 Qed.
@@ -277,7 +277,7 @@ Proof.
   { eapply Ord.from_wf_supremum. i.
     eapply Ord.lt_intro with (a:=exist _ a0 LT).
     eapply from_wf_cut; eauto. }
-  { eapply Ord.build_spec. intros [a0 r].
+  { eapply Ord.build_supremum. intros [a0 r].
     eapply (@Ord.le_lt_lt (Ord.from_wf WF a0)).
     { eapply from_wf_cut; eauto. }
     { eapply Ord.from_wf_lt; eauto. }

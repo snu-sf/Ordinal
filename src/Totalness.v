@@ -48,7 +48,7 @@ Proof.
   { econs. i.
     destruct (LEM A os (os0 a0)); auto.
     exfalso. eapply H2. exists a0.
-    eapply Ord.build_spec. i. destruct (H a (os0 a0)) as [|[]]; auto.
+    eapply Ord.build_supremum. i. destruct (H a (os0 a0)) as [|[]]; auto.
     { exfalso. eapply H3. eexists. eapply H4. }
     { exfalso. eapply H3. eexists. eapply Ord.lt_le. eapply H4. }
   }

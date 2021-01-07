@@ -83,7 +83,7 @@ Module OrdArith.
         :
           Ord.lt (add o0 o1) (add o0 o2).
       Proof.
-        eapply Ord.S_spec in LT.
+        eapply Ord.S_supremum in LT.
         eapply Ord.lt_le_lt.
         2: { eapply le_add_r. eapply LT. }
         eapply Ord.lt_eq_lt.
@@ -123,11 +123,11 @@ Module OrdArith.
         { split.
           - eapply Ord.union_spec.
             + eapply Ord.O_bot.
-            + eapply Ord.join_supremum. i. eapply Ord.S_spec.
+            + eapply Ord.join_supremum. i. eapply Ord.S_supremum.
               eapply Ord.eq_lt_lt.
               * eapply H.
               * eapply Ord.build_upperbound.
-          - eapply Ord.build_spec. i.
+          - eapply Ord.build_supremum. i.
             eapply (@Ord.lt_le_lt (Ord.join (fun a0 => Ord.S (Ord.orec Ord.O Ord.S (os a0))))).
             2: { eapply Ord.union_r. }
             eapply Ord.eq_lt_lt.
@@ -183,7 +183,7 @@ Module OrdArith.
 
       Lemma add_lt_l o0 o1 (LT: Ord.lt Ord.O o1): Ord.lt o0 (add o0 o1).
       Proof.
-        eapply Ord.S_spec in LT. eapply (@Ord.lt_le_lt (add o0 (Ord.S Ord.O))).
+        eapply Ord.S_supremum in LT. eapply (@Ord.lt_le_lt (add o0 (Ord.S Ord.O))).
         { eapply Ord.lt_eq_lt.
           { eapply add_S. }
           eapply Ord.lt_le_lt.
@@ -465,7 +465,7 @@ Module OrdArith.
         :
           Ord.lt (mult o0 o1) (mult o0 o2).
       Proof.
-        eapply Ord.S_spec in LT.
+        eapply Ord.S_supremum in LT.
         eapply Ord.lt_le_lt.
         2: { eapply le_mult_r. eapply LT. }
         eapply Ord.lt_eq_lt.
@@ -577,7 +577,7 @@ Module OrdArith.
 
       Lemma mult_le_l o0 o1 (POS: Ord.lt Ord.O o0): Ord.le o1 (mult o1 o0).
       Proof.
-        eapply Ord.S_spec in POS. etransitivity.
+        eapply Ord.S_supremum in POS. etransitivity.
         2: { eapply le_mult_r in POS. eauto. }
         eapply mult_1_r.
       Qed.
@@ -585,7 +585,7 @@ Module OrdArith.
       Lemma mult_lt_l o0 o1 (POS: Ord.lt Ord.O o1)
             (TWO: Ord.lt (Ord.S Ord.O) o0): Ord.lt o1 (mult o1 o0).
       Proof.
-        eapply Ord.S_spec in TWO. eapply (@Ord.lt_le_lt (mult o1 (Ord.S (Ord.S Ord.O)))).
+        eapply Ord.S_supremum in TWO. eapply (@Ord.lt_le_lt (mult o1 (Ord.S (Ord.S Ord.O)))).
         { eapply Ord.lt_eq_lt.
           { eapply mult_S. }
           eapply Ord.lt_eq_lt.
@@ -710,7 +710,7 @@ Module OrdArith.
               { eapply Ord.union_comm. }
               { etransitivity.
                 2: { symmetry. eapply mult_1_r. }
-                { eapply Ord.union_max. eapply Ord.S_spec. eapply expn_pos. }
+                { eapply Ord.union_max. eapply Ord.S_supremum. eapply expn_pos. }
               }
             }
             etransitivity.
@@ -735,7 +735,7 @@ Module OrdArith.
             { eapply expn_S. auto. }
             { eapply mult_lt_l; auto. eapply expn_pos. }
           }
-          { eapply le_expn_r. eapply Ord.S_spec. auto. }
+          { eapply le_expn_r. eapply Ord.S_supremum. auto. }
         Qed.
       End BASE.
 

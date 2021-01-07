@@ -285,7 +285,7 @@ Module Ord.
       i. econs; eauto. reflexivity.
     Qed.
 
-    Lemma build_spec A (os: A -> t) o (UB: forall a, lt (os a) o):
+    Lemma build_supremum A (os: A -> t) o (UB: forall a, lt (os a) o):
       le (build os) o.
     Proof.
       destruct o. econs. i.
@@ -297,7 +297,7 @@ Module Ord.
     Record is_S (o0 o1: t): Prop :=
       is_S_mk {
           is_S_lt: lt o0 o1;
-          is_S_spec: forall o (LT: lt o0 o), le o1 o;
+          is_S_supremum: forall o (LT: lt o0 o), le o1 o;
         }.
 
     Record is_join A (os: A -> t) o1: Prop :=
@@ -387,23 +387,23 @@ Module Ord.
       eapply lt_le. eapply S_lt.
     Qed.
 
-    Lemma S_spec o0 o1 (LT: lt o0 o1):
+    Lemma S_supremum o0 o1 (LT: lt o0 o1):
       le (S o0) o1.
     Proof.
-      eapply build_spec. ii. destruct a. ss.
+      eapply build_supremum. ii. destruct a. ss.
     Qed.
 
     Lemma S_is_S o: is_S o (S o).
     Proof.
       econs.
       - eapply S_lt.
-      - eapply S_spec.
+      - eapply S_supremum.
     Qed.
 
     Lemma le_S o0 o1 (LE: le o0 o1):
       le (S o0) (S o1).
     Proof.
-      eapply S_spec. eapply le_lt_lt; eauto. eapply S_lt.
+      eapply S_supremum. eapply le_lt_lt; eauto. eapply S_lt.
     Qed.
 
     Lemma le_S_rev o0 o1 (LE: le (S o0) (S o1)):
@@ -503,7 +503,7 @@ Module Ord.
     Proof.
       econs.
       - i. eapply lt_le. eapply build_upperbound.
-      - i. eapply build_spec. i. specialize (OPEN a). des.
+      - i. eapply build_supremum. i. specialize (OPEN a). des.
         eapply lt_le_lt; eauto.
     Qed.
 
@@ -518,8 +518,8 @@ Module Ord.
       is_join (fun a => S (os a)) (build os).
     Proof.
       econs.
-      { i. eapply S_spec. eapply build_upperbound. }
-      { i. eapply build_spec. i. eapply (@lt_le_lt (S (os a))); auto. eapply S_lt. }
+      { i. eapply S_supremum. eapply build_upperbound. }
+      { i. eapply build_supremum. i. eapply (@lt_le_lt (S (os a))); auto. eapply S_lt. }
     Qed.
 
     Lemma build_join_S A (os: A -> t):
@@ -627,7 +627,7 @@ Module Ord.
         { eapply JOIN. }
         i. eapply le_S_rev.
         transitivity (os a1).
-        { eapply S_spec. auto. }
+        { eapply S_supremum. auto. }
         eapply le_eq_le.
         { eapply is_S_unique; eauto. eapply S_is_S. }
         eapply JOIN.
@@ -702,7 +702,7 @@ Module Ord.
         le (from_wf WF a1) o.
     Proof.
       unfold from_wf. destruct (WF a1). ss.
-      eapply build_spec. i. destruct a0 as [a0 r]. ss.
+      eapply build_supremum. i. destruct a0 as [a0 r]. ss.
       specialize (LE a0 r). unfold from_wf in LE.
       eapply le_lt_lt; [|eapply LE].
       eapply same_acc_le.
@@ -974,7 +974,7 @@ Module Ord.
               eapply (@dle_transitive (rec (build os0))); auto.
               { eapply (@dle_transitive (rec (S (os0 p)))); auto.
                 { eapply rec_S. }
-                { eapply le_rec. eapply S_spec. eapply build_upperbound. }
+                { eapply le_rec. eapply S_supremum. eapply build_upperbound. }
               }
               { rewrite <- EQ.
                 eapply (@djoin_upperbound _ (fun a => rec (os a))); auto. }
@@ -1344,7 +1344,7 @@ Module Ord.
     { etransitivity.
       { eapply eq_S. eapply IHn. }
       split.
-      { eapply S_spec. eapply from_acc_lt. econs. }
+      { eapply S_supremum. eapply from_acc_lt. econs. }
       { unfold from_wf at 1.
         destruct (PeanoNat.Nat.lt_wf_0 (Datatypes.S n)). ss.
         econs. i. destruct a0. exists tt. ss.
@@ -1364,7 +1364,7 @@ Module Ord.
       { eapply from_nat_from_peano_lt. }
       eapply lt_le. eapply from_wf_set_upperbound.
     }
-    { eapply build_spec. i. eapply lt_le_lt.
+    { eapply build_supremum. i. eapply lt_le_lt.
       { eapply from_wf_lt. econs. }
       eapply eq_le_le.
       { symmetry. eapply from_nat_from_peano_lt. }

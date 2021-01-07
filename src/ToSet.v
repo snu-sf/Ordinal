@@ -64,7 +64,7 @@ Module ToSet.
              (Ord.from_wf_set (union_rel_well_founded R WF)).
   Proof.
     split.
-    { econs. i. exists (existT _ a0 None). eapply Ord.build_spec. i.
+    { econs. i. exists (existT _ a0 None). eapply Ord.build_supremum. i.
       eapply (@Ord.le_lt_lt (Ord.from_wf (union_rel_well_founded R WF) (existT _ a0 (Some a)))).
       { eapply from_wf_union. }
       { eapply Ord.from_wf_lt. econs. }
@@ -264,11 +264,11 @@ Module ToSet.
       Ord.eq (Ord.from_wf_set WF) (Ord.from_wf_set equiv_class_well_founded).
     Proof.
       split.
-      { eapply Ord.build_spec. i. eapply Ord.eq_lt_lt.
+      { eapply Ord.build_supremum. i. eapply Ord.eq_lt_lt.
         { eapply to_equiv_class_eq. }
         { eapply Ord.from_wf_set_upperbound. }
       }
-      { eapply Ord.build_spec. i. hexploit (proj2_sig a). i. des.
+      { eapply Ord.build_supremum. i. hexploit (proj2_sig a). i. des.
         eapply to_equiv_class_equiv in H. subst.
         eapply Ord.eq_lt_lt.
         { symmetry. eapply to_equiv_class_eq. }
