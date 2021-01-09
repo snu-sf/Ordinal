@@ -41,6 +41,7 @@ Module ClassicOrd.
     :
       exists a0 (ACC0: Acc R a0), Ord.eq o (Ord.from_acc ACC0).
   Proof.
+    Local Transparent Ord.from_acc.
     dup ACC1. revert o LT. induction ACC0. i. destruct ACC1.
     ss. eapply Ord.lt_inv in LT. des. destruct a0 as [a0 p0]. ss.
     eapply le_eq_or_lt in LT. des; eauto.
@@ -51,6 +52,7 @@ Module ClassicOrd.
     :
       exists a0, Ord.eq o (Ord.from_wf WF a0).
   Proof.
+    Local Transparent Ord.from_wf.
     eapply from_acc_complete in LT. des. exists a0.
     unfold Ord.from_wf. etransitivity.
     { eapply LT. }
@@ -62,6 +64,7 @@ Module ClassicOrd.
     :
       exists a, Ord.eq o (Ord.from_wf WF a).
   Proof.
+    Local Transparent Ord.from_wf_set.
     eapply Ord.lt_inv in LT. des. eapply le_eq_or_lt in LT. des; eauto.
     eapply from_wf_complete in LT. eauto.
   Qed.
@@ -186,6 +189,7 @@ Module ClassicOrd.
       (dle base (rec o1))
     .
     Proof.
+      Local Transparent Ord.rec Ord.union.
       revert o1.
       eapply (well_founded_induction Ord.lt_well_founded); auto.
       intros o1 IH. destruct o1. ss.

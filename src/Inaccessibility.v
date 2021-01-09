@@ -90,6 +90,7 @@ Section INACCESSIBLE.
 
     Lemma tree_O_O: Ord.eq (Ord.from_wf tree_lt_well_founded tree_O) Ord.O.
     Proof.
+      Local Transparent Ord.from_wf Ord.from_acc Ord.O.
       split.
       { unfold Ord.from_wf. destruct (tree_lt_well_founded tree_O).
         ss. econs. i. destruct a0. ss. }
@@ -99,6 +100,7 @@ Section INACCESSIBLE.
     Lemma tree_S_S tr:
       Ord.eq (Ord.from_wf tree_lt_well_founded (tree_S tr)) (Ord.S (Ord.from_wf tree_lt_well_founded tr)).
     Proof.
+      Local Transparent Ord.from_wf Ord.from_acc Ord.O Ord.S.
       split.
       { unfold Ord.from_wf at 1. destruct (tree_lt_well_founded (tree_S tr)).
         ss. econs. i. destruct a0. ss. subst. exists tt.
@@ -152,6 +154,7 @@ Section INACCESSIBLE.
       :
         inaccessible X base0 (Ord.orec base1 next) tree_top.
     Proof.
+      Local Transparent Ord.from_wf Ord.from_acc Ord.O Ord.S Ord.rec Ord.from_wf_set.
       econs; eauto.
       { eapply INACCESSIBLE. }
       2: { eapply INACCESSIBLE. }
@@ -252,6 +255,7 @@ Section INACCESSIBLE.
       :
         inaccessible X Ord.O (OrdArith.add o) tree_top.
     Proof.
+      Local Transparent OrdArith.add.
       eapply inaccessible_rec_inaccessible; eauto.
       { i. eapply Ord.S_le. }
       { i. apply Ord.le_S. auto. }
@@ -283,6 +287,7 @@ Section INACCESSIBLE.
       :
         inaccessible X Ord.O (OrdArith.mult o) tree_top.
     Proof.
+      Local Transparent OrdArith.mult.
       eapply inaccessible_rec_inaccessible; eauto.
       { i. eapply OrdArith.add_base_l. }
       { i. eapply OrdArith.le_add_l; auto. }
@@ -315,6 +320,7 @@ Section INACCESSIBLE.
       :
         inaccessible X Ord.O (OrdArith.expn o) tree_top.
     Proof.
+      Local Transparent OrdArith.expn.
       eapply inaccessible_rec_inaccessible; eauto.
       { i. unfold flip. eapply OrdArith.mult_le_l. auto. }
       { i. eapply OrdArith.le_mult_l. auto. }
@@ -376,6 +382,7 @@ Section INACCESSIBLE.
 
     Lemma gtree_O_O: Ord.eq (Ord.from_wf gtree_lt_well_founded gtree_O) Ord.O.
     Proof.
+      Local Transparent Ord.from_wf Ord.from_acc Ord.O Ord.S Ord.rec Ord.from_wf_set.
       split.
       { unfold Ord.from_wf. destruct (gtree_lt_well_founded gtree_O).
         ss. econs. i. destruct a0. ss. }
@@ -539,6 +546,7 @@ Section INACCESSIBLE.
       :
         ginaccessible X Ord.O (OrdArith.add o) gtree_top.
     Proof.
+      Local Transparent OrdArith.add.
       eapply ginaccessible_rec_ginaccessible; eauto.
       { i. eapply Ord.S_le. }
       { i. apply Ord.le_S. auto. }
@@ -570,6 +578,7 @@ Section INACCESSIBLE.
       :
         ginaccessible X Ord.O (OrdArith.mult o) gtree_top.
     Proof.
+      Local Transparent OrdArith.mult.
       eapply ginaccessible_rec_ginaccessible; eauto.
       { i. eapply OrdArith.add_base_l. }
       { i. eapply OrdArith.le_add_l; auto. }
@@ -602,6 +611,7 @@ Section INACCESSIBLE.
       :
         ginaccessible X Ord.O (OrdArith.expn o) gtree_top.
     Proof.
+      Local Transparent OrdArith.expn.
       eapply ginaccessible_rec_ginaccessible; eauto.
       { i. unfold flip. eapply OrdArith.mult_le_l. auto. }
       { i. eapply OrdArith.le_mult_l. auto. }

@@ -323,6 +323,7 @@ Module OrdArith.
       Lemma rec_app base o0 o1 (WF: wf base):
         deq (Ord.rec base next djoin (add o0 o1)) (Ord.rec (Ord.rec base next djoin o0) next djoin o1).
       Proof.
+        Local Transparent Ord.rec Ord.union.
         induction o1.
 
         eapply (@deq_transitive (dunion (Ord.rec base next djoin o0) (dunion base (djoin (fun a => next (Ord.rec (Ord.rec base next djoin o0) next djoin (os a))))))); auto.
@@ -487,7 +488,7 @@ Module OrdArith.
 
       Lemma mult_1_r o: Ord.eq (mult o (Ord.S Ord.O)) o.
       Proof.
-        unfold Ord.from_nat. etransitivity.
+        etransitivity.
         { eapply mult_S. }
         etransitivity.
         { eapply eq_add_l. eapply mult_O_r. }
@@ -496,7 +497,7 @@ Module OrdArith.
 
       Lemma mult_1_l o: Ord.eq (mult (Ord.S Ord.O) o) o.
       Proof.
-        unfold Ord.from_nat. transitivity (Ord.orec Ord.O Ord.S o).
+        transitivity (Ord.orec Ord.O Ord.S o).
         2: { symmetry. eapply Ord.orec_of_S. }
         split.
         { eapply Ord.orec_mon.
@@ -807,6 +808,7 @@ Module OrdArith.
       Lemma add_from_nat n0 n1:
         Ord.eq (Ord.from_nat (n0 + n1)) (add (Ord.from_nat n0) (Ord.from_nat n1)).
       Proof.
+        Local Transparent Ord.from_nat.
         induction n1; ss.
         { rewrite PeanoNat.Nat.add_0_r.
           symmetry. eapply add_O_r. }
@@ -848,3 +850,6 @@ Module OrdArith.
     End FROMNAT.
   End ARITHMETIC.
 End OrdArith.
+
+
+Global Opaque OrdArith.add OrdArith.mult OrdArith.expn.

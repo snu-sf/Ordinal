@@ -63,6 +63,7 @@ Module ToSet.
       Ord.eq (@Ord.build A (fun a => Ord.from_wf_set (WF a)))
              (Ord.from_wf_set (union_rel_well_founded R WF)).
   Proof.
+    Local Transparent Ord.from_wf_set.
     split.
     { econs. i. exists (existT _ a0 None). eapply Ord.build_supremum. i.
       eapply (@Ord.le_lt_lt (Ord.from_wf (union_rel_well_founded R WF) (existT _ a0 (Some a)))).
@@ -176,6 +177,7 @@ Module ToSet.
       :
         proj1_sig s1 a.
     Proof.
+      Local Transparent Ord.from_wf.
       assert (exists a', proj1_sig s1 a').
       { eapply (proj2_sig s1). }
       des. eapply (proj2_sig s1); eauto.

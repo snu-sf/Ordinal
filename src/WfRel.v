@@ -11,6 +11,7 @@ Lemma from_acc_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1),
   :
     Ord.le (Ord.from_acc ACC0) (Ord.from_acc ACC1).
 Proof.
+  Local Transparent Ord.from_acc.
   dup ACC1. rename ACC2 into ACC. revert ACC0 ACC1. induction ACC.
   i. destruct ACC0, ACC1. ss. econs. i.
   destruct a1 as [a1 p1]. ss. exists (exist _ a1 (INCL _ _ p1)). ss.
@@ -22,6 +23,7 @@ Lemma from_wf_mon A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1), 
   :
     Ord.le (Ord.from_wf WF0 a) (Ord.from_wf WF1 a).
 Proof.
+  Local Transparent Ord.from_wf.
   unfold Ord.from_wf. eapply from_acc_mon; eauto.
 Qed.
 
@@ -30,6 +32,7 @@ Lemma from_wf_set_le A (R0 R1: A -> A -> Prop) (INCL: forall a0 a1 (LE: R0 a0 a1
   :
     Ord.le (Ord.from_wf_set WF0) (Ord.from_wf_set WF1).
 Proof.
+  Local Transparent Ord.from_wf_set.
   econs. i. exists a0. eapply from_wf_mon; auto.
 Qed.
 

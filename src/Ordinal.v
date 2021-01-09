@@ -1332,6 +1332,13 @@ Module Ord.
 
   Definition omega: t := join from_nat.
 
+  Lemma omega_upperbound n: lt (from_nat n) omega.
+  Proof.
+    eapply lt_le_lt.
+    { eapply S_lt. }
+    { eapply (join_upperbound from_nat (Datatypes.S n)). }
+  Qed.
+
   Lemma from_nat_from_peano_lt n:
     eq (from_nat n) (from_wf PeanoNat.Nat.lt_wf_0 n).
   Proof.
@@ -1373,6 +1380,8 @@ Module Ord.
   Qed.
 
   Definition hartogs (A: MyT) := @build (@sig (A -> A -> Prop) (@well_founded _)) (fun RWF => from_wf_set (proj2_sig RWF)).
-
 End TYPE.
 End Ord.
+
+
+Global Opaque Ord.O Ord.S Ord.join Ord.union Ord.rec Ord.from_acc Ord.from_wf Ord.from_wf_set Ord.from_nat Ord.omega.

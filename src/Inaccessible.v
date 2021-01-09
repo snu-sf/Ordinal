@@ -76,6 +76,7 @@ Section STRONGLYINACCESSIBLE.
       Ord.eq (@Ord.build A (fun a => Ord.from_wf_set (WF a)))
              (Ord.from_wf_set _union_rel_well_founded).
     Proof.
+      Local Transparent Ord.from_wf_set.
       split.
       { econs. i. exists (existT _ a0 None). eapply Ord.build_supremum. i.
         eapply (@Ord.le_lt_lt (Ord.from_wf _union_rel_well_founded (existT _ a0 (Some a)))).
@@ -209,12 +210,14 @@ Section STRONGLYINACCESSIBLE.
   Lemma kappa_inaccesible_from_wf (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R) a:
     Ord.lt (Ord.from_wf WF a) kappa.
   Proof.
+    Local Transparent Ord.from_wf.
     eapply kappa_inaccesible_from_acc.
   Qed.
 
   Lemma kappa_inaccesible_from_wf_set (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R):
     Ord.lt (Ord.from_wf_set WF) kappa.
   Proof.
+    Local Transparent Ord.from_wf_set.
     eapply kappa_inaccessible_build. i. eapply kappa_inaccesible_from_wf.
   Qed.
 
@@ -258,6 +261,7 @@ Section STRONGLYINACCESSIBLE.
 
   Lemma kappa_inaccessible_nat n: Ord.lt (Ord.from_nat n) kappa.
   Proof.
+    Local Transparent Ord.from_nat.
     induction n; ss.
     - eapply kappa_inaccessible_O.
     - eapply kappa_inaccessible_S. auto.
@@ -265,6 +269,7 @@ Section STRONGLYINACCESSIBLE.
 
   Lemma kappa_inaccessible_omega: Ord.lt Ord.omega kappa.
   Proof.
+    Local Transparent Ord.omega.
     eapply kappa_inaccessible_join.
     eapply kappa_inaccessible_nat.
   Qed.
@@ -294,6 +299,7 @@ Section STRONGLYINACCESSIBLE.
   Lemma kappa_inaccessible_union o0 o1 (LT0: Ord.lt o0 kappa) (LT1: Ord.lt o1 kappa):
     Ord.lt (Ord.union o0 o1) kappa.
   Proof.
+    Local Transparent Ord.union.
     eapply kappa_inaccessible_join. i. destruct a; auto.
   Qed.
 
@@ -356,6 +362,7 @@ Section STRONGLYINACCESSIBLE.
       { auto. }
       { eapply LT. }
     }
+    Local Transparent Ord.rec.
     eapply kappa_inaccessible_join. i. destruct a; auto.
     { eapply kappa_inaccessible_join. i.
       eapply NEXT. eapply H; auto.

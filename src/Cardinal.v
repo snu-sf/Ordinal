@@ -955,6 +955,7 @@ Module Cardinal.
              (ACC0: Acc (finite_lt n) x) (ACC1: Acc (finite_lt (Datatypes.S n)) (Some x)),
         Ord.eq (Ord.from_acc ACC0) (Ord.from_acc ACC1).
     Proof.
+      Local Transparent Ord.from_acc.
       intros n x ACC. dup ACC.
       induction ACC0. i. destruct ACC, ACC1. ss. split.
       { econs. i. destruct a1. exists (exist _ (Some x0) (f)). ss. eapply H0. auto. }
@@ -965,6 +966,7 @@ Module Cardinal.
       forall n (x: finite n),
         Ord.eq (Ord.from_wf (finite_well_founded n) x) (Ord.from_wf (finite_well_founded (Datatypes.S n)) (Some x)).
     Proof.
+      Local Transparent Ord.from_wf.
       i. eapply finite_from_acc_eq.
     Qed.
 
@@ -972,6 +974,7 @@ Module Cardinal.
       forall n,
         Ord.eq (Ord.from_wf_set (finite_well_founded n)) (Ord.from_wf (finite_well_founded (Datatypes.S n)) None).
     Proof.
+      Local Transparent Ord.from_wf_set.
       i. split.
       { eapply Ord.build_supremum. i. eapply Ord.le_lt_lt.
         { eapply finite_from_wf_eq. }
@@ -987,6 +990,7 @@ Module Cardinal.
       forall n,
         Ord.eq (Ord.S (Ord.from_wf_set (finite_well_founded n))) (Ord.from_wf_set (finite_well_founded (Datatypes.S n))).
     Proof.
+      Local Transparent Ord.from_wf_set Ord.S.
       i. split.
       - eapply Ord.S_supremum. eapply Ord.le_lt_lt.
         { eapply finite_from_wf_set_eq. }
@@ -1001,6 +1005,7 @@ Module Cardinal.
     Lemma finite_O:
       Ord.eq (Ord.from_wf_set (finite_well_founded 0)) Ord.O.
     Proof.
+      Local Transparent Ord.from_wf_set Ord.O.
       split.
       { econs. i. ss. }
       { eapply Ord.O_bot. }
