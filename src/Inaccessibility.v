@@ -106,7 +106,7 @@ Section INACCESSIBLE.
         ss. econs. i. destruct a0. ss. subst. exists tt.
         ss. eapply Ord.same_acc_le.
       }
-      { eapply Ord.S_supremum. eapply Ord.from_wf_lt. ss. }
+      { eapply Ord.S_supremum. eapply Ord.lt_from_wf. ss. }
     Qed.
 
     Lemma tree_join_build (trs: X -> tree):
@@ -117,7 +117,7 @@ Section INACCESSIBLE.
         ss. econs. i. destruct a0. des. ss. subst. exists x0.
         ss. eapply Ord.same_acc_le.
       }
-      { eapply Ord.build_supremum. i. eapply Ord.from_wf_lt. ss. eauto. }
+      { eapply Ord.build_supremum. i. eapply Ord.lt_from_wf. ss. eauto. }
     Qed.
 
     Lemma tree_union_union_le (tr0 tr1: tree):
@@ -139,8 +139,8 @@ Section INACCESSIBLE.
       Ord.le (Ord.union (Ord.from_wf tree_lt_well_founded tr0) (Ord.from_wf tree_lt_well_founded tr1)) (Ord.from_wf tree_lt_well_founded (tree_union tr0 tr1)).
     Proof.
       eapply Ord.union_spec.
-      { eapply Ord.lt_le. eapply Ord.from_wf_lt. ss. auto. }
-      { eapply Ord.lt_le. eapply Ord.from_wf_lt. ss. auto. }
+      { eapply Ord.lt_le. eapply Ord.lt_from_wf. ss. auto. }
+      { eapply Ord.lt_le. eapply Ord.lt_from_wf. ss. auto. }
     Qed.
 
     Definition tree_top := Ord.from_wf_set tree_lt_well_founded.
@@ -212,7 +212,7 @@ Section INACCESSIBLE.
       i. eapply Ord.lt_inv in LT. des.
       econs. instantiate (1:=tree_S a).
       eapply Ord.S_supremum. eapply Ord.le_lt_lt; eauto.
-      eapply Ord.from_wf_lt. ss.
+      eapply Ord.lt_from_wf. ss.
     Qed.
 
     Lemma tree_top_union o0 o1 (LT0: Ord.lt o0 tree_top) (LT1: Ord.lt o1 tree_top)
@@ -221,8 +221,8 @@ Section INACCESSIBLE.
     Proof.
       eapply Ord.lt_inv in LT0. eapply Ord.lt_inv in LT1. des.
       econs. instantiate (1:=tree_union a0 a). eapply Ord.union_spec.
-      { etransitivity; eauto. eapply Ord.lt_le. eapply Ord.from_wf_lt. ss. auto. }
-      { etransitivity; eauto. eapply Ord.lt_le. eapply Ord.from_wf_lt. ss. auto. }
+      { etransitivity; eauto. eapply Ord.lt_le. eapply Ord.lt_from_wf. ss. auto. }
+      { etransitivity; eauto. eapply Ord.lt_le. eapply Ord.lt_from_wf. ss. auto. }
     Qed.
 
     Hypothesis CHOICE: FunctionalChoice_on X tree.
@@ -236,7 +236,7 @@ Section INACCESSIBLE.
       i. des.
       econs. instantiate (1:=tree_join f).
       eapply Ord.join_supremum. i. etransitivity; eauto.
-      eapply Ord.lt_le. eapply Ord.from_wf_lt. ss. eauto.
+      eapply Ord.lt_le. eapply Ord.lt_from_wf. ss. eauto.
     Qed.
 
     Lemma tree_top_S_inaccessible
@@ -397,7 +397,7 @@ Section INACCESSIBLE.
         ss. econs. i. destruct a0. ss. subst. exists tt.
         ss. eapply Ord.same_acc_le.
       }
-      { eapply Ord.S_supremum. eapply Ord.from_wf_lt. ss. }
+      { eapply Ord.S_supremum. eapply Ord.lt_from_wf. ss. }
     Qed.
 
     Lemma gtree_join_build P (trs: sig P -> gtree):
@@ -408,7 +408,7 @@ Section INACCESSIBLE.
         ss. econs. i. destruct a0. des. ss. subst. exists x0.
         ss. eapply Ord.same_acc_le.
       }
-      { eapply Ord.build_supremum. i. eapply Ord.from_wf_lt. ss. eauto. }
+      { eapply Ord.build_supremum. i. eapply Ord.lt_from_wf. ss. eauto. }
     Qed.
 
     Lemma gtree_union_union_le (tr0 tr1: gtree):
@@ -430,8 +430,8 @@ Section INACCESSIBLE.
       Ord.le (Ord.union (Ord.from_wf gtree_lt_well_founded tr0) (Ord.from_wf gtree_lt_well_founded tr1)) (Ord.from_wf gtree_lt_well_founded (gtree_union tr0 tr1)).
     Proof.
       eapply Ord.union_spec.
-      { eapply Ord.lt_le. eapply Ord.from_wf_lt. ss. auto. }
-      { eapply Ord.lt_le. eapply Ord.from_wf_lt. ss. auto. }
+      { eapply Ord.lt_le. eapply Ord.lt_from_wf. ss. auto. }
+      { eapply Ord.lt_le. eapply Ord.lt_from_wf. ss. auto. }
     Qed.
 
     Definition gtree_top := Ord.from_wf_set gtree_lt_well_founded.
@@ -502,7 +502,7 @@ Section INACCESSIBLE.
       i. eapply Ord.lt_inv in LT. des.
       econs. instantiate (1:=gtree_S a).
       eapply Ord.S_supremum. eapply Ord.le_lt_lt; eauto.
-      eapply Ord.from_wf_lt. ss.
+      eapply Ord.lt_from_wf. ss.
     Qed.
 
     Lemma gtree_top_union o0 o1 (LT0: Ord.lt o0 gtree_top) (LT1: Ord.lt o1 gtree_top)
@@ -511,8 +511,8 @@ Section INACCESSIBLE.
     Proof.
       eapply Ord.lt_inv in LT0. eapply Ord.lt_inv in LT1. des.
       econs. instantiate (1:=gtree_union a0 a). eapply Ord.union_spec.
-      { etransitivity; eauto. eapply Ord.lt_le. eapply Ord.from_wf_lt. ss. auto. }
-      { etransitivity; eauto. eapply Ord.lt_le. eapply Ord.from_wf_lt. ss. auto. }
+      { etransitivity; eauto. eapply Ord.lt_le. eapply Ord.lt_from_wf. ss. auto. }
+      { etransitivity; eauto. eapply Ord.lt_le. eapply Ord.lt_from_wf. ss. auto. }
     Qed.
 
     Hypothesis CHOICE: forall (P: X -> Prop), FunctionalChoice_on (sig P) gtree.
@@ -527,7 +527,7 @@ Section INACCESSIBLE.
       i. des.
       econs. instantiate (1:=gtree_join f).
       eapply Ord.join_supremum. i. etransitivity; eauto.
-      eapply Ord.lt_le. eapply Ord.from_wf_lt. ss. eauto.
+      eapply Ord.lt_le. eapply Ord.lt_from_wf. ss. eauto.
     Qed.
 
     Lemma gtree_top_S_ginaccessible

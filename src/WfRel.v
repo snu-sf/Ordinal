@@ -45,7 +45,7 @@ Lemma from_wf_inj A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
 Proof.
   eapply (well_founded_induction WFA). i. eapply Ord.from_wf_supremum.
   i. dup LT. eapply H in LT. eapply Ord.le_lt_lt; eauto.
-  eapply Ord.from_wf_lt; eauto.
+  eapply Ord.lt_from_wf; eauto.
 Qed.
 
 Lemma from_wf_set_inj A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
@@ -126,12 +126,12 @@ Lemma from_wf_projected_rel_eq A B (RA: A -> A -> Prop)
 Proof.
   eapply (well_founded_induction WFA). i. split.
   - eapply Ord.from_wf_supremum. i. exploit H; eauto. i.
-    eapply Ord.eq_lt_lt; eauto. eapply Ord.from_wf_lt.
+    eapply Ord.eq_lt_lt; eauto. eapply Ord.lt_from_wf.
     econs; eauto.
   - eapply Ord.from_wf_supremum. i. inv LT.
     eapply INJ in H2. subst. exploit H; eauto. i.
     symmetry in x0. eapply Ord.eq_lt_lt; eauto.
-    eapply Ord.from_wf_lt; eauto.
+    eapply Ord.lt_from_wf; eauto.
 Qed.
 
 Lemma from_wf_set_projected_rel_le A B (RA: A -> A -> Prop)
@@ -183,12 +183,12 @@ Lemma from_wf_projected_rel_sig_eq A B (RA: A -> A -> Prop)
 Proof.
   eapply (well_founded_induction WFA). i. split.
   - eapply Ord.from_wf_supremum. i. exploit H; eauto. i.
-    eapply Ord.eq_lt_lt; eauto. eapply Ord.from_wf_lt.
+    eapply Ord.eq_lt_lt; eauto. eapply Ord.lt_from_wf.
     econs; eauto.
   - eapply Ord.from_wf_supremum. i. inv LT.
     eapply INJ in H2. subst. exploit H; eauto. i.
     symmetry in x0. eapply Ord.eq_lt_lt; eauto.
-    eapply Ord.from_wf_lt; eauto.
+    eapply Ord.lt_from_wf; eauto.
 Qed.
 
 Lemma from_wf_set_projected_rel_sig_le A B (RA: A -> A -> Prop)
@@ -260,13 +260,13 @@ Proof.
     eapply (@Ord.le_lt_lt (Ord.from_wf (cut_rel_well_founded WF a1)
                                        (exist _ a2 LT1))).
     { eapply IH; auto. }
-    { eapply Ord.from_wf_lt. ss. }
+    { eapply Ord.lt_from_wf. ss. }
   }
   { eapply Ord.from_wf_supremum. i. destruct a2 as [a2 LT1].
     unfold cut_rel in LT0. ss.
     eapply (@Ord.le_lt_lt (Ord.from_wf WF a2)).
     { eapply IH; auto. }
-    { eapply Ord.from_wf_lt. ss. }
+    { eapply Ord.lt_from_wf. ss. }
   }
 Qed.
 
@@ -283,7 +283,7 @@ Proof.
   { eapply Ord.build_supremum. intros [a0 r].
     eapply (@Ord.le_lt_lt (Ord.from_wf WF a0)).
     { eapply from_wf_cut; eauto. }
-    { eapply Ord.from_wf_lt; eauto. }
+    { eapply Ord.lt_from_wf; eauto. }
   }
 Qed.
 

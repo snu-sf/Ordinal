@@ -16,7 +16,7 @@ Proof.
   exploit (choice (fun a b => Ord.eq (Ord.from_wf WFA a) (Ord.from_wf WFB b))).
   { intros a. eapply ClassicOrd.from_wf_set_complete.
     eapply Ord.lt_le_lt; eauto. eapply Ord.from_wf_set_upperbound. }
-  i. des. exists f. i. eapply Ord.from_wf_lt with (WF:=WFA) in LT.
+  i. des. exists f. i. eapply Ord.lt_from_wf with (WF:=WFA) in LT.
   assert (Ord.lt (Ord.from_wf WFB (f a0)) (Ord.from_wf WFB (f a1))).
   { eapply (@Ord.le_lt_lt (Ord.from_wf WFA a0)); eauto.
     - eapply x0.
@@ -24,7 +24,7 @@ Proof.
   destruct (TOTALB (f a0) (f a1)) as [|[]].
   - auto.
   - rewrite H0 in *. eapply Ord.lt_not_le in H; ss. reflexivity.
-  - eapply Ord.from_wf_lt with (WF:=WFB) in H0; eauto.
+  - eapply Ord.lt_from_wf with (WF:=WFB) in H0; eauto.
     exfalso. eapply Ord.lt_not_le in H; ss. eapply Ord.lt_le; auto.
 Qed.
 
@@ -336,7 +336,7 @@ Section EXTEND.
   Lemma extended_order_incl:
     forall a0 a1 (LT: R a0 a1), extended_order a0 a1.
   Proof.
-    i. left. eapply Ord.from_wf_lt; auto.
+    i. left. eapply Ord.lt_from_wf; auto.
   Qed.
 End EXTEND.
 

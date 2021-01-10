@@ -848,7 +848,7 @@ Module ClassicOrd.
       { eapply end_le_end; eauto. eapply Ord.lt_le; auto. }
       i. eapply Ord.le_lt_lt.
       { eapply H2. }
-      eapply Ord.from_wf_lt. econs; eauto.
+      eapply Ord.lt_from_wf. econs; eauto.
     Qed.
 
     Let hartogs_fixed: ~ not_fixed (Ord.hartogs D).

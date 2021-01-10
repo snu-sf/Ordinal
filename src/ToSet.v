@@ -50,10 +50,10 @@ Module ToSet.
     revert x. eapply (well_founded_induction (WF a)).
     i. split.
     { eapply Ord.from_wf_supremum. i. specialize (H _ LT). inv H.
-      eapply Ord.le_lt_lt; eauto. eapply Ord.from_wf_lt. econs; eauto. }
+      eapply Ord.le_lt_lt; eauto. eapply Ord.lt_from_wf. econs; eauto. }
     { eapply Ord.from_wf_supremum. i. dependent destruction LT.
       specialize (H _ LT). inv H.
-      eapply Ord.le_lt_lt; eauto. eapply Ord.from_wf_lt. auto. }
+      eapply Ord.le_lt_lt; eauto. eapply Ord.lt_from_wf. auto. }
   Qed.
 
   Lemma from_wf_set_union (A: Type) (Ts: A -> Type)
@@ -68,7 +68,7 @@ Module ToSet.
     { econs. i. exists (existT _ a0 None). eapply Ord.build_supremum. i.
       eapply (@Ord.le_lt_lt (Ord.from_wf (union_rel_well_founded R WF) (existT _ a0 (Some a)))).
       { eapply from_wf_union. }
-      { eapply Ord.from_wf_lt. econs. }
+      { eapply Ord.lt_from_wf. econs. }
     }
     { econs. i. destruct a0 as [a0 [x|]].
       { exists a0. transitivity (Ord.from_wf (WF a0) x).
@@ -156,7 +156,7 @@ Module ToSet.
       exists a0, a1. ss. splits.
       - reflexivity.
       - reflexivity.
-      - eapply Ord.from_wf_lt; auto.
+      - eapply Ord.lt_from_wf; auto.
     Qed.
 
     Lemma equiv_class_rel_trans s0 s1 s2
@@ -247,9 +247,9 @@ Module ToSet.
       assert (forall (o: Ord.t), forall a (LT: Ord.lt (Ord.from_wf WF a) o), Ord.eq (Ord.from_wf WF a) (Ord.from_wf equiv_class_well_founded (to_equiv_class a))).
       { eapply (well_founded_induction Ord.lt_well_founded (fun o => forall a (LT: Ord.lt (Ord.from_wf WF a) o), Ord.eq (Ord.from_wf WF a) (Ord.from_wf equiv_class_well_founded (to_equiv_class a)))).
         i. split.
-        { eapply Ord.from_wf_supremum. i. dup LT0. eapply (Ord.from_wf_lt WF) in LT0; eauto.
+        { eapply Ord.from_wf_supremum. i. dup LT0. eapply (Ord.lt_from_wf WF) in LT0; eauto.
           hexploit H; eauto. i. eapply Ord.le_lt_lt; [eapply H0|].
-          eapply Ord.from_wf_lt. eapply to_equiv_class_preserve. auto.
+          eapply Ord.lt_from_wf. eapply to_equiv_class_preserve. auto.
         }
         { eapply Ord.from_wf_supremum. i. unfold equiv_class_rel in LT0. des. ss.
           hexploit (H _ LT a2).

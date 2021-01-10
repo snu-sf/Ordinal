@@ -12,18 +12,14 @@ Section STRONGLYINACCESSIBLE.
   Let X := @sig (@sigT SmallT (fun X => X -> X -> Prop))
                 (fun PR => well_founded (projT2 PR)).
   Let Y : X -> Ord.t := fun PRWF => Ord.from_wf_set (proj2_sig PRWF).
-
-  Definition kappa := @Ord.build X Y.
+  Definition kappa := Ord.large.
+  Local Transparent Ord.large.
 
   Lemma kappa_complete o (LT: Ord.lt o kappa):
     exists (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R),
       Ord.le o (Ord.from_wf_set WF).
   Proof.
-    eapply NNPP. ii. eapply Ord.lt_not_le.
-    { eapply LT. }
-    eapply Ord.build_supremum. i. destruct a as [[A R] WF]. unfold Y. ss.
-    destruct (ClassicOrd.total o (Ord.from_wf_set WF)); auto.
-    exfalso. eapply H. esplits; eauto.
+    eapply Ord.lt_inv in LT. des. eauto.
   Qed.
 
   Section UNION.
@@ -66,10 +62,10 @@ Section STRONGLYINACCESSIBLE.
       revert x. eapply (well_founded_induction (WF a)).
       i. split.
       { eapply Ord.from_wf_supremum. i. specialize (H _ LT). inv H.
-        eapply Ord.le_lt_lt; eauto. eapply Ord.from_wf_lt. econs; eauto. }
+        eapply Ord.le_lt_lt; eauto. eapply Ord.lt_from_wf. econs; eauto. }
       { eapply Ord.from_wf_supremum. i. dependent destruction LT.
         specialize (H _ LT). inv H.
-        eapply Ord.le_lt_lt; eauto. eapply Ord.from_wf_lt. auto. }
+        eapply Ord.le_lt_lt; eauto. eapply Ord.lt_from_wf. auto. }
     Qed.
 
     Let _from_wf_set_union:
@@ -81,7 +77,7 @@ Section STRONGLYINACCESSIBLE.
       { econs. i. exists (existT _ a0 None). eapply Ord.build_supremum. i.
         eapply (@Ord.le_lt_lt (Ord.from_wf _union_rel_well_founded (existT _ a0 (Some a)))).
         { eapply _from_wf_union. }
-        { eapply Ord.from_wf_lt. econs. }
+        { eapply Ord.lt_from_wf. econs. }
       }
       { econs. i. destruct a0 as [a0 [x|]].
         { exists a0. transitivity (Ord.from_wf (WF a0) x).

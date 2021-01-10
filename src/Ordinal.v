@@ -8,6 +8,7 @@ Set Primitive Projections.
 Module Ord.
   Section TYPE.
   Let MyT := Type.
+  Let SmallT: MyT := Type.
   Inductive t: Type :=
   | build (A: MyT) (os: A -> t)
   .
@@ -662,26 +663,34 @@ Module Ord.
       - eapply same_acc_le.
     Qed.
 
-    Lemma from_acc_lt A (R: A -> A -> Prop) (a0 a1: A) (LT: R a0 a1)
+    Lemma lt_from_acc A (R: A -> A -> Prop) (a0 a1: A) (LT: R a0 a1)
           (ACC1: Acc R a1) (ACC0: Acc R a0)
       :
         lt (from_acc a0 ACC0) (from_acc a1 ACC1).
     Proof.
       destruct ACC1. ss.
-      set (exist (fun a0 => R a0 a1) a0 LT).
       eapply le_lt_lt.
-      2: { eapply (build_upperbound (fun a0p => from_acc (proj1_sig a0p) (from_acc_obligation_1 (Acc_intro a1 a) a0p)) s). }
+      2: { eapply (build_upperbound (fun a0p => from_acc (proj1_sig a0p) (from_acc_obligation_1 (Acc_intro a1 a) a0p)) (exist (fun a0 => R a0 a1) a0 LT)). }
       eapply same_acc_eq.
+    Qed.
+
+    Lemma from_acc_supremum A (R: A -> A -> Prop) (a1: A) (ACC1: Acc R a1) o
+          (LT: forall a0 (LT: R a0 a1) (ACC0: Acc R a0), lt (from_acc a0 ACC0) o)
+      :
+        le (from_acc a1 ACC1) o.
+    Proof.
+      destruct ACC1. ss. eapply build_supremum.
+      i. destruct a0. ss. eauto.
     Qed.
 
     Definition from_wf A (R: A -> A -> Prop) (WF: well_founded R) (a1: A): t :=
       from_acc a1 (WF a1).
 
-    Lemma from_wf_lt A (R: A -> A -> Prop) (WF: well_founded R) (a0 a1: A) (LT: R a0 a1)
+    Lemma lt_from_wf A (R: A -> A -> Prop) (WF: well_founded R) (a0 a1: A) (LT: R a0 a1)
       :
         lt (from_wf WF a0) (from_wf WF a1).
     Proof.
-      eapply from_acc_lt; eauto.
+      eapply lt_from_acc; eauto.
     Qed.
 
     Lemma same_wf_le A (R: A -> A -> Prop) (a: A) (WF0 WF1: well_founded R):
@@ -715,6 +724,14 @@ Module Ord.
       lt (from_wf WF a) (from_wf_set WF).
     Proof.
       eapply build_upperbound.
+    Qed.
+
+    Lemma from_wf_set_supremum A (R: A -> A -> Prop) (WF: well_founded R) o
+          (LE: forall a0, lt (from_wf WF a0) o)
+      :
+        le (from_wf_set WF) o.
+    Proof.
+      eapply build_supremum. i. auto.
     Qed.
 
     Lemma same_wf_set_le A (R: A -> A -> Prop) (WF0 WF1: well_founded R):
@@ -1330,6 +1347,16 @@ Module Ord.
     | Datatypes.S n' => S (from_nat n')
     end.
 
+  Lemma from_nat_O: from_nat Datatypes.O = O.
+  Proof.
+    ss.
+  Qed.
+
+  Lemma from_nat_S n: from_nat (Datatypes.S n) = S (from_nat n).
+  Proof.
+    ss.
+  Qed.
+
   Definition omega: t := join from_nat.
 
   Lemma omega_upperbound n: lt (from_nat n) omega.
@@ -1337,6 +1364,14 @@ Module Ord.
     eapply lt_le_lt.
     { eapply S_lt. }
     { eapply (join_upperbound from_nat (Datatypes.S n)). }
+  Qed.
+
+  Lemma omega_supremum o
+        (LE: forall n, le (from_nat n) o)
+    :
+      le omega o.
+  Proof.
+    eapply join_supremum. auto.
   Qed.
 
   Lemma from_nat_from_peano_lt n:
@@ -1351,13 +1386,13 @@ Module Ord.
     { etransitivity.
       { eapply eq_S. eapply IHn. }
       split.
-      { eapply S_supremum. eapply from_acc_lt. econs. }
+      { eapply S_supremum. eapply lt_from_acc. econs. }
       { unfold from_wf at 1.
         destruct (PeanoNat.Nat.lt_wf_0 (Datatypes.S n)). ss.
         econs. i. destruct a0. exists tt. ss.
         dup l. eapply Lt.lt_n_Sm_le in l0.
         eapply Lt.le_lt_or_eq in l0. des.
-        { eapply lt_le. eapply from_acc_lt. auto. }
+        { eapply lt_le. eapply lt_from_acc. auto. }
         { subst. eapply same_acc_le. }
       }
     }
@@ -1372,7 +1407,7 @@ Module Ord.
       eapply lt_le. eapply from_wf_set_upperbound.
     }
     { eapply build_supremum. i. eapply lt_le_lt.
-      { eapply from_wf_lt. econs. }
+      { eapply lt_from_wf. econs. }
       eapply eq_le_le.
       { symmetry. eapply from_nat_from_peano_lt. }
       { eapply join_upperbound. }
@@ -1380,8 +1415,77 @@ Module Ord.
   Qed.
 
   Definition hartogs (A: MyT) := @build (@sig (A -> A -> Prop) (@well_founded _)) (fun RWF => from_wf_set (proj2_sig RWF)).
+
+  Definition large :=
+    @build (@sig (@sigT SmallT (fun A => A -> A -> Prop))
+                 (fun PR => well_founded (projT2 PR)))
+           (fun PRWF => from_wf_set (proj2_sig PRWF)).
+
+  Lemma large_le_hartogs (A: SmallT):
+    le (hartogs A) large.
+  Proof.
+    econs. i. destruct a0. exists (exist _ (existT _ A x) w).
+    ss. reflexivity.
+  Qed.
+
+  Lemma hartogs_lt_from_wf_set (A: MyT)
+        (R: A -> A -> Prop) (WF: well_founded R)
+    :
+      lt (from_wf_set WF) (hartogs A).
+  Proof.
+    eapply lt_intro with (a:=exist _ R WF).
+    ss. reflexivity.
+  Qed.
+
+  Lemma hartogs_lt_from_wf (A: MyT)
+        (R: A -> A -> Prop) (WF: well_founded R) (a: A)
+    :
+      lt (from_wf WF a) (hartogs A).
+  Proof.
+    etransitivity.
+    { eapply from_wf_set_upperbound. }
+    { eapply hartogs_lt_from_wf_set. }
+  Qed.
+
+  Lemma hartogs_supremum (A: MyT) o
+        (LT: forall (R: A -> A -> Prop) (WF: well_founded R),
+            lt (from_wf_set WF) o)
+    :
+      le (hartogs A) o.
+  Proof.
+    eapply build_supremum. auto.
+  Qed.
+
+  Lemma large_lt_from_wf_set (A: SmallT)
+        (R: A -> A -> Prop) (WF: well_founded R)
+    :
+      lt (from_wf_set WF) large.
+  Proof.
+    eapply lt_le_lt.
+    { eapply hartogs_lt_from_wf_set. }
+    { eapply large_le_hartogs. }
+  Qed.
+
+  Lemma large_lt_from_wf (A: SmallT)
+        (R: A -> A -> Prop) (WF: well_founded R) (a: A)
+    :
+      lt (from_wf WF a) large.
+  Proof.
+    eapply lt_le_lt.
+    { eapply hartogs_lt_from_wf. }
+    { eapply large_le_hartogs. }
+  Qed.
+
+  Lemma large_supremum o
+        (LT: forall (A: SmallT) (R: A -> A -> Prop) (WF: well_founded R),
+            lt (from_wf_set WF) o)
+    :
+      le large o.
+  Proof.
+    eapply build_supremum. auto.
+  Qed.
 End TYPE.
 End Ord.
 
 
-Global Opaque Ord.O Ord.S Ord.join Ord.union Ord.rec Ord.from_acc Ord.from_wf Ord.from_wf_set Ord.from_nat Ord.omega.
+Global Opaque Ord.O Ord.S Ord.join Ord.union Ord.rec Ord.from_acc Ord.from_wf Ord.from_wf_set Ord.from_nat Ord.omega Ord.hartogs Ord.large.

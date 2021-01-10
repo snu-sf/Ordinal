@@ -387,9 +387,9 @@ Module Cardinal.
       i. split.
       { i. subst. reflexivity. }
       { i. destruct (TOTAL a0 a1) as [|[]]; auto.
-        { eapply (Ord.from_wf_lt WF) in H0. exfalso.
+        { eapply (Ord.lt_from_wf WF) in H0. exfalso.
           eapply Ord.lt_not_le; eauto. eapply H. }
-        { eapply (Ord.from_wf_lt WF) in H0. exfalso.
+        { eapply (Ord.lt_from_wf WF) in H0. exfalso.
           eapply Ord.lt_not_le; eauto. eapply H. }
       }
     Qed.
@@ -495,6 +495,7 @@ Module Cardinal.
     Lemma next_cardinal_supremum B (CARD: Ord.lt (cardinal A) (cardinal B)):
       Ord.le (next_cardinal A) (cardinal B).
     Proof.
+      Local Transparent Ord.hartogs.
       eapply Ord.build_supremum. i. destruct a as [R WF]. unfold Y. ss.
       destruct (ClassicOrd.total (cardinal B) (Ord.from_wf_set WF)); auto.
       hexploit (cardinal_of_cardinal B); eauto. i. inv H0. des.
@@ -978,7 +979,7 @@ Module Cardinal.
       i. split.
       { eapply Ord.build_supremum. i. eapply Ord.le_lt_lt.
         { eapply finite_from_wf_eq. }
-        { eapply Ord.from_wf_lt. ss. }
+        { eapply Ord.lt_from_wf. ss. }
       }
       { unfold Ord.from_wf at 1. destruct (finite_well_founded (Datatypes.S n) None).
         ss. econs. i. destruct a0. ss. destruct x; ss.
@@ -998,7 +999,7 @@ Module Cardinal.
       - econs. i. exists tt. ss. etransitivity.
         2: { eapply finite_from_wf_set_eq. }
         destruct a0.
-        { eapply Ord.lt_le. eapply Ord.from_wf_lt. auto. }
+        { eapply Ord.lt_le. eapply Ord.lt_from_wf. auto. }
         { reflexivity. }
     Qed.
 
