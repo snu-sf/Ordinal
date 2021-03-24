@@ -1489,3 +1489,17 @@ End Ord.
 
 
 Global Opaque Ord.O Ord.S Ord.join Ord.union Ord.rec Ord.from_acc Ord.from_wf Ord.from_wf_set Ord.from_nat Ord.omega Ord.hartogs Ord.large.
+
+
+
+
+Declare Scope ord_scope.
+Delimit Scope ord_scope with ord.
+
+Coercion Ord.from_nat: nat >-> Ord.t.
+
+Notation "o0 >= o1" := (Ord.le o1 o0) : ord_scope.
+Notation "o0 > o1" := (Ord.lt o1 o0) : ord_scope.
+Notation "o0 <= o1" := (Ord.le o0 o1) : ord_scope.
+Notation "o0 < o1" := (Ord.lt o0 o1) : ord_scope.
+Notation "o0 == o1" := (Ord.eq o0 o1) (at level 70, no associativity) : ord_scope.

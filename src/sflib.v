@@ -18,7 +18,7 @@ Require Import Bool List Arith ZArith String Program.
 
 Set Implicit Arguments.
 
-Hint Unfold not iff id: sflib.
+#[export] Hint Unfold not iff id: sflib.
 
 Export ListNotations.
 
@@ -47,7 +47,7 @@ Proof. intros []; (reflexivity || discriminate). Qed.
 Lemma sflib__andb_split: forall {b1 b2}, b1 && b2 -> b1 /\ b2.
 Proof. intros [] []; try discriminate; auto. Qed.
 
-Hint Resolve sflib__true_is_true sflib__not_false_is_true: sflib.
+#[export] Hint Resolve sflib__true_is_true sflib__not_false_is_true: sflib.
 
 (* ************************************************************************** *)
 (** * Basic automation tactics *)
@@ -181,7 +181,7 @@ Definition  NW A (P: () -> A) : A := P ().
 Ltac unnw := unfold NW in *.
 Ltac rednw := red; unnw.
 
-Hint Unfold NW: sflib.
+#[export] Hint Unfold NW: sflib.
 
 Ltac get_concl := lazymatch goal with [ |- ?G ] => G end.
 

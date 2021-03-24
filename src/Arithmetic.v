@@ -790,7 +790,7 @@ Module OrdArith.
 
     Section FROMNAT.
       Lemma le_from_nat n0 n1 (LE: Peano.le n0 n1):
-        Ord.le (Ord.from_nat n0) (Ord.from_nat n1).
+        Ord.le n0 n1.
       Proof.
         induction LE.
         { reflexivity. }
@@ -798,7 +798,7 @@ Module OrdArith.
       Qed.
 
       Lemma lt_from_nat n0 n1 (LT: Peano.lt n0 n1):
-        Ord.lt (Ord.from_nat n0) (Ord.from_nat n1).
+        Ord.lt n0 n1.
       Proof.
         eapply Ord.lt_le_lt.
         2: { eapply le_from_nat. eapply LT. }
@@ -806,7 +806,7 @@ Module OrdArith.
       Qed.
 
       Lemma add_from_nat n0 n1:
-        Ord.eq (Ord.from_nat (n0 + n1)) (add (Ord.from_nat n0) (Ord.from_nat n1)).
+        Ord.eq (n0 + n1) (add (Ord.from_nat n0) (Ord.from_nat n1)).
       Proof.
         Local Transparent Ord.from_nat.
         induction n1; ss.
@@ -853,3 +853,7 @@ End OrdArith.
 
 
 Global Opaque OrdArith.add OrdArith.mult OrdArith.expn.
+
+Infix "+" := OrdArith.add : ord_scope.
+Infix "*" := OrdArith.mult : ord_scope.
+Infix "^" := OrdArith.expn : ord_scope.
