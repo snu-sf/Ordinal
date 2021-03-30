@@ -637,26 +637,31 @@ Module Ord.
     Qed.
   End OPERATOR.
 
-  Section SETOID.
-    Global Program Instance lt_proper: Proper (eq ==> eq ==> iff) (lt).
+  Section PROPER.
+    Global Program Instance lt_eq_proper: Proper (eq ==> eq ==> iff) (lt).
     Next Obligation.
       ii. split; i.
       - eapply lt_eq_lt. { symmetry. eauto. } eapply eq_lt_lt; eauto. symmetry. eauto.
       - eapply lt_eq_lt; eauto. eapply eq_lt_lt; eauto.
     Qed.
 
-    Global Program Instance le_proper: Proper (eq ==> eq ==> iff) (le).
+    Global Program Instance le_eq_proper: Proper (eq ==> eq ==> iff) (le).
     Next Obligation.
       ii. split; i.
       - eapply le_eq_le. { symmetry. eauto. } eapply eq_le_le; eauto. symmetry. eauto.
       - eapply le_eq_le; eauto. eapply eq_le_le; eauto.
     Qed.
 
-    Global Program Instance S_proper: Proper (eq ==> eq) (S).
+    Global Program Instance S_eq_proper: Proper (eq ==> eq) (S).
     Next Obligation.
       ii. eapply eq_S; eauto.
     Qed.
-  End SETOID.
+
+    Global Program Instance S_le_proper: Proper (le ==> le) (S).
+    Next Obligation.
+      ii. eapply le_S; eauto.
+    Qed.
+  End PROPER.
 
 
   Section FROMWF.
