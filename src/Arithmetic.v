@@ -788,6 +788,56 @@ Module OrdArith.
       Qed.
     End EXPN.
 
+    Section SETOID.
+      Global Program Instance add_proper: Proper (Ord.eq ==> Ord.eq ==> Ord.eq) (add).
+      Next Obligation.
+        ii.
+        etransitivity.
+        - eapply eq_add_l; eauto.
+        - eapply eq_add_r; eauto.
+      Qed.
+
+      Global Program Instance add_le_proper: Proper (Ord.le ==> Ord.le ==> Ord.le) (add).
+      Next Obligation.
+        ii.
+        etransitivity.
+        - eapply le_add_l; eauto.
+        - eapply le_add_r; eauto.
+      Qed.
+
+      Global Program Instance mult_proper: Proper (Ord.eq ==> Ord.eq ==> Ord.eq) (mult).
+      Next Obligation.
+        ii.
+        etransitivity.
+        - eapply eq_mult_l; eauto.
+        - eapply eq_mult_r; eauto.
+      Qed.
+
+      Global Program Instance mult_le_proper: Proper (Ord.le ==> Ord.le ==> Ord.le) (mult).
+      Next Obligation.
+        ii.
+        etransitivity.
+        - eapply le_mult_l; eauto.
+        - eapply le_mult_r; eauto.
+      Qed.
+
+      Global Program Instance expn_proper: Proper (Ord.eq ==> Ord.eq ==> Ord.eq) (expn).
+      Next Obligation.
+        ii.
+        etransitivity.
+        - eapply eq_expn_l; eauto.
+        - eapply eq_expn_r; eauto.
+      Qed.
+
+      Global Program Instance expn_le_proper: Proper (Ord.le ==> Ord.le ==> Ord.le) (expn).
+      Next Obligation.
+        ii.
+        etransitivity.
+        - eapply le_expn_l; eauto.
+        - eapply le_expn_r; eauto.
+      Qed.
+    End SETOID.
+
     Section FROMNAT.
       Lemma le_from_nat n0 n1 (LE: Peano.le n0 n1):
         Ord.le n0 n1.
