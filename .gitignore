@@ -3,14 +3,15 @@
 _CoqProject
 Makefile.coq
 Makefile.coq.conf
+.Makefile.coq.d
 
 *.vo
 *.vio
 *.v.d
 *.glob
 .*.aux
-.vok
-.vos
+*.vok
+*.vos
 
 .lia.cache
 .nia.cache

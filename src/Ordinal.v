@@ -637,6 +637,27 @@ Module Ord.
     Qed.
   End OPERATOR.
 
+  Section SETOID.
+    Global Program Instance lt_proper: Proper (eq ==> eq ==> iff) (lt).
+    Next Obligation.
+      ii. split; i.
+      - eapply lt_eq_lt. { symmetry. eauto. } eapply eq_lt_lt; eauto. symmetry. eauto.
+      - eapply lt_eq_lt; eauto. eapply eq_lt_lt; eauto.
+    Qed.
+
+    Global Program Instance le_proper: Proper (eq ==> eq ==> iff) (le).
+    Next Obligation.
+      ii. split; i.
+      - eapply le_eq_le. { symmetry. eauto. } eapply eq_le_le; eauto. symmetry. eauto.
+      - eapply le_eq_le; eauto. eapply eq_le_le; eauto.
+    Qed.
+
+    Global Program Instance S_proper: Proper (eq ==> eq) (S).
+    Next Obligation.
+      ii. eapply eq_S; eauto.
+    Qed.
+  End SETOID.
+
 
   Section FROMWF.
     Program Fixpoint from_acc A (R: A -> A -> Prop) (a1: A) (ACC: Acc R a1): t :=
