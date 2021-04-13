@@ -1,5 +1,5 @@
 From Ordinal Require Import sflib Basics ClassicalOrdinal Cardinal Inaccessibility.
-From Ordinal Require Export Ordinal.
+From Ordinal Require Export Ordinal Arithmetic.
 
 Require Import ClassicalChoice.
 Require Import Program.
@@ -432,4 +432,50 @@ Section STRONGLYINACCESSIBLE.
     { i. eapply Cardinal.le_beth_gen. auto. }
     { i. eapply Ord.S_supremum. eapply Cardinal.beth_gen_lt. }
   Qed.
+
+  Lemma kappa_inaccessible_add o0 o1 (LT0: Ord.lt o0 kappa) (LT1: Ord.lt o1 kappa):
+    Ord.lt (OrdArith.add o0 o1) kappa.
+  Proof.
+    Local Transparent OrdArith.add.
+    eapply kappa_inaccessible_rec; auto.
+    { eapply kappa_inaccessible_S. }
+    { i. eapply Ord.le_S. auto. }
+  Qed.
+
+  Lemma kappa_inaccessible_mult o0 o1 (LT0: Ord.lt o0 kappa) (LT1: Ord.lt o1 kappa):
+    Ord.lt (OrdArith.mult o0 o1) kappa.
+  Proof.
+    Local Transparent OrdArith.mult.
+    eapply kappa_inaccessible_rec; auto.
+    { eapply kappa_inaccessible_O. }
+    { i. eapply kappa_inaccessible_add; auto. }
+    { i. eapply OrdArith.le_add_l. auto. }
+  Qed.
+
+  Lemma kappa_inaccessible_expn o0 o1 (LT0: Ord.lt o0 kappa) (LT1: Ord.lt o1 kappa):
+    Ord.lt (OrdArith.expn o0 o1) kappa.
+  Proof.
+    Local Transparent OrdArith.expn.
+    eapply kappa_inaccessible_rec; auto.
+    { eapply kappa_inaccessible_S.
+      eapply kappa_inaccessible_O. }
+    { i. eapply kappa_inaccessible_mult; auto. }
+    { i. eapply OrdArith.le_mult_l. auto. }
+  Qed.
+
 End STRONGLYINACCESSIBLE.
+
+Create HintDb ord_kappa.
+#[export] Hint Resolve kappa_inaccessible_build: ord_kappa.
+#[export] Hint Resolve kappa_inaccessible_join: ord_kappa.
+#[export] Hint Resolve kappa_inaccesible_from_acc: ord_kappa.
+#[export] Hint Resolve kappa_inaccesible_from_wf: ord_kappa.
+#[export] Hint Resolve kappa_inaccesible_from_wf_set: ord_kappa.
+#[export] Hint Resolve kappa_inaccessible_O: ord_kappa.
+#[export] Hint Resolve kappa_inaccessible_S: ord_kappa.
+#[export] Hint Resolve kappa_inaccessible_nat: ord_kappa.
+#[export] Hint Resolve kappa_inaccessible_omega: ord_kappa.
+#[export] Hint Resolve kappa_inaccessible_union: ord_kappa.
+#[export] Hint Resolve kappa_inaccessible_add: ord_kappa.
+#[export] Hint Resolve kappa_inaccessible_mult: ord_kappa.
+#[export] Hint Resolve kappa_inaccessible_expn: ord_kappa.
