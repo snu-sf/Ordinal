@@ -44,6 +44,13 @@ Furthermore, many useful theorems *not about ordinals* can be proved.
 
 ## Installation
 ```
+# from opam
+opam repo add coq-released https://coq.inria.fr/opam/released
+opam install coq-paco
+```
+or you can build manually
+```
+# from source
 git clone git@github.com:minkiminki/Ordinal.git
 cd Ordinal
 opam pin .
