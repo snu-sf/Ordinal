@@ -161,8 +161,8 @@ Section LATTICE.
   Qed.
 End LATTICE.
 
-Hint Resolve ilift_mon: paco.
-Hint Resolve ilift_snd_mon: paco.
+#[export] Hint Resolve ilift_mon: paco.
+#[export] Hint Resolve ilift_snd_mon: paco.
 Arguments ilift [_].
 Arguments ilift_snd [_].
 Arguments inaccessible [_].
@@ -277,6 +277,7 @@ Section EQUIVALENCE.
     Qed.
   End INACCESSIBLE.
 
+
   Theorem ipaco_munu:
     forall x, nu (fun r => mu (F r)) x <-> exists o, paco2 (ilift F) bot2 o x.
   Proof.
@@ -284,7 +285,7 @@ Section EQUIVALENCE.
     i. eapply hartogs_inaccessible; eauto.
   Qed.
 
-  Lemma ipaco_inaccessible:
+  Theorem ipaco_inaccessible:
     exists k, inaccessible (paco2 (ilift F) bot2) k.
   Proof.
     eexists. eapply ipaco_inaccessible_gen.
