@@ -113,14 +113,14 @@ Section STRONGLYINACCESSIBLE.
     eapply Cardinal._cardinal_le_iff in LE. inv LE.
     set (A' := @sig B (fun b => exists a, f a = b)). exists A'.
     split.
-    { eapply Cardinal._cardinal_le_iff.
+    { apply Cardinal._cardinal_le_iff.
       eapply Cardinal._cardinal_le_intro with (f:=fun a => exist _ (f a) (ex_intro _ a eq_refl)).
       i. inv EQ. eapply INJ; eauto.
     }
     { hexploit (choice (fun (a': A') (a: A) =>
                           f a = proj1_sig a')).
       { i. destruct x. s. eauto. }
-      i. des. eapply Cardinal._cardinal_le_iff.
+      i. des. apply Cardinal._cardinal_le_iff.
       eapply Cardinal._cardinal_le_intro with (f:=f0).
       i. destruct a0, a1. des. subst.
       dup EQ. eapply f_equal with (f:=f) in EQ0.
@@ -275,8 +275,8 @@ Section STRONGLYINACCESSIBLE.
   Proof.
     hexploit (kappa_complete LT); eauto. i. des.
     eapply (@Ord.le_lt_lt (Cardinal.cardinal (A -> Prop))).
-    { eapply Cardinality.cardinal_le_iff.
-      eapply Cardinality.le_power. eapply Cardinality.cardinal_le_iff.
+    { apply Cardinality.cardinal_le_iff.
+      eapply Cardinality.le_power. apply Cardinality.cardinal_le_iff.
       etransitivity.
       { eapply Cardinal.to_total_le. eapply H. }
       eapply Cardinal.from_wf_set_to_total.
@@ -311,7 +311,7 @@ Section STRONGLYINACCESSIBLE.
     { eapply Cardinality.cardinal_eq_iff in SIZE.
       etransitivity; [eapply SIZE|].
       symmetry. eapply Cardinality.cardinal_to_total_bij. }
-    eapply Cardinality.eq_bij_equiv in H. inv H.
+    apply Cardinality.eq_bij_equiv in H. inv H.
     eapply (@Ord.le_lt_lt (@Ord.join A0 (fun a0 => os (f a0)))).
     { eapply Ord.le_join. i. exists (g a0).
       rewrite GF. reflexivity. }
