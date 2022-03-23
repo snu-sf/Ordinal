@@ -32,7 +32,7 @@ Module Cardinal.
     Proof.
       inv LE.
       eapply _cardinal_le_intro with (f := fun s y => exists x, f x = y /\ s x).
-      i. extensionality x. eapply equal_f with (x0 :=f x) in EQ.
+      i. extensionality x. eapply equal_f with (x :=f x) in EQ.
       apply propositional_extensionality.
       transitivity (exists x0, f x0 = f x /\ a0 x0).
       { split; i; eauto.
@@ -1517,7 +1517,7 @@ Module Cardinality.
   Proof.
     inv LE.
     eapply le_intro with (f := fun s y => exists x, f x = y /\ s x).
-    i. extensionality x. eapply equal_f with (x0 :=f x) in EQ.
+    i. extensionality x. eapply equal_f with (x :=f x) in EQ.
     apply propositional_extensionality.
     transitivity (exists x0, f x0 = f x /\ a0 x0).
     { split; i; eauto.
