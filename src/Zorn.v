@@ -274,8 +274,7 @@ Section ZORN.
       ss. splits; auto. reflexivity.
     - ii. inv H. inv H0. des. exists x0, a1. splits; auto.
       etransitivity; eauto. etransitivity; eauto.
-      destruct y. ss. des. exploit (a2 x1 a0); eauto.
-      i. eapply x4; eauto.
+      destruct y. ss. des. eapply (a2 x1 a0); eauto.
   Qed.
   Local Existing Instance equiv_class_rel_PreOrder.
 

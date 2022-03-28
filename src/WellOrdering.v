@@ -13,14 +13,14 @@ Lemma from_wf_set_embed A B (RA: A -> A -> Prop) (RB: B -> B -> Prop)
   :
     exists (f: A -> B), forall a0 a1 (LT: RA a0 a1), RB (f a0) (f a1).
 Proof.
-  exploit (choice (fun a b => Ord.eq (Ord.from_wf WFA a) (Ord.from_wf WFB b))).
+  hexploit (choice (fun a b => Ord.eq (Ord.from_wf WFA a) (Ord.from_wf WFB b))).
   { intros a. eapply ClassicOrd.from_wf_set_complete.
     eapply Ord.lt_le_lt; eauto. eapply Ord.from_wf_set_upperbound. }
-  i. des. exists f. i. eapply Ord.lt_from_wf with (WF:=WFA) in LT.
+  intros EQ. des. exists f. i. eapply Ord.lt_from_wf with (WF:=WFA) in LT.
   assert (Ord.lt (Ord.from_wf WFB (f a0)) (Ord.from_wf WFB (f a1))).
   { eapply (@Ord.le_lt_lt (Ord.from_wf WFA a0)); eauto.
-    - eapply x0.
-    - eapply (@Ord.lt_le_lt (Ord.from_wf WFA a1)); auto. eapply x0. }
+    - eapply EQ.
+    - eapply (@Ord.lt_le_lt (Ord.from_wf WFA a1)); auto. eapply EQ. }
   destruct (TOTALB (f a0) (f a1)) as [|[]].
   - auto.
   - rewrite H0 in *. eapply Ord.lt_not_le in H; ss. reflexivity.

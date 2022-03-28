@@ -129,8 +129,8 @@ Proof.
     eapply Ord.eq_lt_lt; eauto. eapply Ord.lt_from_wf.
     econs; eauto.
   - eapply Ord.from_wf_supremum. i. inv LT.
-    eapply INJ in H2. subst. exploit H; eauto. i.
-    symmetry in x1. eapply Ord.eq_lt_lt; eauto.
+    eapply INJ in H2. subst. exploit H; eauto. intros EQ.
+    symmetry in EQ. eapply Ord.eq_lt_lt; eauto.
     eapply Ord.lt_from_wf; eauto.
 Qed.
 
@@ -186,8 +186,8 @@ Proof.
     eapply Ord.eq_lt_lt; eauto. eapply Ord.lt_from_wf.
     econs; eauto.
   - eapply Ord.from_wf_supremum. i. inv LT.
-    eapply INJ in H2. subst. exploit H; eauto. i.
-    symmetry in x1. eapply Ord.eq_lt_lt; eauto.
+    eapply INJ in H2. subst. exploit H; eauto. intros EQ.
+    symmetry in EQ. eapply Ord.eq_lt_lt; eauto.
     eapply Ord.lt_from_wf; eauto.
 Qed.
 

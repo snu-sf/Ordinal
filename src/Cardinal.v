@@ -32,12 +32,12 @@ Module Cardinal.
     Proof.
       inv LE.
       eapply _cardinal_le_intro with (f := fun s y => exists x, f x = y /\ s x).
-      i. extensionality x. eapply equal_f with (x :=f x) in EQ.
+      i. extensionality x. pose proof (equal_f EQ (f x)) as EQ0.
       apply propositional_extensionality.
       transitivity (exists x0, f x0 = f x /\ a0 x0).
       { split; i; eauto.
         des. apply INJ in H. subst. auto. }
-      { rewrite EQ. split; i; eauto.
+      { rewrite EQ0. split; i; eauto.
         des. apply INJ in H. subst. auto. }
     Qed.
 
@@ -96,12 +96,12 @@ Module Cardinal.
         eapply (@Ord.le_lt_lt (Ord.from_wf_set WF0)).
         { eapply Ord.same_wf_set_le. }
         destruct (ClassicOrd.total (Ord.from_wf_set WF) (Ord.from_wf_set WF0)); auto.
-        exfalso. exploit from_wf_set_embed; eauto. i. des.
+        exfalso. hexploit from_wf_set_embed; eauto. intros MON. des.
         hexploit (SMALL f); eauto. i. des.
         destruct (TOTAL a0 a1) as [|[]]; ss.
-        { eapply x0 in H2. rewrite H0 in *.
+        { eapply MON in H2. rewrite H0 in *.
           eapply well_founded_irreflexive in H2; eauto. }
-        { eapply x0 in H2. rewrite H0 in *.
+        { eapply MON in H2. rewrite H0 in *.
           eapply well_founded_irreflexive in H2; eauto. }
       Qed.
 
@@ -206,12 +206,12 @@ Module Cardinal.
           eapply Ord.lt_eq_lt.
           { symmetry. eapply IN0. }
           destruct (ClassicOrd.total (Ord.from_wf_set WF) (Ord.from_wf_set WF0)); auto.
-          exfalso. exploit from_wf_set_embed; eauto. i. des.
+          exfalso. hexploit from_wf_set_embed; eauto. intros MON. des.
           hexploit (SMALL f); eauto. i. des.
           destruct (IN a0 a1) as [|[]]; ss.
-          { eapply x0 in H2. rewrite H0 in *.
+          { eapply MON in H2. rewrite H0 in *.
             eapply well_founded_irreflexive in H2; eauto. }
-          { eapply x0 in H2. rewrite H0 in *.
+          { eapply MON in H2. rewrite H0 in *.
             eapply well_founded_irreflexive in H2; eauto. }
       Qed.
     End CARDINAL.
@@ -1339,7 +1339,7 @@ Module Cardinality.
     - ii. inv H1. eapply H0. transitivity A; auto. econs; eauto.
   Qed.
 
-  Program Instance lt_StrictOrder: StrictOrder lt.
+  #[global] Program Instance lt_StrictOrder: StrictOrder lt.
   Next Obligation.
   Proof.
     ii. inv H. eapply H1. reflexivity.
@@ -1517,12 +1517,12 @@ Module Cardinality.
   Proof.
     inv LE.
     eapply le_intro with (f := fun s y => exists x, f x = y /\ s x).
-    i. extensionality x. eapply equal_f with (x :=f x) in EQ.
+    i. extensionality x. pose proof (equal_f EQ (f x)) as EQ0.
     apply propositional_extensionality.
     transitivity (exists x0, f x0 = f x /\ a0 x0).
     { split; i; eauto.
       des. apply INJ in H. subst. auto. }
-    { rewrite EQ. split; i; eauto.
+    { rewrite EQ0. split; i; eauto.
       des. apply INJ in H. subst. auto. }
   Qed.
 
