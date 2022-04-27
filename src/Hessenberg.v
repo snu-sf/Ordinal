@@ -158,23 +158,6 @@ Module Hessenberg.
     }
   Qed.
 
-  Lemma union_build X0 X1 (os0: X0 -> Ord.t) (os1: X1 -> Ord.t)
-    :
-    Ord.eq
-      (Ord.union (Ord.build os0) (Ord.build os1))
-      (Ord.build (sum_rect _ os0 os1)).
-  Proof.
-    econs.
-    { eapply Ord.union_spec.
-      { econs. i. exists (inl a0). ss. reflexivity. }
-      { econs. i. exists (inr a0). ss. reflexivity. }
-    }
-    { eapply Ord.build_supremum. intros [x0|x1]; ss.
-      { eapply Ord.lt_le_lt; [|eapply Ord.union_l]. econs. reflexivity. }
-      { eapply Ord.lt_le_lt; [|eapply Ord.union_r]. econs. reflexivity. }
-    }
-  Qed.
-
   Lemma add_spec o0 o1 o2
         (SUP0: forall o (LT: Ord.lt o o0), Ord.lt (add o o1) o2)
         (SUP1: forall o (LT: Ord.lt o o1), Ord.lt (add o0 o) o2)
@@ -216,19 +199,19 @@ Module Hessenberg.
     { i. eapply (IH12 (o1, o)). right. auto. }
     clear IH12. destruct o0, o1, o2.
     rewrite add_red. rewrite add_red.
-    rewrite union_build. rewrite union_build.
+    rewrite Ord.union_build. rewrite Ord.union_build.
     rewrite add_red. rewrite add_red.
-    rewrite union_build. rewrite union_build. split.
+    rewrite Ord.union_build. rewrite Ord.union_build. split.
     { econs.
       { i. destruct a0 as [|[]].
         { exists (inl (inl a)). ss. rewrite <- IH2.
-          { rewrite add_red. rewrite union_build. reflexivity. }
+          { rewrite add_red. rewrite Ord.union_build. reflexivity. }
           { econs. reflexivity. }
         }
         { exists (inl (inr a)). ss.
           eapply IH1. econs. reflexivity. }
         { exists (inr a). ss. rewrite IH0.
-          { rewrite add_red. rewrite union_build. reflexivity. }
+          { rewrite add_red. rewrite Ord.union_build. reflexivity. }
           { econs. reflexivity. }
         }
       }
@@ -236,13 +219,13 @@ Module Hessenberg.
     { econs.
       { i. destruct a0 as [[]|].
         { exists (inl a). ss. rewrite <- IH2.
-          { rewrite add_red. rewrite union_build. reflexivity. }
+          { rewrite add_red. rewrite Ord.union_build. reflexivity. }
           { econs. reflexivity. }
         }
         { exists (inr (inl a)). ss.
           eapply IH1. econs. reflexivity. }
         { exists (inr (inr a)). ss. rewrite IH0.
-          { rewrite add_red. rewrite union_build. reflexivity. }
+          { rewrite add_red. rewrite Ord.union_build. reflexivity. }
           { econs. reflexivity. }
         }
       }

@@ -613,6 +613,23 @@ Module Ord.
           { eapply union_r. }
     Qed.
 
+    Lemma union_build X0 X1 (os0: X0 -> t) (os1: X1 -> t)
+      :
+      eq
+        (union (build os0) (build os1))
+        (build (sum_rect _ os0 os1)).
+    Proof.
+      econs.
+      { eapply union_spec.
+        { econs. i. exists (inl a0). ss. reflexivity. }
+        { econs. i. exists (inr a0). ss. reflexivity. }
+      }
+      { eapply build_supremum. intros [x0|x1]; ss.
+        { eapply lt_le_lt; [|eapply union_l]. econs. reflexivity. }
+        { eapply lt_le_lt; [|eapply union_r]. econs. reflexivity. }
+      }
+    Qed.
+
     Lemma limit_S_disjoint o o0 A (os: A -> t)
           (SUCC: is_S o0 o)
           (JOIN: is_join os o)
@@ -660,6 +677,11 @@ Module Ord.
     Global Program Instance S_le_proper: Proper (le ==> le) (S).
     Next Obligation.
       ii. eapply le_S; eauto.
+    Qed.
+
+    Global Program Instance union_eq_proper: Proper (eq ==> eq ==> eq) (union).
+    Next Obligation.
+      ii. eapply eq_union; auto.
     Qed.
   End PROPER.
 
