@@ -1,7 +1,7 @@
 # Ordinal Numbers in Coq
 
 This project contains a definition of ordinal numbers, and useful operators and theorms for them.
-The basic definition was already in the literature (unfortunately, @minkiminki didn't know these works when he was developing it).
+The basic definition was already in the literature.
 The datatype for ordinals is identical to aczel trees, and the chapter 10 in the HOTT book contains same definitions and properties of ordering on ordinals.
 
 # Code Structure
