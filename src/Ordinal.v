@@ -1389,6 +1389,8 @@ Module Ord.
     }
   Qed.
 
+  Definition one: t := S O.
+
   Fixpoint from_nat (n: nat): t :=
     match n with
     | 0 => O
@@ -1401,6 +1403,11 @@ Module Ord.
   Qed.
 
   Lemma from_nat_S n: from_nat (Datatypes.S n) = S (from_nat n).
+  Proof.
+    ss.
+  Qed.
+
+  Lemma from_nat_1: from_nat 1 = one.
   Proof.
     ss.
   Qed.
