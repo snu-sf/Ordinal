@@ -326,7 +326,7 @@ Module Hessenberg.
       rewrite add_comm. rewrite add_S_r. rewrite add_comm. reflexivity.
     Qed.
 
-    Lemma add_from_nat o (n: nat)
+    Lemma arith_add_from_nat o (n: nat)
       :
       Ord.eq (add o n) (OrdArith.add o n).
     Proof.
@@ -336,6 +336,20 @@ Module Hessenberg.
       }
       { rewrite Ord.from_nat_S.
         rewrite add_S_r. rewrite OrdArith.add_S. rewrite IHn. reflexivity.
+      }
+    Qed.
+
+    Lemma add_from_nat n0 n1:
+      Ord.eq (n0 + n1) (add (Ord.from_nat n0) (Ord.from_nat n1)).
+    Proof.
+      induction n1; ss.
+      { rewrite PeanoNat.Nat.add_0_r.
+        symmetry. eapply add_O_r. }
+      { rewrite PeanoNat.Nat.add_succ_r.
+        rewrite Ord.from_nat_S.
+        rewrite Ord.from_nat_S.
+        rewrite add_S_r.
+        eapply Ord.eq_S. auto.
       }
     Qed.
 
@@ -522,6 +536,20 @@ Module Jacobsthal.
       etransitivity.
       - eapply le_mult_l; eauto.
       - eapply le_mult_r; eauto.
+    Qed.
+
+    Lemma mult_from_nat n0 n1:
+      Ord.eq (n0 * n1) (mult (Ord.from_nat n0) (Ord.from_nat n1)).
+    Proof.
+      induction n1; ss.
+      { rewrite PeanoNat.Nat.mul_0_r.
+        symmetry. eapply mult_O_r. }
+      { rewrite PeanoNat.Nat.mul_succ_r.
+        rewrite Ord.from_nat_S.
+        rewrite mult_S.
+        rewrite Hessenberg.add_from_nat.
+        rewrite Hessenberg.add_comm. rewrite IHn1. reflexivity.
+      }
     Qed.
   End MULT.
 End Jacobsthal.
