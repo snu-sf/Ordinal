@@ -99,7 +99,7 @@ Furthermore, many useful theorems *not about ordinals* can be proved.
 ```
 # from opam
 opam repo add coq-released https://coq.inria.fr/opam/released
-opam install coq-paco
+opam install coq-ordinal
 ```
 or you can build manually
 ```
