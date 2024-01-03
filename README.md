@@ -5,18 +5,18 @@ The basic definition was already in the literature.
 The datatype for ordinals is identical to aczel trees, and the chapter 10 in the HOTT book contains same definitions and properties of ordering on ordinals.
 
 # Code Structure
-- [Ordinal.v](https://github.com/minkiminki/Ordinal/blob/main/src/Ordinal.v): basic defintions
-- [Arithmetic.v](https://github.com/minkiminki/Ordinal/blob/main/src/Arithmetic.v): ordinal arithmetic
-- [ClassicOrdinal.v](https://github.com/minkiminki/Ordinal/blob/main/src/ClassicOrdinal.v) and [Totalness.v](https://github.com/minkiminki/Ordinal/blob/main/src/Totalness.v): classical facts about ordinals
-- [Cardinal.v](https://github.com/minkiminki/Ordinal/blob/main/src/Cardinal.v): cardinals
-- [WellOrdering.v](https://github.com/minkiminki/Ordinal/blob/main/src/WellOrdering.v), [Zorn.v](https://github.com/minkiminki/Ordinal/blob/main/src/Zorn.v) and [Fixedpoint.v](https://github.com/minkiminki/Ordinal/blob/main/src/Fixedpoint.v): corollary
+- [Ordinal.v](https://github.com/snu-sf/Ordinal/blob/main/src/Ordinal.v): basic defintions
+- [Arithmetic.v](https://github.com/snu-sf/Ordinal/blob/main/src/Arithmetic.v): ordinal arithmetic
+- [ClassicalOrdinal.v](https://github.com/snu-sf/Ordinal/blob/main/src/ClassicalOrdinal.v) and [Totalness.v](https://github.com/snu-sf/Ordinal/blob/main/src/Totalness.v): classical facts about ordinals
+- [Cardinal.v](https://github.com/snu-sf/Ordinal/blob/main/src/Cardinal.v): cardinals
+- [WellOrdering.v](https://github.com/snu-sf/Ordinal/blob/main/src/WellOrdering.v), [Zorn.v](https://github.com/snu-sf/Ordinal/blob/main/src/Zorn.v) and [Fixedpoint.v](https://github.com/snu-sf/Ordinal/blob/main/src/Fixedpoint.v): corollary
 
 If you are finding a general well-founded ordered structure, definitions in `Ordinal.v` and `Arithmetic.v` (sometimes, `ClassicalOrdinal`) will be a good choice.
 If you are looking for more set-theoretical things, other files will be interesting, too.
 
-Note that files other than `Ordinal.v`, `Arithmetic.v` and `ClassicOrdinal.v` are experimental and not maintained well.
+Note that files other than `Ordinal.v`, `Arithmetic.v` and `ClassicalOrdinal.v` are experimental and not maintained well.
 
-## Basic definitions - [Ordinal.v](https://github.com/minkiminki/Ordinal/blob/main/src/Ordinal.v) (axiom-free)
+## Basic definitions - [Ordinal.v](https://github.com/snu-sf/Ordinal/blob/main/src/Ordinal.v) (axiom-free)
 Below is the mathematical representation of the ordinal used in this project.
 ```
 Inductive Ord.t :=
@@ -46,7 +46,7 @@ Variant Ord.lt: t -> t -> Prop :=
 
 Definition Ord.eq (o0 o1: Ord.t): Prop := Ord.le o0 o1 /\ Ord.le o1 o0.
 ```
-Totalness of this ordering is [equivalent](https://github.com/minkiminki/Ordinal/blob/main/src/Totalness.v) to excluded_middle,
+Totalness of this ordering is [equivalent](https://github.com/snu-sf/Ordinal/blob/main/src/Totalness.v) to excluded_middle,
 and thus it is not included in `Ordinal.v`.
 
 The following and basic combinators:
@@ -66,7 +66,7 @@ For example, `o0 := @Ord.join bool (fun _ => Ord.O)` and `o1 := @Ord.join unit (
 `Ord.eq o0 o1` holds, but `o0 = o1` is not true.
 
 
-## Transfinite Recursion and Arithmetic - [Ordinal.v](https://github.com/minkiminki/Ordinal/blob/main/src/Ordinal.v) and [Arithmetic.v](https://github.com/minkiminki/Ordinal/blob/main/src/Arithmetic.v) (axiom-free)
+## Transfinite Recursion and Arithmetic - [Ordinal.v](https://github.com/snu-sf/Ordinal/blob/main/src/Ordinal.v) and [Arithmetic.v](https://github.com/snu-sf/Ordinal/blob/main/src/Arithmetic.v) (axiom-free)
 Transfinite recursive function:
 ```
 Ord.rec: forall (D: Type) (base: D) (next: D -> D) (join: forall (A: Type), (A -> D) -> D), Ord.t -> D
@@ -78,22 +78,22 @@ Ord.orec: forall (base: Ord.t) (next: Ord.t -> Ord.t), Ord.t -> Ord.t
 `Ord.orec` is very useful for defining other ordinal functions.
 `OrdArith.add`, `OrdArith.mult`, and `OrdArith.expn` in `Arithmetic.v` are defined using `Ord.orec`, and even aleph numbers can be defined using `Ord.orec` (`aleph` in `Cardinal.v`).
 
-## Ordinal + axiom - [ClassicOrdinal.v](https://github.com/minkiminki/Ordinal/blob/main/src/ClassicOrdinal.v) and others (axiom used)
-The law of excluded middle is imported in [ClassicOrdinal.v](https://github.com/minkiminki/Ordinal/blob/main/src/ClassicOrdinal.v),
+## Ordinal + axiom - [ClassicalOrdinal.v](https://github.com/snu-sf/Ordinal/blob/main/src/ClassicalOrdinal.v) and others (axiom used)
+The law of excluded middle is imported in [ClassicalOrdinal.v](https://github.com/snu-sf/Ordinal/blob/main/src/ClassicalOrdinal.v),
 and we get classical facts about ordinals. 
 - totalness of ordering (`Lemma ClassicOrd.total`)
 - case analysis (`Lemma limit_or_S`)
 - more "standard" transfinite induction (`Lemma ClassicOrd.ind`)
 
 More axioms are used in other files (excluded middle, axiom of choice, axiom K, proof irrelevance, propositional extensionality and functional extensionality).
-With axioms, we can define [cardinals](https://github.com/minkiminki/Ordinal/blob/main/src/Cardinal.v) as special ordinals
-and prove the existence of an [inaccessible cardinal](https://github.com/minkiminki/Ordinal/blob/main/src/Inaccessible.v).
+With axioms, we can define [cardinals](https://github.com/snu-sf/Ordinal/blob/main/src/Cardinal.v) as special ordinals
+and prove the existence of an [inaccessible cardinal](https://github.com/snu-sf/Ordinal/blob/main/src/Inaccessible.v).
 
 ## Interesting Results (axiom used)
 Furthermore, many useful theorems *not about ordinals* can be proved.
-- [The well ordering theorem](https://github.com/minkiminki/Ordinal/blob/main/src/WellOrdering.v)
-- [Zorn's lemma](https://github.com/minkiminki/Ordinal/blob/main/src/Zorn.v)
-- [The Bourbaki–Witt fixed point theorem](https://github.com/minkiminki/Ordinal/blob/main/src/Fixedpoint.v) and its application for an initial algebra / final coalgebra
+- [The well ordering theorem](https://github.com/snu-sf/Ordinal/blob/main/src/WellOrdering.v)
+- [Zorn's lemma](https://github.com/snu-sf/Ordinal/blob/main/src/Zorn.v)
+- [The Bourbaki–Witt fixed point theorem](https://github.com/snu-sf/Ordinal/blob/main/src/Fixedpoint.v) and its application for an initial algebra / final coalgebra
 
 # Installation
 ```
@@ -104,7 +104,7 @@ opam install coq-ordinal
 or you can build manually
 ```
 # from source
-git clone git@github.com:minkiminki/Ordinal.git
+git clone git@github.com:snu-sf/Ordinal.git
 cd Ordinal
 opam pin .
 ```
