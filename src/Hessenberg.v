@@ -530,7 +530,7 @@ Module Jacobsthal.
       - eapply eq_mult_r; eauto.
     Qed.
 
-    Global Program Instance add_le_proper: Proper (Ord.le ==> Ord.le ==> Ord.le) (mult).
+    Global Program Instance mult_le_proper: Proper (Ord.le ==> Ord.le ==> Ord.le) (mult).
     Next Obligation.
       ii.
       etransitivity.
@@ -552,8 +552,186 @@ Module Jacobsthal.
       }
     Qed.
   End MULT.
+
+  Section EXPN.
+
+    Let flip A B C (f: A -> B -> C): B -> A -> C := fun b a => f a b.
+
+    Definition expn (o0: Ord.t): forall (o1: Ord.t), Ord.t := Ord.orec (Ord.S Ord.O) (flip mult o0).
+
+    Let expn_gen_mon o o0 o1 (LE: Ord.le o0 o1):
+      Ord.le (flip mult o o0) (flip mult o o1).
+    Proof.
+      eapply le_mult_l. auto.
+    Qed.
+
+    Lemma arith_expn_larger o0 o1
+      :
+      Ord.le (OrdArith.expn o0 o1) (expn o0 o1).
+    Proof.
+      Local Transparent OrdArith.expn.
+      eapply Ord.orec_mon.
+      { reflexivity. }
+      { i. rewrite LE. unfold flip. apply arith_mult_larger. }
+    Qed.
+
+    Section BASE.
+
+      Variable base: Ord.t.
+
+      Lemma expn_O: Ord.eq (expn base Ord.O) (Ord.S Ord.O).
+      Proof.
+        eapply (@Ord.orec_O (Ord.S Ord.O) (flip mult base)); auto.
+      Qed.
+
+      Lemma expn_pos o: Ord.lt Ord.O (expn base o).
+      Proof.
+        eapply Ord.lt_le_lt.
+        { eapply Ord.S_lt. }
+        { eapply Ord.orec_le_base. auto. }
+      Qed.
+
+      Section POSITIVE.
+
+        Hypothesis POS: Ord.lt Ord.O base.
+
+        Let expn_gen_le o: Ord.le o (flip mult base o).
+        Proof.
+          etransitivity. apply mult_1_r. apply le_mult_r. apply Ord.S_supremum; auto.
+        Qed.
+
+        Lemma expn_S o: Ord.eq (expn base (Ord.S o)) (mult (expn base o) base).
+        Proof.
+          eapply Ord.orec_S; auto.
+        Qed.
+
+        Lemma le_expn_r o0 o1 (LE: Ord.le o0 o1):
+          Ord.le (expn base o0) (expn base o1).
+        Proof.
+          eapply Ord.le_orec; auto.
+        Qed.
+
+        Lemma eq_expn_r o0 o1 (EQ: Ord.eq o0 o1):
+          Ord.eq (expn base o0) (expn base o1).
+        Proof.
+          eapply Ord.eq_orec; auto.
+        Qed.
+
+        Lemma expn_join A (os: A -> Ord.t):
+          Ord.eq (expn base (Ord.join os)) (Ord.union (Ord.S Ord.O) (Ord.join (fun a => expn base (os a)))).
+        Proof.
+          eapply Ord.orec_join; auto.
+        Qed.
+
+        Lemma expn_join_inhabited A (os: A -> Ord.t)
+          (INHABITED: inhabited A):
+          Ord.eq (expn base (Ord.join os)) (Ord.join (fun a => expn base (os a))).
+        Proof.
+          eapply Ord.orec_join_inhabited; auto.
+        Qed.
+
+        Lemma expn_build A (os: A -> Ord.t):
+          Ord.eq (expn base (Ord.build os)) (Ord.union (Ord.S Ord.O) (Ord.join (fun a => mult (expn base (os a)) base))).
+        Proof.
+          eapply Ord.orec_build.
+        Qed.
+
+        Lemma expn_union o0 o1
+          :
+          Ord.eq (expn base (Ord.union o0 o1)) (Ord.union (expn base o0) (expn base o1)).
+        Proof.
+          eapply Ord.orec_union; auto.
+        Qed.
+
+        Lemma expn_1_r: Ord.eq (expn base (Ord.S Ord.O)) base.
+        Proof.
+          etransitivity.
+          { eapply expn_S. }
+          etransitivity.
+          { eapply eq_mult_l. eapply expn_O. }
+          eapply mult_1_l.
+        Qed.
+
+      End POSITIVE.
+
+      Lemma lt_expn_r (TWO: Ord.lt (Ord.S Ord.O) base) o0 o1 (LT: Ord.lt o0 o1):
+        Ord.lt (expn base o0) (expn base o1).
+      Proof.
+        assert (POS: Ord.lt Ord.O base).
+        { eapply Ord.le_lt_lt; eauto. eapply Ord.S_le. }
+        eapply (@Ord.lt_le_lt (expn base (Ord.S o0))).
+        { eapply Ord.lt_eq_lt.
+          { eapply expn_S. auto. }
+          { eapply Ord.le_lt_lt. 2: eapply lt_mult_r. rewrite mult_1_r. reflexivity. auto. apply expn_pos. }
+        }
+        { eapply le_expn_r. eapply Ord.S_supremum. auto. }
+      Qed.
+    End BASE.
+
+    Lemma expn_1_l o: Ord.eq (expn (Ord.S Ord.O) o) (Ord.S Ord.O).
+    Proof.
+      induction o. etransitivity.
+      { eapply expn_build. }
+      etransitivity.
+      { eapply Ord.union_comm. }
+      eapply Ord.union_max. eapply Ord.join_supremum.
+      i. eapply Ord.eq_le_le.
+      { eapply mult_1_r. }
+      eapply H.
+    Qed.
+
+    Lemma le_expn_l o0 o1 o2 (LE: Ord.le o0 o1):
+      Ord.le (expn o0 o2) (expn o1 o2).
+    Proof.
+      eapply Ord.orec_mon.
+      { reflexivity. }
+      { i. transitivity (mult o3 o1).
+        { eapply le_mult_r. auto. }
+        { eapply le_mult_l. auto. }
+      }
+    Qed.
+
+    Lemma eq_expn_l o0 o1 o2 (EQ: Ord.eq o0 o1):
+      Ord.eq (expn o0 o2) (expn o1 o2).
+    Proof.
+      split; eapply le_expn_l; apply EQ.
+    Qed.
+
+    Global Program Instance expn_eq_proper: Proper (Ord.eq ==> Ord.eq ==> Ord.eq) (expn).
+    Next Obligation.
+      ii.
+      etransitivity.
+      - eapply eq_expn_l; eauto.
+      - eapply eq_expn_r; eauto.
+    Qed.
+
+    Global Program Instance expn_le_proper: Proper (Ord.le ==> Ord.le ==> Ord.le) (expn).
+    Next Obligation.
+      ii.
+      etransitivity.
+      - eapply le_expn_l; eauto.
+      - eapply le_expn_r; eauto.
+    Qed.
+
+    Lemma expn_from_nat n0 (POS: 0 < n0) n1:
+      Ord.eq (Ord.from_nat (Nat.pow n0 n1)) (expn (Ord.from_nat n0) (Ord.from_nat n1)).
+    Proof.
+      induction n1; ss.
+      { symmetry. eapply expn_O. }
+      { etransitivity.
+        { rewrite PeanoNat.Nat.mul_comm. eapply mult_from_nat. }
+        etransitivity.
+        { eapply eq_mult_l. eapply IHn1. }
+        symmetry. rewrite Ord.from_nat_S. eapply expn_S.
+        eapply (@OrdArith.lt_from_nat 0 n0). auto.
+      }
+    Qed.
+  End EXPN.
+
 End Jacobsthal.
 
 Global Opaque Jacobsthal.mult.
+Global Opaque Jacobsthal.expn.
 
 Infix "×" := Jacobsthal.mult (at level 80, right associativity) : ord_scope.
+Infix "×^" := Jacobsthal.mult (at level 80, right associativity) : ord_scope.

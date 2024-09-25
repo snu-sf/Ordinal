@@ -155,4 +155,60 @@ Module ClassicJacobsthal.
       { eapply Hessenberg.le_add_r. eapply H. }
     }
   Qed.
+
+  Lemma expn_add base (POS: Ord.lt Ord.O base) o0 o1:
+    Ord.eq (Jacobsthal.expn base (OrdArith.add o0 o1)) (Jacobsthal.mult (Jacobsthal.expn base o0) (Jacobsthal.expn base o1)).
+  Proof.
+    revert o0. induction o1. i. etransitivity.
+    { eapply Jacobsthal.eq_expn_r. eapply OrdArith.add_build. }
+    etransitivity.
+    { eapply Jacobsthal.expn_union. auto. }
+    etransitivity.
+    2: { eapply Jacobsthal.eq_mult_r. symmetry. eapply Jacobsthal.expn_build. }
+    etransitivity.
+    2: { symmetry. eapply Jacobsthal.mult_union. }
+    etransitivity.
+    { eapply Ord.eq_union.
+      { reflexivity. }
+      eapply Jacobsthal.expn_join. auto.
+    }
+    etransitivity.
+    { eapply Ord.union_assoc. }
+    eapply Ord.eq_union.
+    { etransitivity.
+      { eapply Ord.union_comm. }
+      { etransitivity.
+        2: { symmetry. eapply Jacobsthal.mult_1_r. }
+        { eapply Ord.union_max. eapply Ord.S_supremum. eapply Jacobsthal.expn_pos. }
+      }
+    }
+    etransitivity.
+    2: { symmetry. eapply Jacobsthal.mult_join. }
+    eapply Ord.eq_join. i.
+    etransitivity.
+    { eapply Jacobsthal.expn_S. auto. }
+    etransitivity.
+    2: { eapply mult_assoc. }
+    eapply Jacobsthal.eq_mult_l.
+    eapply H.
+  Qed.
+
+  Lemma expn_mult o0 (POS: Ord.lt Ord.O o0) o1 o2:
+    Ord.eq (Jacobsthal.expn o0 (OrdArith.mult o1 o2)) (Jacobsthal.expn (Jacobsthal.expn o0 o1) o2).
+  Proof.
+    induction o2.
+    etransitivity.
+    { eapply Jacobsthal.eq_expn_r. eapply OrdArith.mult_build. }
+    etransitivity.
+    { eapply Jacobsthal.expn_join. auto. }
+    etransitivity.
+    2: { symmetry. eapply Jacobsthal.expn_build. }
+    eapply Ord.eq_union.
+    { reflexivity. }
+    eapply Ord.eq_join. i.
+    etransitivity.
+    { eapply expn_add. auto. }
+    eapply Jacobsthal.eq_mult_l. auto.
+  Qed.
+
 End ClassicJacobsthal.
