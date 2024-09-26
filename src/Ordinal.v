@@ -1445,7 +1445,7 @@ Module Ord.
       { unfold from_wf at 1.
         destruct (PeanoNat.Nat.lt_wf_0 (Datatypes.S n)). ss.
         econs. i. destruct a0. exists tt. ss.
-        dup l. eapply PeanoNat.lt_n_Sm_le in l0.
+        dup l. apply le_S_n in l0.
         eapply PeanoNat.Nat.lt_eq_cases in l0. des.
         { eapply lt_le. eapply lt_from_acc. auto. }
         { subst. eapply same_acc_le. }
