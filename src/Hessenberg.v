@@ -734,4 +734,4 @@ Global Opaque Jacobsthal.mult.
 Global Opaque Jacobsthal.expn.
 
 Infix "×" := Jacobsthal.mult (at level 80, right associativity) : ord_scope.
-Infix "×^" := Jacobsthal.mult (at level 80, right associativity) : ord_scope.
+Infix "↑" := Jacobsthal.expn (at level 80, right associativity) : ord_scope.
