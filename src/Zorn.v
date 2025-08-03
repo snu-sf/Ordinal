@@ -1,8 +1,8 @@
 From Ordinal Require Import sflib Basics ClassicalOrdinal Fixedpoint.
 From Ordinal Require Export Ordinal.
 
-Require Import Coq.Classes.RelationClasses.
-Require Import ClassicalChoice FunctionalExtensionality PropExtensionality.
+Require Import Stdlib.Classes.RelationClasses.
+From Stdlib Require Import ClassicalChoice FunctionalExtensionality PropExtensionality.
 
 Set Implicit Arguments.
 Set Primitive Projections.

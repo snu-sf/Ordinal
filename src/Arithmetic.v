@@ -1,7 +1,7 @@
 From Ordinal Require Import sflib Basics.
 From Ordinal Require Export Ordinal.
 
-Require Import Coq.Classes.RelationClasses Coq.Classes.Morphisms. (* TODO: Use Morphisms *)
+Require Import Stdlib.Classes.RelationClasses Stdlib.Classes.Morphisms. (* TODO: Use Morphisms *)
 
 Set Implicit Arguments.
 Set Primitive Projections.

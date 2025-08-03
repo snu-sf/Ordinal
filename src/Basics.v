@@ -1,6 +1,6 @@
 From Ordinal Require Import sflib.
 
-Require Import Coq.Classes.RelationClasses Coq.Relations.Relation_Operators Coq.Classes.Morphisms Coq.Init.Wf. (* TODO: Use Morphisms *)
+Require Import Stdlib.Classes.RelationClasses Stdlib.Relations.Relation_Operators Stdlib.Classes.Morphisms Stdlib.Init.Wf. (* TODO: Use Morphisms *)
 
 Set Implicit Arguments.
 Set Primitive Projections.
