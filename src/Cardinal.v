@@ -2,9 +2,9 @@ From Ordinal Require Import sflib Basics.
 From Ordinal Require Import ClassicalOrdinal WfRel WellOrdering.
 From Ordinal Require Export Ordinal ToSet.
 
-Require Import Coq.Classes.RelationClasses.
-Require Import ClassicalChoice FunctionalExtensionality PropExtensionality.
-Require Import Program.
+From Coq Require Import Classes.RelationClasses.
+From Coq Require Import ClassicalChoice FunctionalExtensionality PropExtensionality.
+From Coq Require Import Program.
 
 Set Implicit Arguments.
 Set Primitive Projections.

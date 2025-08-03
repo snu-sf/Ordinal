@@ -2,8 +2,8 @@ From Ordinal Require Import sflib Basics.
 From Ordinal Require Import ClassicalOrdinal WfRel.
 From Ordinal Require Export Ordinal.
 
-Require Import FunctionalExtensionality PropExtensionality.
-Require Import Program. (* Axiom K *)
+From Coq Require Import FunctionalExtensionality PropExtensionality.
+From Coq Require Import Program. (* Axiom K *)
 
 Set Implicit Arguments.
 Set Primitive Projections.

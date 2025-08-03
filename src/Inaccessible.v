@@ -1,8 +1,8 @@
 From Ordinal Require Import sflib Basics ClassicalOrdinal Cardinal Inaccessibility.
 From Ordinal Require Export Ordinal Arithmetic.
 
-Require Import ClassicalChoice.
-Require Import Program.
+From Coq Require Import ClassicalChoice.
+From Coq Require Import Program.
 
 Set Implicit Arguments.
 Set Primitive Projections.

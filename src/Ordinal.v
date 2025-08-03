@@ -1,6 +1,6 @@
 From Ordinal Require Import sflib Basics.
 
-Require Import Coq.Classes.RelationClasses Coq.Classes.Morphisms. (* TODO: Use Morphisms *)
+From Coq Require Import Classes.RelationClasses Classes.Morphisms. (* TODO: Use Morphisms *)
 
 Set Implicit Arguments.
 Set Primitive Projections.
@@ -1558,3 +1558,4 @@ Notation "o0 > o1" := (Ord.lt o1 o0) : ord_scope.
 Notation "o0 <= o1" := (Ord.le o0 o1) : ord_scope.
 Notation "o0 < o1" := (Ord.lt o0 o1) : ord_scope.
 Notation "o0 == o1" := (Ord.eq o0 o1) (at level 70, no associativity) : ord_scope.
+Notation "'ω'" := Ord.omega : ord_scope.

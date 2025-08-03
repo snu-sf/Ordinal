@@ -1,7 +1,7 @@
 From Ordinal Require Import sflib Basics.
 From Ordinal Require Export Ordinal Arithmetic.
 
-Require Import ChoiceFacts.
+From Coq Require Import ChoiceFacts.
 
 Set Implicit Arguments.
 Set Primitive Projections.

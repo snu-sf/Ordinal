@@ -12,8 +12,12 @@ build: Makefile.coq
 quick: Makefile.coq
 	$(MAKE) -f Makefile.coq vio
 
+# Add "-deprecated-from-Coq" to _CoqProject to silence warnings.
+# Remove it when droping support for Coq <= 8.20.
 Makefile.coq: Makefile $(COQTHEORIES)
 	(echo "-Q src $(COQMODULE)"; \
+   \
+   echo "-arg -w -arg -deprecated-from-Coq"; \
    \
    echo $(COQTHEORIES)) > _CoqProject
 	coq_makefile -f _CoqProject -o Makefile.coq
