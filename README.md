@@ -4,7 +4,7 @@ This project contains a definition of ordinal numbers, and useful operators and 
 The basic definition was already in the literature.
 The datatype for ordinals is identical to aczel trees, and the chapter 10 in the HOTT book contains same definitions and properties of ordering on ordinals.
 
-Currently checked to support from Coq.8.13 to Rocq.9.0.
+Currently checked to support from Coq.8.15.2 to Rocq.9.0.0.
 
 # Code Structure
 - [Ordinal.v](https://github.com/snu-sf/Ordinal/blob/main/src/Ordinal.v): basic defintions
