@@ -1,7 +1,7 @@
 From Ordinal Require Import sflib Basics.
 From Ordinal Require Export Ordinal Arithmetic.
 
-From Stdlib Require Import ChoiceFacts.
+Require Import ChoiceFacts.
 
 Set Implicit Arguments.
 Set Primitive Projections.

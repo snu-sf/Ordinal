@@ -1,7 +1,7 @@
 From Ordinal Require Import sflib Basics WfRel Totalness.
 From Ordinal Require Export Ordinal.
 
-From Stdlib Require Import ClassicalChoice.
+Require Import ClassicalChoice.
 
 Set Implicit Arguments.
 Set Primitive Projections.

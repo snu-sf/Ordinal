@@ -1,7 +1,7 @@
 From Ordinal Require Import sflib Basics.
 From Ordinal Require Export Ordinal.
 
-From Stdlib Require Import PropExtensionality.
+Require Import PropExtensionality.
 
 Set Implicit Arguments.
 Set Primitive Projections.

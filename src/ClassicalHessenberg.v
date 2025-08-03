@@ -1,7 +1,7 @@
 From Ordinal Require Import sflib Basics.
 From Ordinal Require Export Ordinal Arithmetic Hessenberg ClassicalOrdinal.
 
-Require Import Stdlib.Classes.RelationClasses Stdlib.Classes.Morphisms.
+Require Import Coq.Classes.RelationClasses Coq.Classes.Morphisms.
 
 Set Implicit Arguments.
 Set Primitive Projections.

@@ -1,8 +1,8 @@
 From Ordinal Require Import sflib Basics ClassicalOrdinal Cardinal Inaccessibility.
 From Ordinal Require Export Ordinal Arithmetic.
 
-From Stdlib Require Import ClassicalChoice.
-From Stdlib Require Import Program.
+Require Import ClassicalChoice.
+Require Import Program.
 
 Set Implicit Arguments.
 Set Primitive Projections.
